@@ -1,0 +1,25 @@
+import { BrowserRouter } from 'react-router';
+import { LoadingProvider } from './hooks/LoadingProvider';
+import { MuiThemeProvider } from './hooks/MuiThemeProvider';
+import { SnackbarProvider } from './hooks/SnackbarProvider';
+import AppRoutes from './AppRoutes';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+export default function App() {
+    return (
+        <BrowserRouter>
+            <MuiThemeProvider>
+                <LoadingProvider>
+                    <SnackbarProvider>
+                        <AppRoutes />
+                    </SnackbarProvider>
+                </LoadingProvider>
+            </MuiThemeProvider>
+        </BrowserRouter>
+    );
+}
