@@ -1,15 +1,21 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
-import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 
-// https://vite.dev/config/
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
-    server: {
-        port: 9875,
-        cors: false,
-    },
-    optimizeDeps: {
-        exclude: ['js-big-decimal'],
-    },
+  plugins: [react()],
+  base: '/', // Always use root for Vercel
+  server: {
+    port: 9875,
+    open: true
+  },
+  css: {
+    modules: {
+      localsConvention: 'camelCase'
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true
+  }
 });
