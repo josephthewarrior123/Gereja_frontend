@@ -14,6 +14,8 @@ export default function QrScanPage() {
   const warningShown = useRef(false);
   const scanTimeoutRef = useRef(null);
 
+  const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   useEffect(() => {
     return () => {
       if (scannerInstance) {
@@ -51,6 +53,14 @@ export default function QrScanPage() {
     setAlreadyCheckedIn(false);
     warningShown.current = false;
 
+    const isMobileDevice = isMobile();
+    const config = {
+      fps: 10,
+      qrbox: isMobileDevice
+        ? { width: 200, height: 200 }  // Mobile
+        : { width: 300, height: 250 } // Desktop
+    };
+
     scanTimeoutRef.current = setTimeout(() => {
       if (!scannedGuest) {
         safeStopScanner(html5QrCode);
@@ -61,7 +71,7 @@ export default function QrScanPage() {
     html5QrCode
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: 250 },
+        config,
         async (decodedText) => {
           clearTimeout(scanTimeoutRef.current);
           try {
@@ -146,11 +156,21 @@ export default function QrScanPage() {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto">
+    <div className="p-4 max-w-md mx-auto pb-20">
       <h1 className="text-2xl font-bold mb-4">Wedding QR Scanner</h1>
 
       <div className="mb-4">
-        <div id="qr-reader" className="w-full h-64 bg-gray-200 rounded-lg mb-2" />
+        <div
+          id="qr-reader"
+          className="w-full bg-gray-200 rounded-lg mb-2"
+          style={{
+            aspectRatio: '3 / 4',
+            maxWidth: '400px',
+            margin: '0 auto',
+            border: '1px solid #ccc',
+            overflow: 'hidden'
+          }}
+        />
 
         {!isRunning ? (
           <button
