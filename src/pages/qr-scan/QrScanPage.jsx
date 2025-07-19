@@ -13,6 +13,7 @@ export default function QrScanPage() {
 
   const warningShown = useRef(false);
   const scanTimeoutRef = useRef(null);
+  const resultRef = useRef(null);
 
   const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -26,6 +27,12 @@ export default function QrScanPage() {
       }
     };
   }, [scannerInstance]);
+
+  useEffect(() => {
+    if (scannedGuest && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [scannedGuest]);
 
   const safeStopScanner = async (scanner) => {
     try {
@@ -57,8 +64,8 @@ export default function QrScanPage() {
     const config = {
       fps: 10,
       qrbox: isMobileDevice
-        ? { width: 200, height: 200 }  // Mobile
-        : { width: 300, height: 250 } // Desktop
+        ? { width: 200, height: 200 }
+        : { width: 300, height: 250 },
     };
 
     scanTimeoutRef.current = setTimeout(() => {
@@ -156,8 +163,15 @@ export default function QrScanPage() {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto pb-20">
-      <h1 className="text-2xl font-bold mb-4">Wedding QR Scanner</h1>
+    <div
+      className="p-4 max-w-md mx-auto"
+      style={{
+        minHeight: '100vh',
+        overflowY: 'auto',
+        paddingBottom: '5rem',
+      }}
+    >
+      <h1 className="text-2xl font-bold mb-4 text-center">Wedding QR Scanner</h1>
 
       <div className="mb-4">
         <div
@@ -168,7 +182,7 @@ export default function QrScanPage() {
             maxWidth: '400px',
             margin: '0 auto',
             border: '1px solid #ccc',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         />
 
@@ -191,14 +205,17 @@ export default function QrScanPage() {
       </div>
 
       {error && (
-        <div className="p-3 mb-4 bg-red-100 text-red-800 rounded-lg">
+        <div className="p-3 mb-4 bg-red-100 text-red-800 rounded-lg text-center">
           {error}
         </div>
       )}
 
       {scannedGuest && (
-        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-          <h3 className="font-bold text-lg text-green-800">
+        <div
+          ref={resultRef}
+          className="p-4 bg-green-50 rounded-lg border border-green-200"
+        >
+          <h3 className="font-bold text-lg text-green-800 text-center">
             {alreadyCheckedIn ? 'Anda Sudah Check-in' : 'Check-in Berhasil!'}
           </h3>
           <div className="mt-2">
