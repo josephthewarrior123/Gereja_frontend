@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ref, set } from 'firebase/database';
 import { db } from '../../config/firebaseConfig';
 import { 
@@ -14,11 +14,13 @@ import {
   ListItemSecondaryAction
 } from '@mui/material';
 import { Icon } from '@iconify/react';
+import * as XLSX from 'xlsx';
 
 export default function CreateCoupleDialog({ open, onClose }) {
   const [coupleName, setCoupleName] = useState('');
   const [guests, setGuests] = useState([]);
   const [newGuest, setNewGuest] = useState('');
+  const fileInputRef = useRef(null);
 
   // Fungsi untuk mereset semua input form
   const resetForm = () => {
@@ -85,9 +87,17 @@ export default function CreateCoupleDialog({ open, onClose }) {
     }
   };
 
+  // Check if guest name already exists (case insensitive)
+  const isGuestExists = (name) => {
+    return guests.some(
+      guest => guest.name.toLowerCase() === name.toLowerCase()
+    );
+  };
+
   const addGuest = () => {
-    if (newGuest.trim()) {
-      setGuests([...guests, { name: newGuest.trim() }]);
+    const trimmedName = newGuest.trim();
+    if (trimmedName && !isGuestExists(trimmedName)) {
+      setGuests([...guests, { name: trimmedName }]);
       setNewGuest('');
     }
   };
@@ -96,6 +106,55 @@ export default function CreateCoupleDialog({ open, onClose }) {
     const updatedGuests = [...guests];
     updatedGuests.splice(index, 1);
     setGuests(updatedGuests);
+  };
+
+  // Handle Excel file import
+  const handleFileImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+      if (jsonData.length > 0) {
+        const importedGuests = jsonData
+          .map(row => {
+            // Use 'name' column if exists, otherwise use first column
+            const name = row.name || row[Object.keys(row)[0]];
+            return { name: String(name).trim() };
+          })
+          .filter(guest => guest.name && !isGuestExists(guest.name)); // Filter out empty and duplicate names
+
+        if (importedGuests.length > 0) {
+          setGuests([...guests, ...importedGuests]);
+        } else {
+          alert('No new guests found to import (duplicates were skipped)');
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    
+    // Reset file input
+    e.target.value = '';
+  };
+
+  // Generate example Excel file
+  const downloadExampleExcel = () => {
+    const exampleData = [
+      { name: 'John Doe' },
+      { name: 'Jane Smith' },
+      { name: 'Michael Johnson' },
+      { name: 'Sarah Williams' }
+    ];
+    
+    const ws = XLSX.utils.json_to_sheet(exampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Guests");
+    XLSX.writeFile(wb, "guest_list_example.xlsx");
   };
 
   // Reset form juga ketika dialog dibuka
@@ -136,13 +195,45 @@ export default function CreateCoupleDialog({ open, onClose }) {
             value={newGuest}
             onChange={(e) => setNewGuest(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && addGuest()}
+            error={newGuest.trim() && isGuestExists(newGuest.trim())}
+            helperText={
+              newGuest.trim() && isGuestExists(newGuest.trim())
+                ? 'This guest already exists'
+                : ''
+            }
           />
           <Button 
             variant="contained" 
             onClick={addGuest}
+            disabled={!newGuest.trim() || isGuestExists(newGuest.trim())}
             startIcon={<Icon icon="mdi:plus" />}
           >
             Add
+          </Button>
+        </Box>
+
+        <Box display="flex" gap={1} mb={2}>
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<Icon icon="mdi:file-excel" />}
+          >
+            Import from Excel
+            <input
+              type="file"
+              hidden
+              accept=".xlsx, .xls"
+              onChange={handleFileImport}
+              ref={fileInputRef}
+            />
+          </Button>
+          
+          <Button
+            variant="text"
+            onClick={downloadExampleExcel}
+            startIcon={<Icon icon="mdi:download" />}
+          >
+            Download Example
           </Button>
         </Box>
 

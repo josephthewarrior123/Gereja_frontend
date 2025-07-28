@@ -14,10 +14,13 @@
     "@date-io/dayjs": "^3.2.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.2.0",
     "@mui/lab": "^6.0.0-beta.30",
     "@mui/material": "^6.4.6",
+    "@mui/x-data-grid": "^8.9.1",
     "@mui/x-date-pickers": "^7.27.3",
     "@tailwindcss/vite": "^4.0.3",
+    "bcryptjs": "^3.0.2",
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "firebase": "^12.0.0",
@@ -33,6 +36,7 @@
     "react-router": "^7.1.5",
     "react-router-dom": "^6.29.0",
     "tailwindcss": "^4.0.3",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {

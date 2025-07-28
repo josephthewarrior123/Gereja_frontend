@@ -1,64 +1,47 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useLoading } from './LoadingProvider';
-import { useAlert } from './SnackbarProvider';
-import UserDAO from '../daos/UserDAO';
 
-const UserContext = createContext({});
+const UserContext = createContext();
 
 export function UserProvider({ children }) {
-    const loading = useLoading();
-    const message = useAlert();
-    const [data, setData] = useState(null);
-    const [token, setToken] = useState(null);
+    const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const getSelfData = async () => {
-        try {
-            loading.start();
-            const selfData = await UserDAO.getSelfData();
-            setData(selfData);
-        } catch (error) {
-            if (error.message === 'TOKEN_EXPIRED') {
-                logout();
-            }
-            message(error?.error_message, 'error');
-        } finally {
-            loading.stop();
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
         }
-    };
+        setIsLoading(false);
+    }, []);
 
-    const login = (tokenData) => {
-        setToken(tokenData);
-        localStorage.setItem('token', tokenData);
-        sessionStorage.setItem('token', tokenData);
-        getSelfData();
+    const login = (userData) => {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('token');
-        setData(null);
-        setToken(null);
+        setUser(null);
+        localStorage.removeItem('user');
     };
 
-    const value = {
-        data,
-        token,
-        login,
+    const value = { 
+        user, 
+        login, 
         logout,
+        isLoading
     };
-
-    useEffect(() => {
-        const token =
-            localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (token) {
-            setToken(token);
-            getSelfData();
-        }
-    }, []);
 
     return (
-        <UserContext.Provider value={value}>{children}</UserContext.Provider>
+        <UserContext.Provider value={value}>
+            {children}
+        </UserContext.Provider>
     );
 }
 
-export const useUser = () => useContext(UserContext);
+export const useUser = () => {
+    const context = useContext(UserContext);
+    if (context === undefined) {
+        throw new Error('useUser must be used within a UserProvider');
+    }
+    return context;
+};

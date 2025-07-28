@@ -46,15 +46,32 @@ export default function CoupleManagePage() {
     const [openEditGuestDialog, setOpenEditGuestDialog] = useState(false);
     const [currentGuest, setCurrentGuest] = useState(null);
     const [newGuestName, setNewGuestName] = useState('');
-    const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
+    const isGuestNameExists = (name) => {
+        return couple.guests.some(
+          guest => guest.name.toLowerCase() === name.toLowerCase()
+        );
+      };
+
+    // Fungsi untuk membuat ID alfanumerik bersih
+    const createCleanId = (str) => {
+        const alphanumericOnly = str
+            .toLowerCase()
+            .replace(/&/g, 'dan')
+            .replace(/[^a-z0-9]/g, ''); // Hanya menyisakan huruf dan angka
+        
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000); // Angka acak 4 digit
+        
+        return `${alphanumericOnly}${randomSuffix}`;
+    };
 
     // Status options for filtering
     const statusOptions = [
-        { value: 'ALL', label: 'All Status' },
+        { value: 'all', label: 'All Status' },
         { value: 'PENDING', label: 'Pending' },
-        { value: 'ACCEPTED', label: 'Accepted' },
-        { value: 'REJECTED', label: 'Rejected' }
+        { value: 'checked-in', label: 'Checked In' },
+        { value: 'rejected', label: 'Rejected' }
     ];
 
     // Fetch couple data from Firebase
@@ -91,18 +108,18 @@ export default function CoupleManagePage() {
 
     // Filter guests based on status and search keyword
     const filteredGuests = couple.guests.filter(guest => {
-        const matchesStatus = filterStatus === 'ALL' || guest.status === filterStatus;
+        const matchesStatus = filterStatus === 'all' || guest.status === filterStatus;
         const matchesSearch = guest.name.toLowerCase().includes(searchKeyword.toLowerCase());
         return matchesStatus && matchesSearch;
     });
 
     // Calculate statistics
     const totalGuests = couple.guests.length;
-    const acceptedGuests = couple.guests.filter(g => g.status === 'ACCEPTED').length;
+    const checkedInGuests = couple.guests.filter(g => g.status === 'checked-in').length;
     const pendingGuests = couple.guests.filter(g => g.status === 'PENDING').length;
-    const rejectedGuests = couple.guests.filter(g => g.status === 'REJECTED').length;
+    const rejectedGuests = couple.guests.filter(g => g.status === 'rejected').length;
 
-    const acceptancePercentage = totalGuests > 0 ? (acceptedGuests / totalGuests) * 100 : 0;
+    const checkInPercentage = totalGuests > 0 ? (checkedInGuests / totalGuests) * 100 : 0;
 
     // Handle guest deletion
     const handleDeleteGuest = async (guestId) => {
@@ -121,32 +138,39 @@ export default function CoupleManagePage() {
 
     // Handle adding new guest
     const handleAddGuest = async () => {
-        if (!newGuestName.trim()) {
-            message('Please enter a guest name', 'error');
-            return;
+        const trimmedName = newGuestName.trim();
+        
+        if (!trimmedName) {
+          message('Please enter a guest name', 'error');
+          return;
         }
-
+      
+        if (isGuestNameExists(trimmedName)) {
+          message('Guest with this name already exists', 'error');
+          return;
+        }
+      
         try {
-            loading.start();
-            const newGuestId = `guest_${Date.now()}`;
-            const newGuest = {
-                name: newGuestName.trim(),
-                code: `G${Math.floor(1000 + Math.random() * 9000)}`,
-                status: 'PENDING',
-                addedAt: new Date().toISOString()
-            };
-
-            await update(ref(db, `couples/${id}/guests/${newGuestId}`), newGuest);
-            message('Guest added successfully', 'success');
-            setNewGuestName('');
-            setOpenAddGuestDialog(false);
+          loading.start();
+          const newGuestId = createCleanId(trimmedName);
+          const newGuest = {
+            name: trimmedName,
+            code: `G${Math.floor(1000 + Math.random() * 9000)}`,
+            status: 'PENDING',
+            addedAt: new Date().toISOString()
+          };
+      
+          await update(ref(db, `couples/${id}/guests/${newGuestId}`), newGuest);
+          message('Guest added successfully', 'success');
+          setNewGuestName('');
+          setOpenAddGuestDialog(false);
         } catch (error) {
-            console.error('Error adding guest:', error);
-            message('Failed to add guest', 'error');
+          console.error('Error adding guest:', error);
+          message('Failed to add guest', 'error');
         } finally {
-            loading.stop();
+          loading.stop();
         }
-    };
+      };
 
     // Handle editing guest
     const handleEditGuest = async () => {
@@ -218,7 +242,7 @@ export default function CoupleManagePage() {
                         </Typography>
                     </Box>
 
-                    {/* Accepted Guests Card */}
+                    {/* Checked In Guests Card */}
                     <Box sx={{ 
                         p: 3, 
                         border: 1, 
@@ -228,10 +252,10 @@ export default function CoupleManagePage() {
                         minWidth: 200
                     }}>
                         <Typography variant="h6" color="text.secondary">
-                            Accepted
+                            Checked In
                         </Typography>
                         <Typography variant="h4" fontWeight="bold" color="success.main">
-                            {acceptedGuests}
+                            {checkedInGuests}
                         </Typography>
                     </Box>
 
@@ -270,15 +294,15 @@ export default function CoupleManagePage() {
                     </Box>
                 </Box>
 
-                {/* Acceptance Progress */}
+                {/* Check In Progress */}
                 <Box>
                     <Typography variant="h6" gutterBottom>
-                        Acceptance Rate
+                        Check In Rate
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <LinearProgress
                             variant="determinate"
-                            value={acceptancePercentage}
+                            value={checkInPercentage}
                             sx={{ 
                                 height: 10,
                                 borderRadius: 5,
@@ -289,7 +313,7 @@ export default function CoupleManagePage() {
                             }}
                         />
                         <Typography variant="body1" fontWeight="bold">
-                            {Math.round(acceptancePercentage)}%
+                            {Math.round(checkInPercentage)}%
                         </Typography>
                     </Box>
                 </Box>
@@ -383,8 +407,8 @@ export default function CoupleManagePage() {
                                                 label={guest.status}
                                                 size="small"
                                                 color={
-                                                    guest.status === 'ACCEPTED' ? 'success' :
-                                                    guest.status === 'PENDING' ? 'warning' : 'error'
+                                                    guest.status === 'checked-in' ? 'success' :
+                                                    guest.status === 'pending' ? 'warning' : 'error'
                                                 }
                                             />
                                             {guest.addedAt && (
@@ -403,35 +427,42 @@ export default function CoupleManagePage() {
 
             {/* Add Guest Dialog */}
             <Dialog open={openAddGuestDialog} onClose={() => setOpenAddGuestDialog(false)}>
-                <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>
-                        Add New Guest
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        label="Guest Name"
-                        value={newGuestName}
-                        onChange={(e) => setNewGuestName(e.target.value)}
-                        margin="normal"
-                        autoFocus
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-                        <Button 
-                            variant="outlined" 
-                            onClick={() => setOpenAddGuestDialog(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            variant="contained" 
-                            color="primary" 
-                            onClick={handleAddGuest}
-                        >
-                            Add Guest
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
+  <Box sx={{ p: 3 }}>
+    <Typography variant="h6" gutterBottom>
+      Add New Guest
+    </Typography>
+    <TextField
+      fullWidth
+      label="Guest Name"
+      value={newGuestName}
+      onChange={(e) => setNewGuestName(e.target.value)}
+      margin="normal"
+      autoFocus
+      error={newGuestName.trim() && isGuestNameExists(newGuestName.trim())}
+      helperText={
+        newGuestName.trim() && isGuestNameExists(newGuestName.trim())
+          ? 'Guest with this name already exists'
+          : ''
+      }
+    />
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
+      <Button 
+        variant="outlined" 
+        onClick={() => setOpenAddGuestDialog(false)}
+      >
+        Cancel
+      </Button>
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={handleAddGuest}
+        disabled={!newGuestName.trim() || isGuestNameExists(newGuestName.trim())}
+      >
+        Add Guest
+      </Button>
+    </Box>
+  </Box>
+</Dialog>
 
             {/* Edit Guest Dialog */}
             <Dialog open={openEditGuestDialog} onClose={() => setOpenEditGuestDialog(false)}>

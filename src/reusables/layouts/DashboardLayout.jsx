@@ -8,27 +8,18 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import Constants from '../../utils/Constants';
 import CustomIcon from '../CustomIcon';
 import Logo from '../Logo';
-
-// Mock user data for development
-const mockUser = {
-  token: 'dev-token',
-  data: {
-    username: 'Admin',
-    premiers: {
-      name: 'Mock Premiere',
-      cinemas: {
-        name: 'Mock Cinema',
-        address: '123 Developer Street',
-        id: 1
-      },
-      id: 1
-    }
-  }
-};
+import { useUser } from '../../hooks/UserProvider';
 
 export default function DashboardLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const user = mockUser; // Using mock user instead of useUser()
+  const { user, logout, isLoading } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user && !isLoading) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   const sections = [
     {
@@ -54,6 +45,14 @@ export default function DashboardLayout() {
       url: '/qr-scan',
       title: 'QR Scan',
     },
+
+    {
+      icon: 'heroicons:shield-check',
+      label: 'Admin Management',
+      url: '/admin-management',
+      title: 'Admin Management',
+      adminOnly: true // Add this flag
+    }
   ];
 
   const PageTitle = () => {
@@ -73,6 +72,15 @@ export default function DashboardLayout() {
   const handleDrawerClose = () => {
     setIsDrawerOpen(false);
   };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <div className="max-w-screen max-h-screen overflow-hidden h-full">
@@ -105,6 +113,7 @@ export default function DashboardLayout() {
             sections={sections}
             onClose={handleDrawerClose}
             user={user}
+            onLogout={handleLogout}
           />
         </Drawer>
 
@@ -125,6 +134,7 @@ export default function DashboardLayout() {
             sections={sections}
             onClose={handleDrawerClose}
             user={user}
+            onLogout={handleLogout}
           />
         </Drawer>
       </Box>
@@ -151,7 +161,7 @@ export default function DashboardLayout() {
           </div>
           <div>
             <Avatar sx={{ width: 40, height: 40 }}>
-              {user?.data?.username?.charAt(0)?.toUpperCase()}
+              {user?.username?.charAt(0)?.toUpperCase()}
             </Avatar>
           </div>
         </Box>
@@ -184,13 +194,13 @@ export default function DashboardLayout() {
           </div>
           <div className="flex gap-3 items-center">
             <div className="text-lg text-right">
-              <div>{user?.data?.username}</div>
+              <div>{user?.username}</div>
               <div className="typography-1 text-sm">
-                {user?.data?.premiers?.name}
+                {user?.role}
               </div>
             </div>
             <Avatar sx={{ width: 40, height: 40 }}>
-              {user?.data?.username?.charAt(0)?.toUpperCase()}
+              {user?.username?.charAt(0)?.toUpperCase()}
             </Avatar>
           </div>
         </Box>
@@ -227,9 +237,17 @@ export default function DashboardLayout() {
   );
 }
 
-function DrawerContent({ sections, onClose, user }) {
+function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Filter menu items based on user role
+  const filteredSections = sections.filter(section => {
+    if (section.adminOnly && user?.role !== 'superadmin') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="text-project-grey-1">
@@ -240,7 +258,7 @@ function DrawerContent({ sections, onClose, user }) {
 
       {/* Sections */}
       <div className="mt-4">
-        {sections.map((section) => (
+        {filteredSections.map((section) => (
           <MenuItem
             key={section.label}
             icon={section.icon}
@@ -262,9 +280,7 @@ function DrawerContent({ sections, onClose, user }) {
           <MenuItem
             icon={'heroicons:arrow-left-end-on-rectangle'}
             label={'Logout'}
-            onClick={() => {
-              navigate('/');
-            }}
+            onClick={onLogout}
           />
         </div>
       </div>
