@@ -7,7 +7,9 @@ import CoupleList from './pages/studios/CoupleListPage';
 import CoupleManage from './pages/studios/CoupleManagePage';
 import LoginPage from './pages/authentications/LoginPage';
 import AdminList from './pages/Admin/AdminList';
-import CreateAdmin from './pages/Admin/CreateAdmin'
+import CreateAdmin from './pages/Admin/CreateAdmin';
+import AdminEdit from './pages/Admin/AdminEdit';
+import AdminAssignPage from './pages/Admin/AdminAssignPage';
 
 
 export default function AppRoutes() {
@@ -24,6 +26,8 @@ export default function AppRoutes() {
                 <Route path="qr-scan" element={<QrScanPage />} />
                 <Route path="admin-management" element={<AdminList/>} />
                 <Route path="create-admin" element={<CreateAdmin />} />
+                <Route path="edit-admin/:id" element={<AdminEdit />} />
+                <Route path="assign-admin/:id" element={<AdminAssignPage />} /> 
 
                 <Route path="guests" element={<GuestListPage />} />
             </Route>

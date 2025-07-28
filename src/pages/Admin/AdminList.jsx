@@ -11,6 +11,7 @@ import CustomIcon from '../../reusables/CustomIcon';
 export default function AdminList() {
   const { user } = useUser();
   const [admins, setAdmins] = useState([]);
+  const navigate = useNavigate();
   const db = getDatabase(app);
 
   useEffect(() => {
@@ -34,23 +35,41 @@ export default function AdminList() {
         <Avatar sx={{ bgcolor: 'primary.main' }}>
           {params.row.username.charAt(0).toUpperCase()}
         </Avatar>
-      )
+      ),
+      sortable: false,
+      filterable: false
     },
     { field: 'username', headerName: 'Username', flex: 1 },
     { field: 'role', headerName: 'Role', flex: 1 },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 200,
+      sortable: false,
+      filterable: false,
+      disableClickEventBubbling: true, // Ini yang memperbaiki issue click
       renderCell: (params) => (
-        <Button 
-          variant="outlined" 
-          size="small"
-          startIcon={<CustomIcon icon="heroicons:pencil-solid" />}
-          disabled={user?.role !== 'superadmin'}
-        >
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            size="small"
+            startIcon={<CustomIcon icon="heroicons:pencil-solid" />}
+            disabled={user?.role !== 'superadmin'}
+            onClick={() => navigate(`/edit-admin/${params.id}`)}
+          >
+            Edit
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small"
+            color="secondary"
+            startIcon={<CustomIcon icon="heroicons:user-plus-solid" />}
+            disabled={user?.role !== 'superadmin'}
+            onClick={() => navigate(`/assign-admin/${params.id}`)}
+          >
+            Assign
+          </Button>
+        </Box>
       )
     }
   ];
@@ -66,13 +85,12 @@ export default function AdminList() {
         <Typography variant="h5">Admin Management</Typography>
         {user?.role === 'superadmin' && (
           <Button 
-          variant="contained"
-          startIcon={<CustomIcon icon="heroicons:plus-solid" />}
-          onClick={() => window.location.href = '/create-admin'}
-
-        >
-          Create Admin
-        </Button>
+            variant="contained"
+            startIcon={<CustomIcon icon="heroicons:plus-solid" />}
+            onClick={() => navigate('/create-admin')}
+          >
+            Create Admin
+          </Button>
         )}
       </Box>
 
@@ -86,6 +104,18 @@ export default function AdminList() {
           sx={{
             '& .MuiDataGrid-cell': {
               borderBottom: 'none'
+            },
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none'
+            }
+          }}
+          componentsProps={{
+            row: {
+              onDoubleClick: (params) => {
+                if (user?.role === 'superadmin') {
+                  navigate(`/edit-admin/${params.id}`);
+                }
+              }
             }
           }}
         />

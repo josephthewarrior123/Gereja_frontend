@@ -11,14 +11,17 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ref, onValue, remove } from 'firebase/database'; // Tambahkan remove di sini
+import { ref, onValue, remove, update } from 'firebase/database';
 import { db } from '../../config/firebaseConfig';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
+import { useUser } from '../../hooks/UserProvider';
 import CreateCoupleDialog from './CreateCoupleDialog';
 
 export default function CoupleListPage() {
-    const [couples, setCouples] = useState([]);
+    const { user } = useUser();
+    const [allCouples, setAllCouples] = useState([]);
+    const [filteredCouples, setFilteredCouples] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedCouple, setSelectedCouple] = useState(null);
@@ -38,15 +41,27 @@ export default function CoupleListPage() {
                 for (const coupleId in data) {
                     const couple = data[coupleId];
                     const guestCount = couple.guests ? Object.keys(couple.guests).length : 0;
-                    
+
                     loadedCouples.push({
                         id: coupleId,
                         name: couple.name,
-                        guestCount
+                        guestCount,
+                        assignedAdmins: couple.assigned_admins || {}
                     });
                 }
 
-                setCouples(loadedCouples);
+                setAllCouples(loadedCouples);
+                
+                // Filter berdasarkan role user
+                if (user?.role === 'admin') {
+                    const assignedCouples = loadedCouples.filter(couple => 
+                        couple.assignedAdmins[user.id]
+                    );
+                    setFilteredCouples(assignedCouples);
+                } else {
+                    // Superadmin bisa melihat semua
+                    setFilteredCouples(loadedCouples);
+                }
             });
         } catch (error) {
             console.error('Error fetching couples:', error);
@@ -69,10 +84,13 @@ export default function CoupleListPage() {
     const handleDeleteCouple = async () => {
         try {
             loading.start();
-            // Hapus data dari Firebase
-            await remove(ref(db, `couples/${selectedCouple.id}`));
+            const coupleId = selectedCouple.id;
+
+            // Hapus couple dari database
+            await remove(ref(db, `couples/${coupleId}`));
+            
             message('Couple deleted successfully', 'success');
-            getData(); // Refresh data setelah delete
+            getData();
         } catch (error) {
             console.error('Error deleting couple:', error);
             message('Failed to delete couple', 'error');
@@ -93,7 +111,7 @@ export default function CoupleListPage() {
 
     useEffect(() => {
         getData();
-    }, []);
+    }, [user]); // Re-fetch ketika user berubah
 
     if (isMobile) {
         return (
@@ -109,30 +127,36 @@ export default function CoupleListPage() {
         <>
             <Box sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h4">Couples List</Typography>
-                    <Button
-                        variant="contained"
-                        startIcon={<Icon icon="mdi:plus" />}
-                        onClick={() => setIsDialogOpen(true)}
-                    >
-                        New Couple
-                    </Button>
+                    <Typography variant="h4">
+                        {user?.role === 'admin' ? 'My Assigned Couples' : 'All Couples'}
+                    </Typography>
+                    {user?.role === 'superadmin' && (
+                        <Button
+                            variant="contained"
+                            startIcon={<Icon icon="mdi:plus" />}
+                            onClick={() => setIsDialogOpen(true)}
+                        >
+                            New Couple
+                        </Button>
+                    )}
                 </Box>
 
                 <List sx={{ bgcolor: 'background.paper' }}>
-                    {couples.map((couple) => (
+                    {filteredCouples.map((couple) => (
                         <ListItem
                             key={couple.id}
                             secondaryAction={
-                                <IconButton 
-                                    edge="end" 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        openDeleteDialog(couple);
-                                    }}
-                                >
-                                    <Icon icon="mdi:delete" />
-                                </IconButton>
+                                user?.role === 'superadmin' && (
+                                    <IconButton
+                                        edge="end"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openDeleteDialog(couple);
+                                        }}
+                                    >
+                                        <Icon icon="mdi:delete" />
+                                    </IconButton>
+                                )
                             }
                             sx={{
                                 border: 1,
@@ -146,7 +170,18 @@ export default function CoupleListPage() {
                         >
                             <ListItemText
                                 primary={couple.name}
-                                secondary={`${couple.guestCount} guests`}
+                                secondary={
+                                    <>
+                                        <div>{`${couple.guestCount} guests`}</div>
+                                        {user?.role === 'superadmin' && (
+                                            <div>
+                                                {Object.keys(couple.assignedAdmins).length > 0
+                                                    ? `Assigned to ${Object.keys(couple.assignedAdmins).length} admin(s)`
+                                                    : 'Not assigned to any admin'}
+                                            </div>
+                                        )}
+                                    </>
+                                }
                             />
                             <Button
                                 variant="outlined"
@@ -185,9 +220,9 @@ export default function CoupleListPage() {
                             <Button variant="outlined" onClick={closeDeleteDialog}>
                                 Cancel
                             </Button>
-                            <Button 
-                                variant="contained" 
-                                color="error" 
+                            <Button
+                                variant="contained"
+                                color="error"
                                 onClick={handleDeleteCouple}
                             >
                                 Delete
