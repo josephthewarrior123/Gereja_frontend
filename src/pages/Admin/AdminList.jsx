@@ -41,16 +41,29 @@ export default function AdminList() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 200,
       renderCell: (params) => (
-        <Button 
-          variant="outlined" 
-          size="small"
-          startIcon={<CustomIcon icon="heroicons:pencil-solid" />}
-          disabled={user?.role !== 'superadmin'}
-        >
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            size="small"
+            startIcon={<CustomIcon icon="heroicons:pencil-solid" />}
+            disabled={user?.role !== 'superadmin'}
+            onClick={() => navigate(`/edit-admin/${params.id}`)}
+          >
+            Edit
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small"
+            color="secondary"
+            startIcon={<CustomIcon icon="heroicons:user-plus-solid" />}
+            disabled={user?.role !== 'superadmin'}
+            onClick={() => navigate(`/assign-admin/${params.id}`)}
+          >
+            Assign
+          </Button>
+        </Box>
       )
     }
   ];
