@@ -142,7 +142,7 @@ export default function QrScanPage() {
       if (guest.status === 'checked-in') {
         setAlreadyCheckedIn(true);
         setScannedGuest(guest);
-        throw new Error('Anda sudah check-in sebelumnya');
+        throw new Error('Anda sudah check-in sebelumnya1');
       }
 
       await update(ref(db, `couples/${coupleId}/guests/${guestId}`), {
