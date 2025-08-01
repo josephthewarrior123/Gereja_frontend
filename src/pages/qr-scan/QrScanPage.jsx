@@ -102,7 +102,7 @@ export default function QrScanPage() {
         setLoading(false);
       })
       .catch((err) => {
-        setError('Gagal memulai scanner: ' + err.message);
+        setError('Gagal memulai scanners: ' + err.message);
         setLoading(false);
       });
   };
