@@ -10,7 +10,6 @@ export default function QrScanPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
-  const [cameraPermission, setCameraPermission] = useState(null);
 
   const warningShown = useRef(false);
   const scanTimeoutRef = useRef(null);
@@ -19,8 +18,6 @@ export default function QrScanPage() {
   const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   useEffect(() => {
-    checkCameraPermissions();
-    
     return () => {
       if (scannerInstance) {
         safeStopScanner(scannerInstance);
@@ -29,26 +26,13 @@ export default function QrScanPage() {
         clearTimeout(scanTimeoutRef.current);
       }
     };
-  }, []);
+  }, [scannerInstance]);
 
   useEffect(() => {
     if (scannedGuest && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [scannedGuest]);
-
-  const checkCameraPermissions = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-      setCameraPermission(true);
-      return true;
-    } catch (err) {
-      setCameraPermission(false);
-      setError('Izin kamera diperlukan untuk memindai QR code');
-      return false;
-    }
-  };
 
   const safeStopScanner = async (scanner) => {
     try {
@@ -66,26 +50,8 @@ export default function QrScanPage() {
     }
   };
 
-  const getCameraConfig = () => {
-    // For mobile devices, try environment first, then user
-    if (isMobile()) {
-      return { facingMode: { exact: 'environment' } };
-    }
-    // For desktop, just request video without specific facing mode
-    return { facingMode: 'user' };
-  };
-
-  const startScanner = async () => {
+  const startScanner = () => {
     if (isRunning) return;
-
-    const hasPermission = await checkCameraPermissions();
-    if (!hasPermission) return;
-
-    const scannerElement = document.getElementById('qr-reader');
-    if (!scannerElement) {
-      setError('Elemen scanner tidak ditemukan');
-      return;
-    }
 
     const html5QrCode = new Html5Qrcode('qr-reader');
     setLoading(true);
@@ -97,7 +63,9 @@ export default function QrScanPage() {
     const isMobileDevice = isMobile();
     const config = {
       fps: 10,
-      qrbox: isMobileDevice ? { width: 200, height: 200 } : { width: 300, height: 250 },
+      qrbox: isMobileDevice
+        ? { width: 200, height: 200 }
+        : { width: 300, height: 250 },
     };
 
     scanTimeoutRef.current = setTimeout(() => {
@@ -107,17 +75,16 @@ export default function QrScanPage() {
       }
     }, 30000);
 
-    try {
-      // Try environment camera first (back camera)
-      await html5QrCode.start(
-        { facingMode: { exact: 'environment' } },
+    html5QrCode
+      .start(
+        { facingMode: 'environment' },
         config,
         async (decodedText) => {
           clearTimeout(scanTimeoutRef.current);
           try {
             await handleScannedUrl(decodedText);
           } catch (e) {
-            setError(e.message || 'Terjadi kesalahan saat memindai');
+            setError(e.message);
           } finally {
             await safeStopScanner(html5QrCode);
           }
@@ -128,80 +95,16 @@ export default function QrScanPage() {
             warningShown.current = true;
           }
         }
-      );
-      
-      setScannerInstance(html5QrCode);
-      setIsRunning(true);
-    } catch (firstError) {
-      try {
-        // If environment fails, try user camera (front camera)
-        await html5QrCode.start(
-          { facingMode: 'user' },
-          config,
-          async (decodedText) => {
-            clearTimeout(scanTimeoutRef.current);
-            try {
-              await handleScannedUrl(decodedText);
-            } catch (e) {
-              setError(e.message || 'Terjadi kesalahan saat memindai');
-            } finally {
-              await safeStopScanner(html5QrCode);
-            }
-          },
-          (errorMessage) => {
-            if (!warningShown.current) {
-              console.warn('Scan warning:', errorMessage);
-              warningShown.current = true;
-            }
-          }
-        );
-        
+      )
+      .then(() => {
         setScannerInstance(html5QrCode);
         setIsRunning(true);
-      } catch (secondError) {
-        // If both fail, try without specifying facing mode
-        try {
-          await html5QrCode.start(
-            undefined, // Let browser decide
-            config,
-            async (decodedText) => {
-              clearTimeout(scanTimeoutRef.current);
-              try {
-                await handleScannedUrl(decodedText);
-              } catch (e) {
-                setError(e.message || 'Terjadi kesalahan saat memindai');
-              } finally {
-                await safeStopScanner(html5QrCode);
-              }
-            },
-            (errorMessage) => {
-              if (!warningShown.current) {
-                console.warn('Scan warning:', errorMessage);
-                warningShown.current = true;
-              }
-            }
-          );
-          
-          setScannerInstance(html5QrCode);
-          setIsRunning(true);
-        } catch (finalError) {
-          const errorMsg = finalError.message || finalError.toString();
-          let userFriendlyError = 'Gagal memulai scanner';
-          
-          if (errorMsg.includes('NotAllowedError')) {
-            userFriendlyError = 'Izin kamera ditolak. Harap izinkan akses kamera.';
-          } else if (errorMsg.includes('NotFoundError')) {
-            userFriendlyError = 'Tidak ada kamera yang ditemukan';
-          } else if (errorMsg.includes('NotSupportedError')) {
-            userFriendlyError = 'Browser tidak mendukung pemindaian QR';
-          }
-          
-          setError(`${userFriendlyError}: ${errorMsg}`);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError('Gagal memulai scanner: ' + err.message);
+        setLoading(false);
+      });
   };
 
   const stopScanner = () => {
@@ -228,7 +131,6 @@ export default function QrScanPage() {
       const snapshot = await new Promise((resolve) => {
         onValue(guestQuery, (snap) => resolve(snap), { onlyOnce: true });
       });
-      
 
       if (!snapshot.exists()) {
         throw new Error('Tamu tidak ditemukan');
@@ -287,7 +189,7 @@ export default function QrScanPage() {
         {!isRunning ? (
           <button
             onClick={startScanner}
-            disabled={loading || cameraPermission === false}
+            disabled={loading}
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
           >
             {loading ? 'Memulai...' : 'Start Scanner'}
@@ -305,14 +207,6 @@ export default function QrScanPage() {
       {error && (
         <div className="p-3 mb-4 bg-red-100 text-red-800 rounded-lg text-center">
           {error}
-          {error.includes('Izin kamera') && (
-            <button 
-              onClick={startScanner}
-              className="block mt-2 mx-auto text-blue-600 underline"
-            >
-              Coba lagi
-            </button>
-          )}
         </div>
       )}
 
