@@ -250,7 +250,7 @@ export default function QrScanPage() {
             </div>
 
             <div className="hidden sm:flex text-center text-lg font-bold">
-                This page is only available in mobile devices
+                This page is only available in mobile devices please open in your phone
             </div>
 
             {/* MODAL FOR MESSAGES */}
