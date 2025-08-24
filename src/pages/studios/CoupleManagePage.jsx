@@ -4,9 +4,6 @@ import {
     Dialog,
     IconButton,
     Typography,
-    List,
-    ListItem,
-    ListItemText,
     Chip,
     Button,
     LinearProgress,
@@ -24,6 +21,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import { CustomButton, CustomSelect } from '../../reusables';
 import CustomColumn from '../../reusables/layouts/CustomColumn';
+import CustomDatatable from '../../reusables/CustomDataTable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -51,6 +49,12 @@ export default function CoupleManagePage() {
     const [newGuestPax, setNewGuestPax] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
+    
+    // Table state
+    const [page, setPage] = useState(0);
+    const [limit, setLimit] = useState(10);
+    const [sortColumn, setSortColumn] = useState('name');
+    const [sortDirection, setSortDirection] = useState('asc');
     
     const isGuestNameExists = (name) => {
         return couple.guests.some(
@@ -86,7 +90,7 @@ export default function CoupleManagePage() {
                 'Code': guest.code,
                 'Status': guest.status,
                 'Pax': guest.pax || '-',
-                'Added Date': guest.addedAt ? dayjs(guest.addedAt).format('DD MMM YYYY') : '-'
+               
             }));
 
             if (dataToExport.length === 0) {
@@ -150,6 +154,26 @@ export default function CoupleManagePage() {
         const matchesSearch = guest.name.toLowerCase().includes(searchKeyword.toLowerCase());
         return matchesStatus && matchesSearch;
     });
+
+    // Sort guests
+    const sortedGuests = [...filteredGuests].sort((a, b) => {
+        const modifier = sortDirection === 'asc' ? 1 : -1;
+        
+        if (sortColumn === 'name') {
+            return a.name.localeCompare(b.name) * modifier;
+        } else if (sortColumn === 'status') {
+            return a.status.localeCompare(b.status) * modifier;
+        } else if (sortColumn === 'pax') {
+            return ((a.pax || 0) - (b.pax || 0)) * modifier;
+        } else if (sortColumn === 'addedAt') {
+            return (new Date(a.addedAt || 0) - new Date(b.addedAt || 0)) * modifier;
+        }
+        
+        return 0;
+    });
+
+    // Paginate guests
+    const paginatedGuests = sortedGuests.slice(page * limit, page * limit + limit);
 
     // Calculate statistics - UPDATE CALCULATION
     const totalGuests = couple.guests.length;
@@ -242,6 +266,127 @@ export default function CoupleManagePage() {
         setNewGuestPax(guest.pax || '');
         setOpenEditGuestDialog(true);
     };
+
+    // Handle table sorting
+    const handleSort = (column) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Handle page change
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+    };
+
+    // Handle limit change
+    const handleLimitChange = (newLimit) => {
+        setLimit(newLimit);
+        setPage(0);
+    };
+
+    // Table columns configuration
+    const columns = [
+        {
+            key: 'name',
+            dataIndex: 'name',
+            title: 'Guest Name',
+            sortable: true,
+            width: '30%'
+        },
+        {
+            key: 'code',
+            dataIndex: 'code',
+            title: 'Code',
+            sortable: false,
+            width: '15%',
+            render: (value) => (
+                <Chip 
+                    label={value} 
+                    size="small" 
+                    variant="outlined"
+                />
+            )
+        },
+        {
+            key: 'status',
+            dataIndex: 'status',
+            title: 'Status',
+            sortable: true,
+            width: '15%',
+            render: (value) => (
+                <Chip 
+                    label={value}
+                    size="small"
+                    color={
+                        value === 'checked-in' ? 'success' :
+                        value === 'ACCEPTED' ? 'primary' :
+                        'error'
+                    }
+                />
+            )
+        },
+        {
+            key: 'pax',
+            dataIndex: 'pax',
+            title: 'Pax',
+            sortable: true,
+            width: '10%',
+            render: (value) => value ? (
+                <Chip 
+                    label={`${value} Pax`}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                        backgroundColor: '#e3f2fd',
+                        color: '#1565c0',
+                        borderColor: '#2196f3',
+                        fontWeight: 'bold'
+                    }}
+                />
+            ) : '-'
+        },
+        
+       
+        {
+            key: 'actions',
+            dataIndex: 'id',
+            title: 'Actions',
+            sortable: false,
+            width: '15%',
+            render: (value, row) => (
+                <Box>
+                    <Tooltip title="Edit">
+                        <IconButton 
+                            edge="end" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openEditDialog(row);
+                            }}
+                            sx={{ mr: 1 }}
+                        >
+                            <Icon icon="mdi:pencil" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                        <IconButton 
+                            edge="end" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setGuestToDelete(row);
+                                setOpenDeleteDialog(true);
+                            }}
+                        >
+                            <Icon icon="mdi:delete" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+            )
+        }
+    ];
 
     return (
         <>
@@ -440,97 +585,19 @@ export default function CoupleManagePage() {
                     </Box>
                 </Box>
 
-                {/* Guests List */}
-                <Box sx={{ 
-                    border: 1, 
-                    borderColor: 'divider', 
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}>
-                    <List sx={{ overflowY: 'auto', flex: 1 }}>
-                        {filteredGuests.map(guest => (
-                            <ListItem
-                                key={guest.id}
-                                divider
-                                sx={{
-                                    '&:hover': {
-                                        backgroundColor: 'action.hover'
-                                    }
-                                }}
-                                secondaryAction={
-                                    <Box>
-                                        <Tooltip title="Edit">
-                                            <IconButton 
-                                                edge="end" 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openEditDialog(guest);
-                                                }}
-                                                sx={{ mr: 1 }}
-                                            >
-                                                <Icon icon="mdi:pencil" />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Delete">
-                                            <IconButton 
-                                                edge="end" 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setGuestToDelete(guest);
-                                                    setOpenDeleteDialog(true);
-                                                }}
-                                            >
-                                                <Icon icon="mdi:delete" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </Box>
-                                }
-                            >
-                                <ListItemText
-                                    primary={guest.name}
-                                    secondary={
-                                        <Stack direction="row" spacing={1} alignItems="center" mt={1} flexWrap="wrap">
-                                            <Chip 
-                                                label={guest.code} 
-                                                size="small" 
-                                                variant="outlined"
-                                            />
-                                            <Chip 
-                                                label={guest.status}
-                                                size="small"
-                                                color={
-                                                    guest.status === 'checked-in' ? 'success' :
-                                                    guest.status === 'ACCEPTED' ? 'primary' : // UBAH WARNA UNTUK ACCEPTED
-                                                    'error'
-                                                }
-                                            />
-                                            {/* PERBAIKAN: TAMPILKAN PAX JIKA ADA NILAINYA */}
-                                            <Chip 
-                                                label={`${guest.pax} Pax`}
-                                                size="small"
-                                                variant="outlined"
-                                                sx={{
-                                                    backgroundColor: '#e3f2fd',
-                                                    color: '#1565c0',
-                                                    borderColor: '#2196f3',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            />
-                                             {guest.addedAt && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Added: {dayjs(guest.addedAt).format('DD MMM YYYY')}
-                                                </Typography>
-                                            )}
-                                        </Stack>
-                                    }
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Box>
+                {/* Guests Table */}
+                <CustomDatatable
+                    dataSource={paginatedGuests}
+                    columns={columns}
+                    page={page}
+                    limit={limit}
+                    totalRecords={filteredGuests.length}
+                    handlePageChange={handlePageChange}
+                    handleLimitChange={handleLimitChange}
+                    handleSort={handleSort}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                />
             </CustomColumn>
 
             {/* Add Guest Dialog */}
