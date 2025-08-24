@@ -1,4 +1,5 @@
-import { Box, Button, TextField, Typography, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Box, Button, TextField, Typography, MenuItem, Select, FormControl, InputLabel, IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useUser } from '../../hooks/UserProvider';
@@ -39,7 +40,6 @@ export default function AdminEdit() {
           role: values.role
         };
 
-        // Only update password if provided
         if (values.newPassword) {
           const hashedPassword = await hash(values.newPassword, 10);
           updates.password = hashedPassword;
@@ -85,6 +85,11 @@ export default function AdminEdit() {
 
   return (
     <Box sx={{ p: 4 }}>
+      {/* Icon Back */}
+      <IconButton onClick={() => navigate('/admin-management')} sx={{ mb: 2 }}>
+        <ArrowBackIcon />
+      </IconButton>
+
       <Typography variant="h5" gutterBottom>
         Edit Admin
       </Typography>

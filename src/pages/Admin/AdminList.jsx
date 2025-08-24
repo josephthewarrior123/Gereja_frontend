@@ -1,125 +1,237 @@
 // src/pages/Admin/AdminList.jsx
-import { Box, Button, Typography, Avatar, Paper } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import { Box, Typography, Avatar } from '@mui/material';
 import { useUser } from '../../hooks/UserProvider';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
 import CustomIcon from '../../reusables/CustomIcon';
+import CustomDataTable from '../../reusables/CustomDataTable';
+import CustomButton from '../../reusables/CustomButton';
 
 export default function AdminList() {
   const { user } = useUser();
   const [admins, setAdmins] = useState([]);
   const navigate = useNavigate();
   const db = getDatabase(app);
+  
+  // State untuk pagination dan sorting
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [sortColumn, setSortColumn] = useState('username');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   useEffect(() => {
     const adminsRef = ref(db, 'admins');
     onValue(adminsRef, (snapshot) => {
       const data = snapshot.val();
-      const adminsArray = data ? Object.keys(data).map(key => ({
-        id: key,
-        ...data[key]
-      })) : [];
+      const adminsArray = data
+        ? Object.keys(data).map((key) => ({
+            id: key,
+            ...data[key],
+          }))
+        : [];
       setAdmins(adminsArray);
     });
   }, [db]);
 
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  // Handle limit change
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit);
+    setPage(0);
+  };
+
+  // Handle sorting
+  const handleSort = (column) => {
+    const isAsc = sortColumn === column && sortDirection === 'asc';
+    setSortDirection(isAsc ? 'desc' : 'asc');
+    setSortColumn(column);
+  };
+
+  // Sort data berdasarkan kolom dan arah
+  const sortedAdmins = [...admins].sort((a, b) => {
+    if ((a[sortColumn] || '') < (b[sortColumn] || '')) {
+      return sortDirection === 'asc' ? -1 : 1;
+    }
+    if ((a[sortColumn] || '') > (b[sortColumn] || '')) {
+      return sortDirection === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  // Paginate data
+  const paginatedAdmins = sortedAdmins.slice(page * limit, page * limit + limit);
+
   const columns = [
     { 
-      field: 'avatar', 
-      headerName: '', 
+      key: 'avatar',
+      title: '',
       width: 80,
-      renderCell: (params) => (
-        <Avatar sx={{ bgcolor: 'primary.main' }}>
-          {params.row.username.charAt(0).toUpperCase()}
+      sortable: false,
+      render: (_, row) => (
+        <Avatar
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            fontWeight: 'bold',
+          }}
+        >
+          {row.username ? row.username.charAt(0).toUpperCase() : '?'}
         </Avatar>
       ),
-      sortable: false,
-      filterable: false
     },
-    { field: 'username', headerName: 'Username', flex: 1 },
-    { field: 'role', headerName: 'Role', flex: 1 },
+    { 
+      key: 'username', 
+      title: 'Username', 
+      flex: 1,
+      sortable: true,
+      render: (_, row) => (
+        <Typography sx={{ color: '#000000', fontWeight: 500 }}>
+          {row.username || row.id || '—'}
+        </Typography>
+      ),
+    },
+    { 
+      key: 'role', 
+      title: 'Role', 
+      flex: 1,
+      sortable: true,
+      render: (_, row) => (
+        <Typography sx={{ color: '#000000', fontWeight: 500 }}>
+          {row.role || '—'}
+        </Typography>
+      ),
+    },
     {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 200,
+      key: 'actions',
+      title: 'Actions',
+      width: 250,
       sortable: false,
-      filterable: false,
-      disableClickEventBubbling: true, // Ini yang memperbaiki issue click
-      renderCell: (params) => (
+      render: (_, row) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button 
+          <CustomButton
             variant="outlined" 
             size="small"
             startIcon={<CustomIcon icon="heroicons:pencil-solid" />}
             disabled={user?.role !== 'superadmin'}
-            onClick={() => navigate(`/edit-admin/${params.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/edit-admin/${row.id}`);
+            }}
+            sx={{
+              color: 'black',
+              borderColor: 'grey.400',
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'primary.light',
+                color: 'white',
+              },
+            }}
           >
             Edit
-          </Button>
-          <Button 
-            variant="outlined" 
+          </CustomButton>
+          <CustomButton
+            variant="contained" 
             size="small"
             color="secondary"
             startIcon={<CustomIcon icon="heroicons:user-plus-solid" />}
             disabled={user?.role !== 'superadmin'}
-            onClick={() => navigate(`/assign-admin/${params.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/assign-admin/${row.id}`);
+            }}
+            sx={{
+              backgroundColor: '#9c27b0',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#7b1fa2',
+              },
+            }}
           >
             Assign
-          </Button>
+          </CustomButton>
         </Box>
-      )
-    }
+      ),
+    },
   ];
 
-  return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 3
-      }}>
-        <Typography variant="h5">Admin Management</Typography>
-        {user?.role === 'superadmin' && (
-          <Button 
-            variant="contained"
-            startIcon={<CustomIcon icon="heroicons:plus-solid" />}
-            onClick={() => navigate('/create-admin')}
-          >
-            Create Admin
-          </Button>
-        )}
-      </Box>
+  // Handle row click
+  const handleRowClick = (row) => {
+    if (user?.role === 'superadmin') {
+      navigate(`/edit-admin/${row.id}`);
+    }
+  };
 
-      <Paper elevation={3} sx={{ flex: 1 }}>
-        <DataGrid
-          rows={admins}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10]}
-          disableSelectionOnClick
-          sx={{
-            '& .MuiDataGrid-cell': {
-              borderBottom: 'none'
-            },
-            '& .MuiDataGrid-cell:focus': {
-              outline: 'none'
-            }
-          }}
-          componentsProps={{
-            row: {
-              onDoubleClick: (params) => {
-                if (user?.role === 'superadmin') {
-                  navigate(`/edit-admin/${params.id}`);
-                }
-              }
-            }
-          }}
-        />
-      </Paper>
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+        p: 2,
+        backgroundColor: 'white',
+      }}
+    >
+      <Box
+  sx={{
+    display: 'flex',
+    justifyContent: 'space-between', // Ini yang penting
+    alignItems: 'center',
+    p: 2,
+    borderRadius: 2,
+    backgroundColor: 'white',
+    boxShadow: 1,
+  }}
+>
+  {/* Box kosong di sebelah kiri */}
+  <Box />
+  
+  {user?.role === 'superadmin' && (
+    <CustomButton
+      variant="contained"
+      startIcon={<CustomIcon icon="heroicons:plus-solid" />}
+      onClick={() => navigate('/create-admin')}
+      sx={{
+        backgroundColor: 'primary.main',
+        color: 'white',
+        '&:hover': {
+          backgroundColor: 'primary.dark',
+        },
+      }}
+    >
+      Create Admin
+    </CustomButton>
+  )}
+</Box>
+
+      <CustomDataTable
+        dataSource={paginatedAdmins}
+        columns={columns}
+        page={page}
+        limit={limit}
+        totalRecords={admins.length}
+        handlePageChange={handlePageChange}
+        handleLimitChange={handleLimitChange}
+        handleSort={handleSort}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        onRowClick={handleRowClick}
+        getRowStyle={(row) => ({
+          cursor: user?.role === 'superadmin' ? 'pointer' : 'default',
+          '&:hover': {
+            backgroundColor:
+              user?.role === 'superadmin'
+                ? 'rgba(0, 0, 0, 0.04)'
+                : 'transparent',
+          },
+        })}
+      />
     </Box>
   );
 }

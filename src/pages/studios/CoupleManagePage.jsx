@@ -13,7 +13,8 @@ import {
     TextField,
     MenuItem,
     Stack,
-    Tooltip
+    Tooltip,
+    Grid
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -26,6 +27,7 @@ import CustomColumn from '../../reusables/layouts/CustomColumn';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import * as XLSX from 'xlsx';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -46,13 +48,15 @@ export default function CoupleManagePage() {
     const [openEditGuestDialog, setOpenEditGuestDialog] = useState(false);
     const [currentGuest, setCurrentGuest] = useState(null);
     const [newGuestName, setNewGuestName] = useState('');
+    const [newGuestPax, setNewGuestPax] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
+    
     const isGuestNameExists = (name) => {
         return couple.guests.some(
           guest => guest.name.toLowerCase() === name.toLowerCase()
         );
-      };
+    };
 
     // Fungsi untuk membuat ID alfanumerik bersih
     const createCleanId = (str) => {
@@ -66,13 +70,47 @@ export default function CoupleManagePage() {
         return `${alphanumericOnly}${randomSuffix}`;
     };
 
-    // Status options for filtering
+    // Status options for filtering - UPDATE STATUS OPTIONS
     const statusOptions = [
         { value: 'all', label: 'All Status' },
-        { value: 'PENDING', label: 'Pending' },
+        { value: 'ACCEPTED', label: 'Accepted' },
         { value: 'checked-in', label: 'Checked In' },
-        { value: 'rejected', label: 'Rejected' }
+        { value: 'REJECTED', label: 'Rejected' }
     ];
+
+    const handleDownloadExcel = () => {
+        try {
+            // Data yang akan di-export
+            const dataToExport = filteredGuests.map(guest => ({
+                'Guest Name': guest.name,
+                'Code': guest.code,
+                'Status': guest.status,
+                'Pax': guest.pax || '-',
+                'Added Date': guest.addedAt ? dayjs(guest.addedAt).format('DD MMM YYYY') : '-'
+            }));
+
+            if (dataToExport.length === 0) {
+                message('No data to export', 'warning');
+                return;
+            }
+
+            // Buat worksheet
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            
+            // Buat workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Guests');
+            
+            // Download file
+            const fileName = `${couple.name}_Guests_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            message('Excel file downloaded successfully', 'success');
+        } catch (error) {
+            console.error('Error exporting Excel:', error);
+            message('Failed to export Excel file', 'error');
+        }
+    };
 
     // Fetch couple data from Firebase
     const fetchCoupleData = async () => {
@@ -113,11 +151,11 @@ export default function CoupleManagePage() {
         return matchesStatus && matchesSearch;
     });
 
-    // Calculate statistics
+    // Calculate statistics - UPDATE CALCULATION
     const totalGuests = couple.guests.length;
     const checkedInGuests = couple.guests.filter(g => g.status === 'checked-in').length;
-    const pendingGuests = couple.guests.filter(g => g.status === 'PENDING').length;
-    const rejectedGuests = couple.guests.filter(g => g.status === 'rejected').length;
+    const acceptedGuests = couple.guests.filter(g => g.status === 'ACCEPTED').length;
+    const rejectedGuests = couple.guests.filter(g => g.status === 'REJECTED').length;
 
     const checkInPercentage = totalGuests > 0 ? (checkedInGuests / totalGuests) * 100 : 0;
 
@@ -136,7 +174,7 @@ export default function CoupleManagePage() {
         }
     };
 
-    // Handle adding new guest
+    // Handle adding new guest - UPDATE DEFAULT STATUS
     const handleAddGuest = async () => {
         const trimmedName = newGuestName.trim();
         
@@ -156,13 +194,15 @@ export default function CoupleManagePage() {
           const newGuest = {
             name: trimmedName,
             code: `G${Math.floor(1000 + Math.random() * 9000)}`,
-            status: 'PENDING',
-            addedAt: new Date().toISOString()
+            status: 'ACCEPTED', // DEFAULT STATUS JADI ACCEPTED
+            addedAt: new Date().toISOString(),
+            ...(newGuestPax && { pax: newGuestPax })
           };
       
           await update(ref(db, `couples/${id}/guests/${newGuestId}`), newGuest);
           message('Guest added successfully', 'success');
           setNewGuestName('');
+          setNewGuestPax('');
           setOpenAddGuestDialog(false);
         } catch (error) {
           console.error('Error adding guest:', error);
@@ -170,7 +210,7 @@ export default function CoupleManagePage() {
         } finally {
           loading.stop();
         }
-      };
+    };
 
     // Handle editing guest
     const handleEditGuest = async () => {
@@ -183,7 +223,8 @@ export default function CoupleManagePage() {
             loading.start();
             await update(ref(db, `couples/${id}/guests/${currentGuest.id}`), {
                 ...currentGuest,
-                name: newGuestName.trim()
+                name: newGuestName.trim(),
+                ...(newGuestPax && { pax: newGuestPax })
             });
             message('Guest updated successfully', 'success');
             setOpenEditGuestDialog(false);
@@ -198,6 +239,7 @@ export default function CoupleManagePage() {
     const openEditDialog = (guest) => {
         setCurrentGuest(guest);
         setNewGuestName(guest.name);
+        setNewGuestPax(guest.pax || '');
         setOpenEditGuestDialog(true);
     };
 
@@ -212,18 +254,17 @@ export default function CoupleManagePage() {
                     <Typography variant="h4" fontWeight="bold">
                         {couple.name}
                     </Typography>
-                    <Button
+                    <CustomButton
                         variant="contained"
-                        color="primary"
                         startIcon={<Icon icon="mdi:plus" />}
                         onClick={() => setOpenAddGuestDialog(true)}
                         sx={{ ml: 'auto' }}
                     >
                         Add Guest
-                    </Button>
+                    </CustomButton>
                 </Box>
 
-                {/* Statistics Section */}
+                {/* Statistics Section - UPDATE CARDS */}
                 <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {/* Total Guests Card */}
                     <Box sx={{ 
@@ -259,7 +300,7 @@ export default function CoupleManagePage() {
                         </Typography>
                     </Box>
 
-                    {/* Pending Guests Card */}
+                    {/* Accepted Guests Card - UBAH DARI PENDING KE ACCEPTED */}
                     <Box sx={{ 
                         p: 3, 
                         border: 1, 
@@ -269,10 +310,10 @@ export default function CoupleManagePage() {
                         minWidth: 200
                     }}>
                         <Typography variant="h6" color="text.secondary">
-                            Pending
+                            Accepted
                         </Typography>
-                        <Typography variant="h4" fontWeight="bold" color="warning.main">
-                            {pendingGuests}
+                        <Typography variant="h4" fontWeight="bold" color="primary.main">
+                            {acceptedGuests}
                         </Typography>
                     </Box>
 
@@ -319,30 +360,84 @@ export default function CoupleManagePage() {
                 </Box>
 
                 {/* Filter Section */}
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box
+                    sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto",
+                        alignItems: "center",
+                        gap: 2,
+                        width: "100%",
+                    }}
+                >
+                    {/* Search Field */}
                     <TextField
-                        fullWidth
+                        size="small"
                         variant="outlined"
                         placeholder="Search guests..."
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
+                        sx={{
+                            width: "100%",
+                            maxWidth: 300,
+                            "& .MuiOutlinedInput-root": {
+                                height: 40,
+                                display: "flex",
+                                alignItems: "center",
+                            },
+                        }}
                         InputProps={{
                             startAdornment: (
-                                <Icon icon="mdi:magnify" style={{ marginRight: 8 }} />
-                            )
+                                <Box sx={{ mr: 1, display: "flex", alignItems: "center" }}>
+                                    <Icon icon="mdi:magnify" style={{ fontSize: 20 }} />
+                                </Box>
+                            ),
                         }}
                     />
-                    <CustomSelect
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        sx={{ minWidth: 180 }}
+
+                    {/* Filter + Export */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                        }}
                     >
-                        {statusOptions.map(option => (
-                            <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                            </MenuItem>
-                        ))}
-                    </CustomSelect>
+                        <CustomSelect
+                            size="small"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            sx={{
+                                minWidth: 180,
+                                height: 40,
+                                "& .MuiOutlinedInput-root": {
+                                    height: "100%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                },
+                                "& .MuiSelect-select": {
+                                    display: "flex",
+                                    alignItems: "center",
+                                    height: "100%",
+                                    paddingY: 0,
+                                },
+                            }}
+                        >
+                            {statusOptions.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </MenuItem>
+                            ))}
+                        </CustomSelect>
+
+                        <CustomButton
+                            variant="outlined"
+                            startIcon={<Icon icon="mdi:file-excel" />}
+                            onClick={handleDownloadExcel}
+                            sx={{ height: 40, top: '4px' }}
+                        >
+                           download guests
+                        </CustomButton>
+                    </Box>
                 </Box>
 
                 {/* Guests List */}
@@ -397,7 +492,7 @@ export default function CoupleManagePage() {
                                 <ListItemText
                                     primary={guest.name}
                                     secondary={
-                                        <Stack direction="row" spacing={1} alignItems="center" mt={1}>
+                                        <Stack direction="row" spacing={1} alignItems="center" mt={1} flexWrap="wrap">
                                             <Chip 
                                                 label={guest.code} 
                                                 size="small" 
@@ -408,10 +503,23 @@ export default function CoupleManagePage() {
                                                 size="small"
                                                 color={
                                                     guest.status === 'checked-in' ? 'success' :
-                                                    guest.status === 'pending' ? 'warning' : 'error'
+                                                    guest.status === 'ACCEPTED' ? 'primary' : // UBAH WARNA UNTUK ACCEPTED
+                                                    'error'
                                                 }
                                             />
-                                            {guest.addedAt && (
+                                            {/* PERBAIKAN: TAMPILKAN PAX JIKA ADA NILAINYA */}
+                                            <Chip 
+                                                label={`${guest.pax} Pax`}
+                                                size="small"
+                                                variant="outlined"
+                                                sx={{
+                                                    backgroundColor: '#e3f2fd',
+                                                    color: '#1565c0',
+                                                    borderColor: '#2196f3',
+                                                    fontWeight: 'bold'
+                                                }}
+                                            />
+                                             {guest.addedAt && (
                                                 <Typography variant="caption" color="text.secondary">
                                                     Added: {dayjs(guest.addedAt).format('DD MMM YYYY')}
                                                 </Typography>
@@ -427,42 +535,57 @@ export default function CoupleManagePage() {
 
             {/* Add Guest Dialog */}
             <Dialog open={openAddGuestDialog} onClose={() => setOpenAddGuestDialog(false)}>
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h6" gutterBottom>
-      Add New Guest
-    </Typography>
-    <TextField
-      fullWidth
-      label="Guest Name"
-      value={newGuestName}
-      onChange={(e) => setNewGuestName(e.target.value)}
-      margin="normal"
-      autoFocus
-      error={newGuestName.trim() && isGuestNameExists(newGuestName.trim())}
-      helperText={
-        newGuestName.trim() && isGuestNameExists(newGuestName.trim())
-          ? 'Guest with this name already exists'
-          : ''
-      }
-    />
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-      <Button 
-        variant="outlined" 
-        onClick={() => setOpenAddGuestDialog(false)}
-      >
-        Cancel
-      </Button>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={handleAddGuest}
-        disabled={!newGuestName.trim() || isGuestNameExists(newGuestName.trim())}
-      >
-        Add Guest
-      </Button>
-    </Box>
-  </Box>
-</Dialog>
+                <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Add New Guest
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        label="Guest Name"
+                        value={newGuestName}
+                        onChange={(e) => setNewGuestName(e.target.value)}
+                        margin="normal"
+                        autoFocus
+                        error={newGuestName.trim() && isGuestNameExists(newGuestName.trim())}
+                        helperText={
+                            newGuestName.trim() && isGuestNameExists(newGuestName.trim())
+                            ? 'Guest with this name already exists'
+                            : ''
+                        }
+                    />
+                    <TextField
+                        fullWidth
+                        label="Pax (Jumlah Tamu)"
+                        type="number"
+                        value={newGuestPax}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || (value >= 1 && value <= 10)) {
+                                setNewGuestPax(value);
+                            }
+                        }}
+                        margin="normal"
+                        inputProps={{ min: 1, max: 10 }}
+                        helperText="Kosongkan jika tidak ada"
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
+                        <CustomButton 
+                            variant="outlined" 
+                            onClick={() => setOpenAddGuestDialog(false)}
+                        >
+                            Cancel
+                        </CustomButton>
+                        <CustomButton 
+                            variant="contained" 
+                            color="primary" 
+                            onClick={handleAddGuest}
+                            disabled={!newGuestName.trim() || isGuestNameExists(newGuestName.trim())}
+                        >
+                            Add Guest
+                        </CustomButton>
+                    </Box>
+                </Box>
+            </Dialog>
 
             {/* Edit Guest Dialog */}
             <Dialog open={openEditGuestDialog} onClose={() => setOpenEditGuestDialog(false)}>
@@ -478,20 +601,35 @@ export default function CoupleManagePage() {
                         margin="normal"
                         autoFocus
                     />
+                    <TextField
+                        fullWidth
+                        label="Pax (Jumlah Tamu)"
+                        type="number"
+                        value={newGuestPax}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || (value >= 1 && value <= 10)) {
+                                setNewGuestPax(value);
+                            }
+                        }}
+                        margin="normal"
+                        inputProps={{ min: 1, max: 10 }}
+                        helperText="Kosongkan jika tidak ada"
+                    />
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-                        <Button 
+                        <CustomButton 
                             variant="outlined" 
                             onClick={() => setOpenEditGuestDialog(false)}
                         >
                             Cancel
-                        </Button>
-                        <Button 
+                        </CustomButton>
+                        <CustomButton 
                             variant="contained" 
                             color="primary" 
                             onClick={handleEditGuest}
                         >
                             Save Changes
-                        </Button>
+                        </CustomButton>
                     </Box>
                 </Box>
             </Dialog>
@@ -506,13 +644,13 @@ export default function CoupleManagePage() {
                         Are you sure you want to remove <b>{guestToDelete?.name}</b> from the guest list?
                     </Typography>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
-                        <Button 
+                        <CustomButton 
                             variant="outlined" 
                             onClick={() => setOpenDeleteDialog(false)}
                         >
                             Cancel
-                        </Button>
-                        <Button 
+                        </CustomButton>
+                        <CustomButton 
                             variant="contained" 
                             color="error" 
                             onClick={() => {
@@ -521,7 +659,7 @@ export default function CoupleManagePage() {
                             }}
                         >
                             Delete
-                        </Button>
+                        </CustomButton>
                     </Box>
                 </Box>
             </Dialog>

@@ -34,11 +34,12 @@ export default function DashboardLayout() {
       title: 'Guests List',
     },
     {
-      icon: 'fluent-emoji-high-contrast:film-projector',
+      icon: 'mdi:heart', // Material Design Icons heart
       label: 'Couple',
       url: '/couples',
       title: 'Couple',
     },
+    
     {
       icon: 'ic:round-qr-code',
       label: 'QR Scan',

@@ -126,20 +126,22 @@ export default function CoupleListPage() {
     return (
         <>
             <Box sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h4">
-                        {user?.role === 'admin' ? 'My Assigned Couples' : 'All Couples'}
-                    </Typography>
-                    {user?.role === 'superadmin' && (
-                        <Button
-                            variant="contained"
-                            startIcon={<Icon icon="mdi:plus" />}
-                            onClick={() => setIsDialogOpen(true)}
-                        >
-                            New Couple
-                        </Button>
-                    )}
-                </Box>
+    <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', // Ini yang taruh di kanan
+        alignItems: 'center', 
+        mb: 3 
+    }}>
+        {user?.role === 'superadmin' && (
+            <Button
+                variant="contained"
+                startIcon={<Icon icon="mdi:plus" />}
+                onClick={() => setIsDialogOpen(true)}
+            >
+                New Couple
+            </Button>
+        )}
+    </Box>
 
                 <List sx={{ bgcolor: 'background.paper' }}>
                     {filteredCouples.map((couple) => (
