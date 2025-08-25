@@ -1,3 +1,4 @@
+// CoupleManagePage.jsx
 import { Icon } from '@iconify/react';
 import {
     Box,
@@ -11,7 +12,8 @@ import {
     MenuItem,
     Stack,
     Tooltip,
-    Grid
+    Grid,
+    Checkbox
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -26,6 +28,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import * as XLSX from 'xlsx';
+import InvitationLinkGenerator from './InvitationLinkGenerator';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -49,6 +52,7 @@ export default function CoupleManagePage() {
     const [newGuestPax, setNewGuestPax] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
+  
     
     // Table state
     const [page, setPage] = useState(0);
@@ -84,20 +88,28 @@ export default function CoupleManagePage() {
 
     const handleDownloadExcel = () => {
         try {
+            // Tanyakan user mau pake base URL apa
+            const baseUrl = prompt(
+                'Enter the base URL for invitation links:\n\nContoh: https://your-wedding-site.com/invitation?code=',
+                'https://wedding-template1-topaz.vercel.app/intro?to='
+            );
+            
+            if (baseUrl === null) return; // User cancel
+    
             // Data yang akan di-export
             const dataToExport = filteredGuests.map(guest => ({
                 'Guest Name': guest.name,
                 'Code': guest.code,
                 'Status': guest.status,
                 'Pax': guest.pax || '-',
-               
+                'Invitation Link': `${baseUrl}${id}_${guest.code}`
             }));
-
+    
             if (dataToExport.length === 0) {
                 message('No data to export', 'warning');
                 return;
             }
-
+    
             // Buat worksheet
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             
@@ -288,14 +300,16 @@ export default function CoupleManagePage() {
         setPage(0);
     };
 
+
     // Table columns configuration
     const columns = [
+       
         {
             key: 'name',
             dataIndex: 'name',
             title: 'Guest Name',
             sortable: true,
-            width: '30%'
+            width: '25%'
         },
         {
             key: 'code',
@@ -349,8 +363,6 @@ export default function CoupleManagePage() {
                 />
             ) : '-'
         },
-        
-       
         {
             key: 'actions',
             dataIndex: 'id',
@@ -399,14 +411,19 @@ export default function CoupleManagePage() {
                     <Typography variant="h4" fontWeight="bold">
                         {couple.name}
                     </Typography>
-                    <CustomButton
-                        variant="contained"
-                        startIcon={<Icon icon="mdi:plus" />}
-                        onClick={() => setOpenAddGuestDialog(true)}
-                        sx={{ ml: 'auto' }}
-                    >
-                        Add Guest
-                    </CustomButton>
+                    <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+                    <InvitationLinkGenerator 
+                        couple={{ id, guests: couple.guests, name: couple.name }} 
+                        disabled={couple.guests.length === 0}
+                    />
+                        <CustomButton
+                            variant="contained"
+                            startIcon={<Icon icon="mdi:plus" />}
+                            onClick={() => setOpenAddGuestDialog(true)}
+                        >
+                            Add Guest
+                        </CustomButton>
+                    </Box>
                 </Box>
 
                 {/* Statistics Section - UPDATE CARDS */}
