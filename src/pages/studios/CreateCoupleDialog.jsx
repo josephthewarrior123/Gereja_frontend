@@ -29,16 +29,15 @@ export default function CreateCoupleDialog({ open, onClose }) {
     setNewGuest('');
   };
 
-  // Fungsi untuk membuat ID alfanumerik bersih
+  // Fungsi untuk membuat ID yang bersih dengan format: nama_pasangan
   const createCleanId = (str) => {
-    const alphanumericOnly = str
+    return str
       .toLowerCase()
-      .replace(/&/g, 'dan')
-      .replace(/[^a-z0-9]/g, ''); // Hanya menyisakan huruf dan angka
-    
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000); // Angka acak 4 digit
-    
-    return `${alphanumericOnly}${randomSuffix}`;
+      .replace(/\s+/g, '_')      // Ganti spasi dengan underscore
+      .replace(/&/g, '_dan_')    // Ganti & dengan _dan_
+      .replace(/[^a-z0-9_]/g, '') // Hanya menyisakan huruf, angka, dan underscore
+      .replace(/_+/g, '_')       // Ganti multiple underscore dengan satu
+      .replace(/^_|_$/g, '');    // Hapus underscore di awal dan akhir
   };
 
   const generateCode = () => {
@@ -57,6 +56,9 @@ export default function CreateCoupleDialog({ open, onClose }) {
     try {
       // Buat ID couple yang bersih
       const coupleId = createCleanId(coupleName);
+      
+      // Cek jika ID sudah ada (opsional, tergantung kebutuhan)
+      // Jika perlu, bisa ditambahkan pengecekan ke database
       
       // Siapkan data couple
       const coupleData = {
@@ -84,6 +86,7 @@ export default function CreateCoupleDialog({ open, onClose }) {
       onClose(true);
     } catch (error) {
       console.error("Error saving data:", error);
+      alert("Error saving data. The couple ID might already exist.");
     }
   };
 
@@ -181,6 +184,7 @@ export default function CreateCoupleDialog({ open, onClose }) {
           onChange={(e) => setCoupleName(e.target.value)}
           margin="normal"
           placeholder="Example: Joseph and Tia"
+          helperText={`Couple ID will be: ${createCleanId(coupleName) || 'example_couple_id'}`}
           required
         />
 

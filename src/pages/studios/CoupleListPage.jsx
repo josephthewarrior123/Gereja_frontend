@@ -4,9 +4,6 @@ import {
     Dialog,
     IconButton,
     Typography,
-    List,
-    ListItem,
-    ListItemText,
     Button
 } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -17,6 +14,7 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import { useUser } from '../../hooks/UserProvider';
 import CreateCoupleDialog from './CreateCoupleDialog';
+import CustomDatatable from '../../reusables/CustomDataTable';
 
 export default function CoupleListPage() {
     const { user } = useUser();
@@ -26,6 +24,10 @@ export default function CoupleListPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedCouple, setSelectedCouple] = useState(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+    const [page, setPage] = useState(0);
+    const [limit, setLimit] = useState(5);
+    const [sortColumn, setSortColumn] = useState('name');
+    const [sortDirection, setSortDirection] = useState('asc');
     const message = useAlert();
     const loading = useLoading();
     const navigate = useNavigate();
@@ -100,6 +102,48 @@ export default function CoupleListPage() {
         }
     };
 
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+    };
+
+    const handleLimitChange = (newLimit) => {
+        setLimit(newLimit);
+        setPage(0);
+    };
+
+    const handleSort = (columnKey) => {
+        const isAsc = sortColumn === columnKey && sortDirection === 'asc';
+        setSortDirection(isAsc ? 'desc' : 'asc');
+        setSortColumn(columnKey);
+    };
+
+    const handleRowClick = (row) => {
+        navigate(`/couples/${row.id}`);
+    };
+
+    const getRowStyle = (row) => {
+        return {
+            cursor: 'pointer'
+        };
+    };
+
+    // Sort data berdasarkan kolom dan arah yang dipilih
+    const sortedData = [...filteredCouples].sort((a, b) => {
+        if (sortColumn === 'name') {
+            return sortDirection === 'asc' 
+                ? a.name.localeCompare(b.name) 
+                : b.name.localeCompare(a.name);
+        } else if (sortColumn === 'guestCount') {
+            return sortDirection === 'asc' 
+                ? a.guestCount - b.guestCount 
+                : b.guestCount - a.guestCount;
+        }
+        return 0;
+    });
+
+    // Pagination
+    const paginatedData = sortedData.slice(page * limit, page * limit + limit);
+
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 640);
@@ -112,6 +156,70 @@ export default function CoupleListPage() {
     useEffect(() => {
         getData();
     }, [user]); // Re-fetch ketika user berubah
+
+    const columns = [
+        {
+            key: 'name',
+            dataIndex: 'name',
+            title: 'Couple Name',
+            width: '40%',
+            sortable: true
+        },
+        {
+            key: 'guestCount',
+            dataIndex: 'guestCount',
+            title: 'Guest Count',
+            width: '20%',
+            sortable: true,
+            render: (value) => `${value} guests`
+        },
+        {
+            key: 'assignedAdmins',
+            dataIndex: 'assignedAdmins',
+            title: 'Assigned Admins',
+            width: '30%',
+            render: (value, row) => (
+                user?.role === 'superadmin' ? (
+                    Object.keys(value).length > 0
+                        ? `Assigned to ${Object.keys(value).length} admin(s)`
+                        : 'Not assigned to any admin'
+                ) : null
+            )
+        },
+        {
+            key: 'actions',
+            dataIndex: 'actions',
+            title: 'Actions',
+            width: '10%',
+            render: (_, row) => (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/couples/${row.id}`);
+                        }}
+                    >
+                        View
+                    </Button>
+                    {user?.role === 'superadmin' && (
+                        <IconButton
+                            size="small"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteDialog(row);
+                            }}
+                            color="error"
+                        >
+                            <Icon icon="mdi:delete" />
+                        </IconButton>
+                    )}
+                </Box>
+            )
+        }
+    ];
 
     if (isMobile) {
         return (
@@ -126,76 +234,37 @@ export default function CoupleListPage() {
     return (
         <>
             <Box sx={{ p: 3 }}>
-    <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', // Ini yang taruh di kanan
-        alignItems: 'center', 
-        mb: 3 
-    }}>
-        {user?.role === 'superadmin' && (
-            <Button
-                variant="contained"
-                startIcon={<Icon icon="mdi:plus" />}
-                onClick={() => setIsDialogOpen(true)}
-            >
-                New Couple
-            </Button>
-        )}
-    </Box>
-
-                <List sx={{ bgcolor: 'background.paper' }}>
-                    {filteredCouples.map((couple) => (
-                        <ListItem
-                            key={couple.id}
-                            secondaryAction={
-                                user?.role === 'superadmin' && (
-                                    <IconButton
-                                        edge="end"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openDeleteDialog(couple);
-                                        }}
-                                    >
-                                        <Icon icon="mdi:delete" />
-                                    </IconButton>
-                                )
-                            }
-                            sx={{
-                                border: 1,
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                mb: 1,
-                                '&:hover': {
-                                    backgroundColor: 'action.hover'
-                                }
-                            }}
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end',
+                    alignItems: 'center', 
+                    mb: 3 
+                }}>
+                    {user?.role === 'superadmin' && (
+                        <Button
+                            variant="contained"
+                            startIcon={<Icon icon="mdi:plus" />}
+                            onClick={() => setIsDialogOpen(true)}
                         >
-                            <ListItemText
-                                primary={couple.name}
-                                secondary={
-                                    <>
-                                        <div>{`${couple.guestCount} guests`}</div>
-                                        {user?.role === 'superadmin' && (
-                                            <div>
-                                                {Object.keys(couple.assignedAdmins).length > 0
-                                                    ? `Assigned to ${Object.keys(couple.assignedAdmins).length} admin(s)`
-                                                    : 'Not assigned to any admin'}
-                                            </div>
-                                        )}
-                                    </>
-                                }
-                            />
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                sx={{ mr: 2 }}
-                                onClick={() => navigate(`/couples/${couple.id}`)}
-                            >
-                                View Guests
-                            </Button>
-                        </ListItem>
-                    ))}
-                </List>
+                            New Couple
+                        </Button>
+                    )}
+                </Box>
+
+                <CustomDatatable
+                    dataSource={paginatedData}
+                    columns={columns}
+                    page={page}
+                    limit={limit}
+                    totalRecords={filteredCouples.length}
+                    handlePageChange={handlePageChange}
+                    handleLimitChange={handleLimitChange}
+                    handleSort={handleSort}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onRowClick={handleRowClick}
+                    getRowStyle={getRowStyle}
+                />
             </Box>
 
             <CreateCoupleDialog
