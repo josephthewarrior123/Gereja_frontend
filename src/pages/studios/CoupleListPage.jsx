@@ -32,46 +32,50 @@ export default function CoupleListPage() {
     const loading = useLoading();
     const navigate = useNavigate();
 
-    const getData = async () => {
-        try {
-            loading.start();
-            const couplesRef = ref(db, 'couples');
-            onValue(couplesRef, (snapshot) => {
-                const data = snapshot.val();
-                const loadedCouples = [];
+    // UPDATE fungsi getData dengan null checks:
+const getData = async () => {
+    try {
+        loading.start();
+        const couplesRef = ref(db, 'couples');
+        onValue(couplesRef, (snapshot) => {
+            const data = snapshot.val();
+            const loadedCouples = [];
 
-                for (const coupleId in data) {
-                    const couple = data[coupleId];
+            for (const coupleId in data) {
+                const couple = data[coupleId];
+                // Tambahkan null checks untuk semua property
+                if (couple) {
                     const guestCount = couple.guests ? Object.keys(couple.guests).length : 0;
-
+                    
                     loadedCouples.push({
                         id: coupleId,
-                        name: couple.name,
+                        name: couple.name || 'Unnamed Couple', // Fallback untuk undefined name
                         guestCount,
                         assignedAdmins: couple.assigned_admins || {}
                     });
                 }
+            }
 
-                setAllCouples(loadedCouples);
-                
-                // Filter berdasarkan role user
-                if (user?.role === 'admin') {
-                    const assignedCouples = loadedCouples.filter(couple => 
-                        couple.assignedAdmins[user.id]
-                    );
-                    setFilteredCouples(assignedCouples);
-                } else {
-                    // Superadmin bisa melihat semua
-                    setFilteredCouples(loadedCouples);
-                }
-            });
-        } catch (error) {
-            console.error('Error fetching couples:', error);
-            message('Failed to fetch couples', 'error');
-        } finally {
-            loading.stop();
-        }
-    };
+            setAllCouples(loadedCouples);
+            
+            // Filter berdasarkan role user
+            if (user?.role === 'admin') {
+                const assignedCouples = loadedCouples.filter(couple => 
+                    couple && couple.assignedAdmins && couple.assignedAdmins[user.id]
+                );
+                setFilteredCouples(assignedCouples);
+            } else {
+                // Superadmin bisa melihat semua
+                setFilteredCouples(loadedCouples.filter(couple => couple !== null)); // Filter out null
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching couples:', error);
+        message('Failed to fetch couples', 'error');
+    } finally {
+        loading.stop();
+    }
+};
 
     const openDeleteDialog = (couple) => {
         setSelectedCouple(couple);
@@ -128,18 +132,23 @@ export default function CoupleListPage() {
     };
 
     // Sort data berdasarkan kolom dan arah yang dipilih
-    const sortedData = [...filteredCouples].sort((a, b) => {
-        if (sortColumn === 'name') {
-            return sortDirection === 'asc' 
-                ? a.name.localeCompare(b.name) 
-                : b.name.localeCompare(a.name);
-        } else if (sortColumn === 'guestCount') {
-            return sortDirection === 'asc' 
-                ? a.guestCount - b.guestCount 
-                : b.guestCount - a.guestCount;
-        }
-        return 0;
-    });
+    // GANTI fungsi sortedData dengan ini:
+const sortedData = [...filteredCouples].sort((a, b) => {
+    if (sortColumn === 'name') {
+        const nameA = a.name || ''; // Fallback untuk undefined
+        const nameB = b.name || ''; // Fallback untuk undefined
+        return sortDirection === 'asc' 
+            ? nameA.localeCompare(nameB) 
+            : nameB.localeCompare(nameA);
+    } else if (sortColumn === 'guestCount') {
+        const countA = a.guestCount || 0; // Fallback untuk undefined
+        const countB = b.guestCount || 0; // Fallback untuk undefined
+        return sortDirection === 'asc' 
+            ? countA - countB 
+            : countB - countA;
+    }
+    return 0;
+});
 
     // Pagination
     const paginatedData = sortedData.slice(page * limit, page * limit + limit);
@@ -163,7 +172,8 @@ export default function CoupleListPage() {
             dataIndex: 'name',
             title: 'Couple Name',
             width: '40%',
-            sortable: true
+            sortable: true,
+            render: (value) => value || 'Unnamed Couple' // Tambahkan fallback
         },
         {
             key: 'guestCount',
@@ -171,7 +181,7 @@ export default function CoupleListPage() {
             title: 'Guest Count',
             width: '20%',
             sortable: true,
-            render: (value) => `${value} guests`
+            render: (value) => `${value || 0} guests` // Tambahkan fallback
         },
         {
             key: 'assignedAdmins',

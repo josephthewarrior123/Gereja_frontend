@@ -62,7 +62,7 @@ export default function CoupleManagePage() {
     
     const isGuestNameExists = (name) => {
         return couple.guests.some(
-          guest => guest.name.toLowerCase() === name.toLowerCase()
+            guest => guest && guest.name && guest.name.toLowerCase() === name.toLowerCase()
         );
     };
 
@@ -136,13 +136,21 @@ export default function CoupleManagePage() {
             onValue(coupleRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    const guests = data.guests ? Object.entries(data.guests).map(([id, guest]) => ({ 
-                        id, 
-                        ...guest 
-                    })) : [];
+                    const guests = data.guests ? Object.entries(data.guests)
+                        .map(([id, guest]) => ({ 
+                            id, 
+                            ...(guest || {}) // Tambahkan fallback untuk guest yang null
+                        }))
+                        .filter(guest => guest !== null) : []; // Filter out null guests
+                    
                     setCouple({
-                        name: data.name,
+                        name: data.name || '',
                         guests: guests
+                    });
+                } else {
+                    setCouple({
+                        name: '',
+                        guests: []
                     });
                 }
             });
@@ -160,38 +168,41 @@ export default function CoupleManagePage() {
         }
     }, [id]);
 
-    // Filter guests based on status and search keyword
     const filteredGuests = couple.guests.filter(guest => {
+        if (!guest) return false; // Tambahkan check untuk guest yang undefined
+        
         const matchesStatus = filterStatus === 'all' || guest.status === filterStatus;
-        const matchesSearch = guest.name.toLowerCase().includes(searchKeyword.toLowerCase());
+        const matchesSearch = guest.name && guest.name.toLowerCase().includes(searchKeyword.toLowerCase());
         return matchesStatus && matchesSearch;
     });
 
-    // Sort guests
-    const sortedGuests = [...filteredGuests].sort((a, b) => {
-        const modifier = sortDirection === 'asc' ? 1 : -1;
-        
-        if (sortColumn === 'name') {
-            return a.name.localeCompare(b.name) * modifier;
-        } else if (sortColumn === 'status') {
-            return a.status.localeCompare(b.status) * modifier;
-        } else if (sortColumn === 'pax') {
-            return ((a.pax || 0) - (b.pax || 0)) * modifier;
-        } else if (sortColumn === 'addedAt') {
-            return (new Date(a.addedAt || 0) - new Date(b.addedAt || 0)) * modifier;
-        }
-        
-        return 0;
-    });
+   // GANTI fungsi sortedGuests dengan ini:
+const sortedGuests = [...filteredGuests].sort((a, b) => {
+    const modifier = sortDirection === 'asc' ? 1 : -1;
+    
+    if (sortColumn === 'name') {
+        return (a.name || '').localeCompare(b.name || '') * modifier;
+    } else if (sortColumn === 'status') {
+        return (a.status || '').localeCompare(b.status || '') * modifier;
+    } else if (sortColumn === 'pax') {
+        return ((a.pax || 0) - (b.pax || 0)) * modifier;
+    } else if (sortColumn === 'addedAt') {
+        const dateA = a.addedAt ? new Date(a.addedAt) : new Date(0);
+        const dateB = b.addedAt ? new Date(b.addedAt) : new Date(0);
+        return (dateA - dateB) * modifier;
+    }
+    
+    return 0;
+});
 
     // Paginate guests
     const paginatedGuests = sortedGuests.slice(page * limit, page * limit + limit);
 
     // Calculate statistics - UPDATE CALCULATION
-    const totalGuests = couple.guests.length;
-    const checkedInGuests = couple.guests.filter(g => g.status === 'checked-in').length;
-    const acceptedGuests = couple.guests.filter(g => g.status === 'ACCEPTED').length;
-    const rejectedGuests = couple.guests.filter(g => g.status === 'REJECTED').length;
+    const totalGuests = couple.guests ? couple.guests.length : 0;
+const checkedInGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'checked-in').length : 0;
+const acceptedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'ACCEPTED').length : 0;
+const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'REJECTED').length : 0;
 
     const checkInPercentage = totalGuests > 0 ? (checkedInGuests / totalGuests) * 100 : 0;
 
@@ -309,7 +320,8 @@ export default function CoupleManagePage() {
             dataIndex: 'name',
             title: 'Guest Name',
             sortable: true,
-            width: '25%'
+            width: '25%',
+            render: (value) => value || '-' // Tambahkan fallback
         },
         {
             key: 'code',
@@ -331,7 +343,7 @@ export default function CoupleManagePage() {
             title: 'Status',
             sortable: true,
             width: '15%',
-            render: (value) => (
+            render: (value) => value ? (
                 <Chip 
                     label={value}
                     size="small"
@@ -341,7 +353,7 @@ export default function CoupleManagePage() {
                         'error'
                     }
                 />
-            )
+            ) : '-' // Tambahkan fallback
         },
         {
             key: 'pax',
