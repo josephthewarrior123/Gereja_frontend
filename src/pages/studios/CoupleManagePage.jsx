@@ -29,6 +29,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import * as XLSX from 'xlsx';
 import InvitationLinkGenerator from './InvitationLinkGenerator';
+import DirectCheckInModal from './DirectCheckInModal'; // Import komponen modal baru
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -52,7 +53,8 @@ export default function CoupleManagePage() {
     const [newGuestPax, setNewGuestPax] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
-  
+    const [openDirectCheckIn, setOpenDirectCheckIn] = useState(false); // State untuk modal direct check-in
+    const [selectedGuestForCheckIn, setSelectedGuestForCheckIn] = useState(null); // State untuk tamu yang akan di-check-in
     
     // Table state
     const [page, setPage] = useState(0);
@@ -102,6 +104,7 @@ export default function CoupleManagePage() {
                 'Code': guest.code,
                 'Status': guest.status,
                 'Pax': guest.pax || '-',
+                'Gift': guest.gift ? 'Yes' : 'No',
                 'Invitation Link': `${baseUrl}${id}_${guest.code}`
             }));
     
@@ -203,6 +206,7 @@ const sortedGuests = [...filteredGuests].sort((a, b) => {
 const checkedInGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'checked-in').length : 0;
 const acceptedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'ACCEPTED').length : 0;
 const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'REJECTED').length : 0;
+const giftedGuests = couple.guests ? couple.guests.filter(g => g && g.gift).length : 0;
 
     const checkInPercentage = totalGuests > 0 ? (checkedInGuests / totalGuests) * 100 : 0;
 
@@ -241,7 +245,7 @@ const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status =
           const newGuest = {
             name: trimmedName,
             code: `G${Math.floor(1000 + Math.random() * 9000)}`,
-            status: 'ACCEPTED', // DEFAULT STATUS JADI ACCEPTED
+            status: 'PENDING', // DEFAULT STATUS JADI ACCEPTED
             addedAt: new Date().toISOString(),
             ...(newGuestPax && { pax: newGuestPax })
           };
@@ -283,6 +287,55 @@ const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status =
         }
     };
 
+    // Handle gift status toggle
+    const handleGiftToggle = async (guest) => {
+        try {
+            loading.start();
+            await update(ref(db, `couples/${id}/guests/${guest.id}`), {
+                ...guest,
+                gift: !guest.gift,
+                giftUpdatedAt: new Date().toISOString()
+            });
+            message(`Gift status ${!guest.gift ? 'marked' : 'unmarked'} successfully`, 'success');
+            fetchCoupleData();
+        } catch (error) {
+            console.error('Error updating gift status:', error);
+            message('Failed to update gift status', 'error');
+        } finally {
+            loading.stop();
+        }
+    };
+
+    // Handle direct check-in untuk tamu yang sudah ada
+    const handleDirectCheckIn = async (guest, paxCount) => {
+        try {
+            loading.start();
+            
+            // Update status tamu menjadi checked-in dan update pax jika diberikan
+            await update(ref(db, `couples/${id}/guests/${guest.id}`), {
+                ...guest,
+                status: 'checked-in',
+                pax: paxCount || guest.pax || 1, // Gunakan paxCount jika diberikan, jika tidak gunakan yang ada atau default 1
+                checkedInAt: new Date().toISOString()
+            });
+            
+            message(`${guest.name} checked in successfully`, 'success');
+            setOpenDirectCheckIn(false);
+            fetchCoupleData();
+        } catch (error) {
+            console.error('Error with direct check-in:', error);
+            message('Failed to process direct check-in', 'error');
+        } finally {
+            loading.stop();
+        }
+    };
+
+    // Fungsi untuk membuka modal direct check-in untuk tamu tertentu
+    const openDirectCheckInModal = (guest) => {
+        setSelectedGuestForCheckIn(guest);
+        setOpenDirectCheckIn(true);
+    };
+
     const openEditDialog = (guest) => {
         setCurrentGuest(guest);
         setNewGuestName(guest.name);
@@ -313,104 +366,168 @@ const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status =
 
 
     // Table columns configuration
-    const columns = [
-       
-        {
-            key: 'name',
-            dataIndex: 'name',
-            title: 'Guest Name',
-            sortable: true,
-            width: '25%',
-            render: (value) => value || '-' // Tambahkan fallback
-        },
-        {
-            key: 'code',
-            dataIndex: 'code',
-            title: 'Code',
-            sortable: false,
-            width: '15%',
-            render: (value) => (
-                <Chip 
-                    label={value} 
-                    size="small" 
-                    variant="outlined"
-                />
-            )
-        },
-        {
-            key: 'status',
-            dataIndex: 'status',
-            title: 'Status',
-            sortable: true,
-            width: '15%',
-            render: (value) => value ? (
-                <Chip 
-                    label={value}
-                    size="small"
-                    color={
-                        value === 'checked-in' ? 'success' :
-                        value === 'ACCEPTED' ? 'primary' :
-                        'error'
-                    }
-                />
-            ) : '-' // Tambahkan fallback
-        },
-        {
-            key: 'pax',
-            dataIndex: 'pax',
-            title: 'Pax',
-            sortable: true,
-            width: '10%',
-            render: (value) => value ? (
-                <Chip 
-                    label={`${value} Pax`}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                        backgroundColor: '#e3f2fd',
-                        color: '#1565c0',
-                        borderColor: '#2196f3',
-                        fontWeight: 'bold'
-                    }}
-                />
-            ) : '-'
-        },
-        {
-            key: 'actions',
-            dataIndex: 'id',
-            title: 'Actions',
-            sortable: false,
-            width: '15%',
-            render: (value, row) => (
-                <Box>
-                    <Tooltip title="Edit">
-                        <IconButton 
-                            edge="end" 
-                            onClick={(e) => {
+   // Table columns configuration - TAMBAHKAN KOLOM BARU SETELAH ACTIONS
+const columns = [
+    {
+        key: 'name',
+        dataIndex: 'name',
+        title: 'Guest Name',
+        sortable: true,
+        width: '20%',
+        render: (value) => value || '-' // Tambahkan fallback
+    },
+    {
+        key: 'code',
+        dataIndex: 'code',
+        title: 'Code',
+        sortable: false,
+        width: '15%',
+        render: (value) => (
+            <Chip 
+                label={value} 
+                size="small" 
+                variant="outlined"
+            />
+        )
+    },
+    {
+        key: 'status',
+        dataIndex: 'status',
+        title: 'Status',
+        sortable: true,
+        width: '15%',
+        render: (value) => value ? (
+            <Chip 
+                label={value}
+                size="small"
+                color={
+                    value === 'checked-in' ? 'success' :
+                    value === 'ACCEPTED' ? 'primary' :
+                    'error'
+                }
+            />
+        ) : '-' // Tambahkan fallback
+    },
+    {
+        key: 'pax',
+        dataIndex: 'pax',
+        title: 'Pax',
+        sortable: true,
+        width: '10%',
+        render: (value) => value ? (
+            <Chip 
+                label={`${value} Pax`}
+                size="small"
+                variant="outlined"
+                sx={{
+                    backgroundColor: '#e3f2fd',
+                    color: '#1565c0',
+                    borderColor: '#2196f3',
+                    fontWeight: 'bold'
+                }}
+            />
+        ) : '-'
+    },
+    {
+        key: 'gift',
+        dataIndex: 'gift',
+        title: 'Gift',
+        sortable: true,
+        width: '10%',
+        render: (value) => value ? (
+            <Chip 
+                icon={<Icon icon="mdi:gift" />}
+                label="Yes"
+                size="small"
+                color="success"
+                variant="outlined"
+            />
+        ) : (
+            <Chip 
+                label="No"
+                size="small"
+                variant="outlined"
+            />
+        )
+    },
+    {
+        key: 'actions',
+        dataIndex: 'id',
+        title: 'Actions',
+        sortable: false,
+        width: '20%',
+        render: (value, row) => (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Tooltip title={row.gift ? "Unmark Gift" : "Mark Gift"}>
+                    <Checkbox
+                        checked={row.gift || false}
+                        onChange={() => handleGiftToggle(row)}
+                        icon={<Icon icon="mdi:gift-outline" />}
+                        checkedIcon={<Icon icon="mdi:gift" />}
+                        color="success"
+                        sx={{ mr: 1 }}
+                    />
+                </Tooltip>
+                <Tooltip title="Edit">
+                    <IconButton 
+                        edge="end" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openEditDialog(row);
+                        }}
+                        sx={{ mr: 1 }}
+                    >
+                        <Icon icon="mdi:pencil" />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                    <IconButton 
+                        edge="end" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setGuestToDelete(row);
+                            setOpenDeleteDialog(true);
+                        }}
+                    >
+                        <Icon icon="mdi:delete" />
+                    </IconButton>
+                </Tooltip>
+            </Box>
+        )
+    },
+    // KOLOM BARU: DIRECT CHECK-IN
+    {
+        key: 'directCheckIn',
+        dataIndex: 'id',
+        title: 'Check-In',
+        sortable: false,
+        width: '10%',
+        render: (value, row) => (
+            <Tooltip title={row.status === 'checked-in' ? "Already checked in" : "Direct Check-In"}>
+                <span> {/* Wrapper untuk handle disabled state */}
+                    <IconButton 
+                        edge="end" 
+                        onClick={(e) => {
+                            if (row.status !== 'checked-in') {
                                 e.stopPropagation();
-                                openEditDialog(row);
-                            }}
-                            sx={{ mr: 1 }}
-                        >
-                            <Icon icon="mdi:pencil" />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton 
-                            edge="end" 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setGuestToDelete(row);
-                                setOpenDeleteDialog(true);
-                            }}
-                        >
-                            <Icon icon="mdi:delete" />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-            )
-        }
-    ];
+                                openDirectCheckInModal(row);
+                            }
+                        }}
+                        sx={{ 
+                            color: row.status === 'checked-in' ? 'text.disabled' : 'success.main',
+                            '&:hover': {
+                                backgroundColor: row.status === 'checked-in' ? 'transparent' : 'rgba(76, 175, 80, 0.1)'
+                            }
+                        }}
+                        disabled={row.status === 'checked-in'}
+                    >
+                        <Icon icon={row.status === 'checked-in' ? "mdi:check-circle" : "mdi:login"} />
+                    </IconButton>
+                </span>
+            </Tooltip>
+        )
+    }
+];
 
     return (
         <>
@@ -505,6 +622,23 @@ const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status =
                         </Typography>
                         <Typography variant="h4" fontWeight="bold" color="error.main">
                             {rejectedGuests}
+                        </Typography>
+                    </Box>
+
+                    {/* Gifted Guests Card */}
+                    <Box sx={{ 
+                        p: 3, 
+                        border: 1, 
+                        borderColor: 'divider', 
+                        borderRadius: 2,
+                        flex: 1,
+                        minWidth: 200
+                    }}>
+                        <Typography variant="h6" color="text.secondary">
+                            Gift Received
+                        </Typography>
+                        <Typography variant="h4" fontWeight="bold" color="success.main">
+                            {giftedGuests}
                         </Typography>
                     </Box>
                 </Box>
@@ -628,6 +762,17 @@ const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status =
                     sortDirection={sortDirection}
                 />
             </CustomColumn>
+
+            {/* Direct Check-In Modal */}
+            <DirectCheckInModal
+                open={openDirectCheckIn}
+                onClose={() => {
+                    setOpenDirectCheckIn(false);
+                    setSelectedGuestForCheckIn(null);
+                }}
+                onCheckIn={(paxCount) => handleDirectCheckIn(selectedGuestForCheckIn, paxCount)}
+                guest={selectedGuestForCheckIn}
+            />
 
             {/* Add Guest Dialog */}
             <Dialog open={openAddGuestDialog} onClose={() => setOpenAddGuestDialog(false)}>

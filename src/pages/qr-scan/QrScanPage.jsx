@@ -6,6 +6,7 @@ import CustomButton from '../../reusables/CustomButton';
 import CustomSelect from '../../reusables/CustomSelect';
 import { MenuItem } from '@mui/material';
 import dayjs from 'dayjs';
+import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export default function QrScanPage() {
     const [cameras, setCameras] = useState([]);
@@ -121,7 +122,6 @@ export default function QrScanPage() {
               onValue(guestQuery, (snap) => resolve(snap), { onlyOnce: true });
             });
             
-
             if (!snapshot.exists()) {
                 throw new Error('Guest not found');
             }
@@ -160,12 +160,20 @@ export default function QrScanPage() {
     const handleConfirmCheckIn = async () => {
         setLoading(true);
         try {
+            const checkInTime = Date.now();
+    
             await update(ref(db, `couples/${coupleId}/guests/${guestId}`), {
                 status: 'checked-in',
-                checkedInAt: Date.now(),
+                checkedInAt: checkInTime,
             });
-
-            setScannedGuest(guestToCheckIn);
+    
+            // update state lokal biar UI auto refresh
+            setScannedGuest({
+                ...guestToCheckIn,
+                status: 'checked-in',
+                checkedInAt: checkInTime,
+            });
+    
             setErrorMessage('');
             setModalMessage('Check-in successful!');
             setOpenModal(true);
@@ -178,7 +186,7 @@ export default function QrScanPage() {
             setLoading(false);
         }
     };
-
+    
     useEffect(() => {
         initializeScanner();
         return () => {
@@ -187,6 +195,9 @@ export default function QrScanPage() {
             }
         };
     }, []);
+
+    // helper buat status modal: success / error
+    const isSuccessMessage = modalMessage.toLowerCase().includes('success');
 
     return (
         <div className="flex flex-col h-screen">
@@ -244,9 +255,19 @@ export default function QrScanPage() {
                                         <div className="col-span-1 font-medium">Pax</div>
                                         <div className="col-span-3">: {scannedGuest?.pax || 1} orang</div>
                                     </div>
-                                    <div className="grid grid-flow-col grid-cols-4">
+                                    <div className="grid grid-flow-col grid-cols-4 items-center">
                                         <div className="col-span-1 font-medium">Status</div>
-                                        <div className="col-span-3">: Checked In</div>
+                                        <div className="col-span-3 flex items-center gap-2">
+                                            : {scannedGuest?.status === 'checked-in' ? (
+                                                <span className="flex items-center text-green-600">
+                                                    <FaCheckCircle className="mr-1" /> Checked In
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center text-red-600">
+                                                    <FaTimesCircle className="mr-1" /> Not Checked In
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     {scannedGuest?.wish && (
                                         <div className="grid grid-flow-col grid-cols-4">
@@ -254,10 +275,14 @@ export default function QrScanPage() {
                                             <div className="col-span-3">: {scannedGuest.wish}</div>
                                         </div>
                                     )}
-                                    <div className="grid grid-flow-col grid-cols-4">
-                                        <div className="col-span-1 font-medium">Check-in Time</div>
-                                        <div className="col-span-3">: {dayjs(scannedGuest?.checkedInAt).format('DD MMM YYYY - HH:mm')}</div>
-                                    </div>
+                                    {scannedGuest?.checkedInAt && (
+                                        <div className="grid grid-flow-col grid-cols-4">
+                                            <div className="col-span-1 font-medium">Check-in Time</div>
+                                            <div className="col-span-3">
+                                                : {dayjs(scannedGuest?.checkedInAt).format('DD MMM YYYY - HH:mm')}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -292,7 +317,14 @@ export default function QrScanPage() {
             {openModal && (
                 <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 p-5 z-50">
                     <div className="bg-white p-5 rounded-lg shadow-lg max-w-sm w-full text-center">
-                        <p className="whitespace-pre-line">{modalMessage}</p>
+                        <div className="flex flex-col items-center gap-2">
+                            {isSuccessMessage ? (
+                                <FaCheckCircle className="text-green-600 text-4xl" />
+                            ) : (
+                                <FaTimesCircle className="text-red-600 text-4xl" />
+                            )}
+                            <p className="whitespace-pre-line">{modalMessage}</p>
+                        </div>
                         <button 
                             className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                             onClick={() => setOpenModal(false)}
