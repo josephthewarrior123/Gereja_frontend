@@ -9,6 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useEffect } from 'react';
+import { hash, compare } from 'bcryptjs'; // Import the hash function
 
 const validationSchema = Yup.object({
   username: Yup.string().required('Username is required'),
@@ -41,6 +42,7 @@ export default function AdminEdit() {
         };
 
         if (values.newPassword) {
+          // Use the imported hash function
           const hashedPassword = await hash(values.newPassword, 10);
           updates.password = hashedPassword;
         }

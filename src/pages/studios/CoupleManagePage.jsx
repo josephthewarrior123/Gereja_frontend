@@ -107,6 +107,13 @@ export default function CoupleManagePage() {
     { value: 'regular', label: 'Regular Guests' }
   ];
 
+  // Fungsi untuk menghitung total pax dari sekelompok tamu
+  const calculateTotalPax = (guests) => {
+    return guests.reduce((total, guest) => {
+      return total + (parseInt(guest.pax) || 1);
+    }, 0);
+  };
+
   // Fungsi untuk membuka modal detail
   const openDetails = (title, filterFn) => {
     setModalTitle(title);
@@ -225,13 +232,31 @@ export default function CoupleManagePage() {
 
   // Hitung statistik lengkap
   const totalGuests = couple.guests ? couple.guests.length : 0;
-  const checkedInGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'checked-in').length : 0;
-  const acceptedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'ACCEPTED').length : 0;
-  const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'REJECTED').length : 0;
-  const pendingGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'PENDING').length : 0;
-  const giftedGuests = couple.guests ? couple.guests.filter(g => g && g.gift).length : 0;
-  const vipGuests = couple.guests ? couple.guests.filter(g => g && (g.type || 'regular') === 'vip').length : 0;
-  const regularGuests = couple.guests ? couple.guests.filter(g => g && (g.type || 'regular') === 'regular').length : 0;
+  const checkedInGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'checked-in') : [];
+  const acceptedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'ACCEPTED') : [];
+  const rejectedGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'REJECTED') : [];
+  const pendingGuests = couple.guests ? couple.guests.filter(g => g && g.status === 'PENDING') : [];
+  const giftedGuests = couple.guests ? couple.guests.filter(g => g && g.gift) : [];
+  const vipGuests = couple.guests ? couple.guests.filter(g => g && (g.type || 'regular') === 'vip') : [];
+  const regularGuests = couple.guests ? couple.guests.filter(g => g && (g.type || 'regular') === 'regular') : [];
+
+  // Hitung total pax untuk setiap kategori
+  const totalPax = calculateTotalPax(couple.guests);
+  const checkedInPax = calculateTotalPax(checkedInGuests);
+  const acceptedPax = calculateTotalPax(acceptedGuests);
+  const rejectedPax = calculateTotalPax(rejectedGuests);
+  const pendingPax = calculateTotalPax(pendingGuests);
+  const vipPax = calculateTotalPax(vipGuests);
+  const regularPax = calculateTotalPax(regularGuests);
+
+  // Hitung jumlah tamu (bukan pax)
+  const checkedInCount = checkedInGuests.length;
+  const acceptedCount = acceptedGuests.length;
+  const rejectedCount = rejectedGuests.length;
+  const pendingCount = pendingGuests.length;
+  const giftedCount = giftedGuests.length;
+  const vipCount = vipGuests.length;
+  const regularCount = regularGuests.length;
 
   // Hitung check-in rate berdasarkan filter
   const calculateCheckInRate = () => {
@@ -240,14 +265,14 @@ export default function CoupleManagePage() {
 
     if (checkInRateFilter === 'all') {
       totalFilteredGuests = totalGuests;
-      checkedInFilteredGuests = checkedInGuests;
+      checkedInFilteredGuests = checkedInCount;
     } else if (checkInRateFilter === 'vip') {
-      totalFilteredGuests = vipGuests;
+      totalFilteredGuests = vipCount;
       checkedInFilteredGuests = couple.guests.filter(g => g && 
         (g.type || 'regular') === 'vip' && 
         g.status === 'checked-in').length;
     } else if (checkInRateFilter === 'regular') {
-      totalFilteredGuests = regularGuests;
+      totalFilteredGuests = regularCount;
       checkedInFilteredGuests = couple.guests.filter(g => g && 
         (g.type || 'regular') === 'regular' && 
         g.status === 'checked-in').length;
@@ -411,32 +436,32 @@ export default function CoupleManagePage() {
       <CustomColumn className={'gap-y-8 max-h-full'}>
         {/* Header Section */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-  <IconButton onClick={() => navigate('/couples')}>
-    <Icon icon="heroicons:arrow-left" />
-  </IconButton>
-  <Typography variant="h4" fontWeight="bold">
-    {couple.name}
-  </Typography>
-  <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-    <InvitationLinkGenerator 
-      couple={{ id, guests: couple.guests, name: couple.name }} 
-      disabled={couple.guests.length === 0}
-    />
-    <CustomButton
-      variant="contained"
-      startIcon={<Icon icon="mdi:plus" />}
-      onClick={() => setOpenAddGuestDialog(true)}
-      sx={{ 
-        height: '40px',
-        minWidth: 'auto',
-        px: 2,
-        fontSize: '0.875rem'
-      }}
-    >
-      Add Guest
-    </CustomButton>
-  </Box>
-</Box>
+          <IconButton onClick={() => navigate('/couples')}>
+            <Icon icon="heroicons:arrow-left" />
+          </IconButton>
+          <Typography variant="h4" fontWeight="bold">
+            {couple.name}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+            <InvitationLinkGenerator 
+              couple={{ id, guests: couple.guests, name: couple.name }} 
+              disabled={couple.guests.length === 0}
+            />
+            <CustomButton
+              variant="contained"
+              startIcon={<Icon icon="mdi:plus" />}
+              onClick={() => setOpenAddGuestDialog(true)}
+              sx={{ 
+                height: '40px',
+                minWidth: 'auto',
+                px: 2,
+                fontSize: '0.875rem'
+              }}
+            >
+              Add Guest
+            </CustomButton>
+          </Box>
+        </Box>
 
         {/* Statistics Section - MENGGUNAKAN KOMPONEN STATISTICCARD YANG BARU */}
         <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -444,13 +469,15 @@ export default function CoupleManagePage() {
           <StatisticCard
             title="Total Guests"
             value={totalGuests}
+            subtitle={`${totalPax} Pax`}
             onClick={() => openDetails('All Guests', () => true)}
           />
 
           {/* Checked In Guests Card */}
           <StatisticCard
             title="Checked In"
-            value={checkedInGuests}
+            value={checkedInCount}
+            subtitle={`${checkedInPax} Pax`}
             color="success.main"
             onClick={() => openDetails('Checked In Guests', guest => guest.status === 'checked-in')}
           />
@@ -458,7 +485,8 @@ export default function CoupleManagePage() {
           {/* Accepted Guests Card */}
           <StatisticCard
             title="Accepted"
-            value={acceptedGuests}
+            value={acceptedCount}
+            subtitle={`${acceptedPax} Pax`}
             color="primary.main"
             onClick={() => openDetails('Accepted Guests', guest => guest.status === 'ACCEPTED')}
           />
@@ -466,7 +494,8 @@ export default function CoupleManagePage() {
           {/* Pending Guests Card */}
           <StatisticCard
             title="Pending"
-            value={pendingGuests}
+            value={pendingCount}
+            subtitle={`${pendingPax} Pax`}
             color="warning.main"
             onClick={() => openDetails('Pending Guests', guest => guest.status === 'PENDING')}
           />
@@ -474,7 +503,8 @@ export default function CoupleManagePage() {
           {/* Rejected Guests Card */}
           <StatisticCard
             title="Rejected"
-            value={rejectedGuests}
+            value={rejectedCount}
+            subtitle={`${rejectedPax} Pax`}
             color="error.main"
             onClick={() => openDetails('Rejected Guests', guest => guest.status === 'REJECTED')}
           />
@@ -482,7 +512,8 @@ export default function CoupleManagePage() {
           {/* VIP Guests Card */}
           <StatisticCard
             title="VIP Guests"
-            value={vipGuests}
+            value={vipCount}
+            subtitle={`${vipPax} Pax`}
             color="warning.main"
             onClick={() => openDetails('VIP Guests', guest => (guest.type || 'regular') === 'vip')}
           />
@@ -490,7 +521,8 @@ export default function CoupleManagePage() {
           {/* Regular Guests Card */}
           <StatisticCard
             title="Regular Guests"
-            value={regularGuests}
+            value={regularCount}
+            subtitle={`${regularPax} Pax`}
             color="info.main"
             onClick={() => openDetails('Regular Guests', guest => (guest.type || 'regular') === 'regular')}
           />
@@ -498,7 +530,7 @@ export default function CoupleManagePage() {
           {/* Gifted Guests Card */}
           <StatisticCard
             title="Gift Received"
-            value={giftedGuests}
+            value={giftedCount}
             color="success.main"
             onClick={() => openDetails('Guests Who Gave Gifts', guest => guest.gift)}
           />
@@ -555,9 +587,9 @@ export default function CoupleManagePage() {
             </Typography>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {checkInRateFilter === 'all' && `Checked in: ${checkedInGuests} / ${totalGuests} guests`}
-            {checkInRateFilter === 'vip' && `Checked in: ${couple.guests.filter(g => g && (g.type || 'regular') === 'vip' && g.status === 'checked-in').length} / ${vipGuests} VIP guests`}
-            {checkInRateFilter === 'regular' && `Checked in: ${couple.guests.filter(g => g && (g.type || 'regular') === 'regular' && g.status === 'checked-in').length} / ${regularGuests} regular guests`}
+            {checkInRateFilter === 'all' && `Checked in: ${checkedInCount} / ${totalGuests} guests`}
+            {checkInRateFilter === 'vip' && `Checked in: ${couple.guests.filter(g => g && (g.type || 'regular') === 'vip' && g.status === 'checked-in').length} / ${vipCount} VIP guests`}
+            {checkInRateFilter === 'regular' && `Checked in: ${couple.guests.filter(g => g && (g.type || 'regular') === 'regular' && g.status === 'checked-in').length} / ${regularCount} regular guests`}
           </Typography>
         </Box>
 

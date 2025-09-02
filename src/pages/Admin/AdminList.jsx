@@ -13,13 +13,14 @@ import {
   DialogActions 
 } from '@mui/material';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, onValue, remove } from 'firebase/database';
+import { getDatabase, ref, onValue, remove, get } from 'firebase/database';
 import { app } from '../../config/firebaseConfig';
 import { useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
 import CustomIcon from '../../reusables/CustomIcon';
 import CustomDataTable from '../../reusables/CustomDataTable';
 import CustomButton from '../../reusables/CustomButton';
+import { useAlert } from '../../hooks/SnackbarProvider';
 
 // Komponen DeleteConfirmationDialog
 const DeleteConfirmationDialog = ({ open, onClose, onConfirm, title, message }) => {
@@ -52,6 +53,7 @@ export default function AdminList() {
   const [adminToDelete, setAdminToDelete] = useState(null);
   const navigate = useNavigate();
   const db = getDatabase(app);
+  const message = useAlert();
   
   // State untuk pagination dan sorting
   const [page, setPage] = useState(0);
@@ -126,13 +128,52 @@ export default function AdminList() {
   const handleDeleteConfirm = () => {
     if (adminToDelete) {
       const adminRef = ref(db, `admins/${adminToDelete.id}`);
+      
+      // Hapus dari admins
       remove(adminRef)
         .then(() => {
-          setDeleteDialogOpen(false);
-          setAdminToDelete(null);
+          // Hapus dari assigned_admins di semua couples
+          const cleanupPromises = [];
+          
+          // Hapus dari couples
+          const couplesRef = ref(db, 'couples');
+          get(couplesRef).then((couplesSnapshot) => {
+            if (couplesSnapshot.exists()) {
+              const couplesData = couplesSnapshot.val();
+              Object.keys(couplesData).forEach(coupleId => {
+                if (couplesData[coupleId].assigned_admins && 
+                    couplesData[coupleId].assigned_admins[adminToDelete.id]) {
+                  
+                  const coupleUpdateRef = ref(db, `couples/${coupleId}/assigned_admins/${adminToDelete.id}`);
+                  cleanupPromises.push(remove(coupleUpdateRef));
+                }
+              });
+            }
+            
+            // Hapus dari admin_assignments
+            const assignmentsRef = ref(db, `admin_assignments/${adminToDelete.id}`);
+            cleanupPromises.push(remove(assignmentsRef));
+            
+            // Tunggu semua cleanup selesai
+            return Promise.all(cleanupPromises);
+          })
+          .then(() => {
+            setDeleteDialogOpen(false);
+            setAdminToDelete(null);
+            message('Admin deleted successfully and all assignments cleaned up', 'success');
+          })
+          .catch((error) => {
+            console.error("Error during cleanup: ", error);
+            setDeleteDialogOpen(false);
+            setAdminToDelete(null);
+            message('Admin deleted but cleanup failed', 'warning');
+          });
         })
         .catch((error) => {
           console.error("Error deleting admin: ", error);
+          setDeleteDialogOpen(false);
+          setAdminToDelete(null);
+          message('Failed to delete admin', 'error');
         });
     }
   };
@@ -364,7 +405,7 @@ export default function AdminList() {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Delete Admin"
-        message={`Are you sure you want to delete admin "${adminToDelete?.username}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete admin "${adminToDelete?.username}"? This will also remove all their assignments from couples.`}
       />
     </Box>
   );

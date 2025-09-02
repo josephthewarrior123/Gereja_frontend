@@ -6,6 +6,7 @@ import { useState } from 'react';
 const StatisticCard = ({ 
   title, 
   value, 
+  subtitle,
   color = 'text.primary', 
   icon,
   onClick,
@@ -40,22 +41,38 @@ const StatisticCard = ({
         onClick={handleClick}
         elevation={2}
       >
-        <CardContent>
+        <CardContent sx={{ p: 2.5 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {title}
+          </Typography>
+          
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                {title}
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <Typography variant="h4" fontWeight="bold" color={color}>
                 {value}
               </Typography>
+              
+              {subtitle && (
+                <Typography 
+                  variant="h6" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontWeight: 500,
+                    ml: 1 // Menambahkan margin kiri agar tidak terlalu mepet
+                  }}
+                >
+                  ({subtitle})
+                </Typography>
+              )}
             </Box>
+            
             {icon && (
-              <IconButton size="small" disabled>
-                <Icon icon={icon} />
+              <IconButton size="small" disabled sx={{ color: color }}>
+                <Icon icon={icon} width={24} height={24} />
               </IconButton>
             )}
           </Box>
+
           {(onClick || detailsComponent) && (
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
               Click for details

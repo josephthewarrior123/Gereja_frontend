@@ -10,12 +10,16 @@ import {
     Typography,
     Box,
     Grid,
-    Chip
+    Chip,
+    MenuItem
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 
 const DirectCheckInModal = ({ open, onClose, onCheckIn, guest }) => {
     const [paxCount, setPaxCount] = useState(1);
+
+    // Opsi dropdown untuk jumlah tamu (1-5)
+    const paxOptions = [1, 2, 3, 4, 5];
 
     // Reset pax count ketika guest berubah atau modal dibuka
     useEffect(() => {
@@ -100,33 +104,28 @@ const DirectCheckInModal = ({ open, onClose, onCheckIn, guest }) => {
                 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {guest 
-                        ? `Masukkan jumlah tamu yang dibawa oleh ${guest.name} untuk check-in.`
-                        : 'Masukkan jumlah tamu yang akan check-in langsung tanpa undangan.'
+                        ? `Pilih jumlah tamu yang dibawa oleh ${guest.name} untuk check-in.`
+                        : 'Pilih jumlah tamu yang akan check-in langsung tanpa undangan.'
                     }
                 </Typography>
+                
                 <TextField
+                    select
                     autoFocus
                     margin="dense"
                     label="Jumlah Tamu (Pax)"
-                    type="number"
                     fullWidth
                     variant="outlined"
                     value={paxCount}
-                    onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value >= 1 && value <= 20) {
-                            setPaxCount(value);
-                        } else if (e.target.value === '') {
-                            setPaxCount(1);
-                        }
-                    }}
-                    inputProps={{ 
-                        min: 1, 
-                        max: 20,
-                        step: 1
-                    }}
-                    helperText="Masukkan jumlah tamu (1-20 orang)"
-                />
+                    onChange={(e) => setPaxCount(e.target.value)}
+                    helperText="Pilih jumlah tamu (1-5 orang)"
+                >
+                    {paxOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                            {option} orang
+                        </MenuItem>
+                    ))}
+                </TextField>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} color="inherit">
