@@ -186,7 +186,7 @@ export default function QrScanPage() {
             setLoading(false);
         }
     };
-    
+                
     useEffect(() => {
         initializeScanner();
         return () => {

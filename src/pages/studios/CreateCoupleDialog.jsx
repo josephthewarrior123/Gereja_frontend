@@ -1,3 +1,4 @@
+// CreateCoupleDialog.jsx
 import { useState, useRef } from 'react';
 import { ref, set } from 'firebase/database';
 import { db } from '../../config/firebaseConfig';
@@ -11,7 +12,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
+  MenuItem
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import * as XLSX from 'xlsx';
@@ -20,6 +22,7 @@ export default function CreateCoupleDialog({ open, onClose }) {
   const [coupleName, setCoupleName] = useState('');
   const [guests, setGuests] = useState([]);
   const [newGuest, setNewGuest] = useState('');
+  const [newGuestType, setNewGuestType] = useState('regular'); // Default to regular
   const fileInputRef = useRef(null);
 
   // Fungsi untuk mereset semua input form
@@ -27,6 +30,7 @@ export default function CreateCoupleDialog({ open, onClose }) {
     setCoupleName('');
     setGuests([]);
     setNewGuest('');
+    setNewGuestType('regular');
   };
 
   // Fungsi untuk membuat ID alfanumerik bersih
@@ -69,6 +73,7 @@ export default function CreateCoupleDialog({ open, onClose }) {
         const guestId = createCleanId(guest.name);
         coupleData.guests[guestId] = {
           name: guest.name,
+          type: guest.type || 'regular', // Default to regular if not specified
           code: generateCode(),
           status: 'PENDING'
         };
@@ -97,8 +102,9 @@ export default function CreateCoupleDialog({ open, onClose }) {
   const addGuest = () => {
     const trimmedName = newGuest.trim();
     if (trimmedName && !isGuestExists(trimmedName)) {
-      setGuests([...guests, { name: trimmedName }]);
+      setGuests([...guests, { name: trimmedName, type: newGuestType }]);
       setNewGuest('');
+      setNewGuestType('regular'); // Reset to default after adding
     }
   };
 
@@ -125,7 +131,11 @@ export default function CreateCoupleDialog({ open, onClose }) {
           .map(row => {
             // Use 'name' column if exists, otherwise use first column
             const name = row.name || row[Object.keys(row)[0]];
-            return { name: String(name).trim() };
+            const type = row.type || 'regular'; // Default to regular if not specified
+            return { 
+              name: String(name).trim(),
+              type: ['regular', 'vip'].includes(type.toLowerCase()) ? type.toLowerCase() : 'regular'
+            };
           })
           .filter(guest => guest.name && !isGuestExists(guest.name)); // Filter out empty and duplicate names
 
@@ -145,10 +155,10 @@ export default function CreateCoupleDialog({ open, onClose }) {
   // Generate example Excel file
   const downloadExampleExcel = () => {
     const exampleData = [
-      { name: 'John Doe' },
-      { name: 'Jane Smith' },
-      { name: 'Michael Johnson' },
-      { name: 'Sarah Williams' }
+      { name: 'John Doe', type: 'regular' },
+      { name: 'Jane Smith', type: 'vip' },
+      { name: 'Michael Johnson', type: 'regular' },
+      { name: 'Sarah Williams', type: 'vip' }
     ];
     
     const ws = XLSX.utils.json_to_sheet(exampleData);
@@ -202,6 +212,16 @@ export default function CreateCoupleDialog({ open, onClose }) {
                 : ''
             }
           />
+          <TextField
+            select
+            label="Type"
+            value={newGuestType}
+            onChange={(e) => setNewGuestType(e.target.value)}
+            sx={{ minWidth: 120 }}
+          >
+            <MenuItem value="regular">Regular</MenuItem>
+            <MenuItem value="vip">VIP</MenuItem>
+          </TextField>
           <Button 
             variant="contained" 
             onClick={addGuest}
@@ -240,7 +260,10 @@ export default function CreateCoupleDialog({ open, onClose }) {
         <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
           {guests.map((guest, index) => (
             <ListItem key={index} divider>
-              <ListItemText primary={guest.name} />
+              <ListItemText 
+                primary={guest.name} 
+                secondary={`Type: ${guest.type || 'regular'}`}
+              />
               <ListItemSecondaryAction>
                 <IconButton edge="end" onClick={() => removeGuest(index)}>
                   <Icon icon="mdi:delete" />
