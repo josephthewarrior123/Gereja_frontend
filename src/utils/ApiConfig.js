@@ -1,5 +1,3 @@
 export default {
-    //base_url: 'http://localhost:3306',
-    //base_url: 'https://premiere-api.komunestudio.com'
+    base_url: 'https://pt-kuda-jaya-abadi-raya-be.vercel.app'
 }
-

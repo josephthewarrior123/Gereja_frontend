@@ -2,12 +2,12 @@ import ApiConfig from './ApiConfig';
 
 export default class ApiRequest {
     static set = async (endpoint, method, body, apiUrl = null) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         const request = {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: !!token ? `bearer ${token}` : null,
+                Authorization: !!token ? `Bearer ${token}` : null,
                 Accept: 'application/json',
             },
             body: body && JSON.stringify(body),

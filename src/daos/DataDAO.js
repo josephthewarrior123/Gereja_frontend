@@ -1,6 +1,6 @@
 import ApiRequest from '../utils/ApiRequest';
 
-export default class DataDAO {
+export default class DataCustomerDAO {
     static getInvitationByUniqueCode = async (uniqueCode) => {
         return await ApiRequest.set(
             `/v1/invite/${uniqueCode}/scan`,

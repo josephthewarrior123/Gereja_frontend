@@ -5,17 +5,14 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
-import { getDatabase, ref, get } from 'firebase/database';
-import { app } from '../../config/firebaseConfig';
 import { useEffect } from 'react';
-import { compare } from 'bcryptjs';
+import UserDAO from '../../daos/UserDAO';
 
 export default function LoginPage() {
     const { user, login, isLoading } = useUser();
     const loading = useLoading();
     const message = useAlert();
     const navigate = useNavigate();
-    const db = getDatabase(app);
 
     // Redirect if already logged in
     useEffect(() => {
@@ -38,62 +35,36 @@ export default function LoginPage() {
             const username = data.username.trim();
             const password = data.password.trim();
             
-            const adminsRef = ref(db, 'admins');
-            const snapshot = await get(adminsRef);
-            
-            if (!snapshot.exists()) {
-                throw new Error('No admin accounts found');
-            }
-            
-            const admins = snapshot.val();
-            const adminEntry = Object.entries(admins).find(
-                ([_, admin]) => admin.username.trim() === username
-            );
-            
-            if (!adminEntry) {
-                throw new Error('Admin not found');
-            }
-            
-            const [adminId, adminData] = adminEntry;
-            const storedPassword = adminData.password.trim();
-            
-            // Debugging info
-            console.log('Comparing:', {
-                inputPassword: password,
-                storedPassword: storedPassword,
-                isHashed: storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')
+            // Call backend API melalui UserDAO
+            const result = await UserDAO.login({
+                username: username,
+                password: password
             });
-            
-            // Verifikasi password
-            let passwordValid = false;
-            
-            if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
-                // Password di database sudah di-hash
-                passwordValid = await compare(password, storedPassword);
-            } else {
-                // Password di database plain text
-                passwordValid = password === storedPassword;
-                
-                // Tampilkan warning jika password plain text
-                if (passwordValid) {
-                    console.warn('Security Warning: Using plain text password for', adminId);
-                }
+
+            // Check response
+            if (!result.success) {
+                throw new Error(result.error || 'Login failed');
             }
-            
-            if (!passwordValid) {
-                throw new Error('Invalid password');
+
+            // Simpan token ke localStorage
+            if (result.token) {
+                localStorage.setItem('authToken', result.token);
             }
-            
-            // Login sukses
+
+            // Login dengan data user dari backend
             login({
-                id: adminId,
-                username: adminData.username,
-                role: adminData.role || 'admin'
+                id: result.user.id,
+                username: result.user.username,
+                fullName: result.user.fullName,
+                role: result.user.role || 'user'
             });
+
+            message('Login successful!', 'success');
+            navigate('/', { replace: true });
             
         } catch (error) {
             console.error('Login error:', error);
-            message(error.message || 'Login failed. Please check credentials.', 'error');
+            message(error.message || 'Login failed. Please check your credentials.', 'error');
         } finally {
             loading.stop();
         }

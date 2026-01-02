@@ -1,8 +1,8 @@
-// StudioDAO.js
+// StudioCustomerDAO.js
 
 import ApiRequest from '../utils/ApiRequest';
 
-export default class StudioDAO {
+export default class StudioCustomerDAO {
     static getByCinemaId = async (cinemaId, params) => {
         return await ApiRequest.set(
             `/v1/studios/cinema/${cinemaId}?${new URLSearchParams(params)}`,

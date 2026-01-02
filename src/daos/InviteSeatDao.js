@@ -1,6 +1,6 @@
 import ApiRequest from '../utils/ApiRequest';
 
-export default class InviteSeatDAO {
+export default class InviteSeatCustomerDAO {
    
     static getAll = async () => {
         return await ApiRequest.set('/v1/invite-seats', 'GET');

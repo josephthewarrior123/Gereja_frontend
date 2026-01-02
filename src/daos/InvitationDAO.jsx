@@ -1,6 +1,6 @@
 import ApiRequest from '../utils/ApiRequest';
 
-export default class InvitationDAO {
+export default class InvitationCustomerDAO {
     static getAll = async (dataSourceOptions) => {
         const params = new URLSearchParams(dataSourceOptions).toString();
         return await ApiRequest.set(`/v1/invitations?${params}`, 'GET');

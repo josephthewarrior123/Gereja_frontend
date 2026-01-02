@@ -1,6 +1,6 @@
 import ApiRequest from '../utils/ApiRequest';
 
-export default class ShowDAO {
+export default class ShowCustomerDAO {
     static getById = async (id) => {
         return await ApiRequest.set(
             `/v1/show/${id}`,
@@ -31,7 +31,7 @@ export default class ShowDAO {
     };
 
     static create = async (body) => {
-        console.log("Data yang dikirim ke API (ShowDAO.create):", body); // Debugging
+        console.log("Data yang dikirim ke API (ShowCustomerDAO.create):", body); // Debugging
         return await ApiRequest.set(
             '/v1/show',
             ApiRequest.HTTP_METHOD.POST,

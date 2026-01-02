@@ -4,14 +4,14 @@ import { getAnalytics } from "firebase/analytics";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDOqD4A875qg4uRLw17mAXn93IIZIJlsc0",
-  authDomain: "wedding-invitation-c9c05.firebaseapp.com",
-  databaseURL: "https://wedding-invitation-c9c05-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "wedding-invitation-c9c05",
-  storageBucket: "wedding-invitation-c9c05.firebasestorage.app",
-  messagingSenderId: "213222123973",
-  appId: "1:213222123973:web:e0f7d9d60e449a323703ac",
-  measurementId: "G-V617936D5L"
+  apiKey: "AIzaSyBg72_imTZRZ9RaZs9_9X3eRdDLVrHmuag",
+  authDomain: "pt-kuda-jaya-abadi.firebaseapp.com",
+  databaseURL: "https://pt-kuda-jaya-abadi-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pt-kuda-jaya-abadi",
+  storageBucket: "pt-kuda-jaya-abadi.firebasestorage.app",
+  messagingSenderId: "546945993573",
+  appId: "1:546945993573:web:9f63bc454edfda7b73ef8c",
+  measurementId: "G-KVZ09E40P7"
 };
 
 // Initialize Firebase

@@ -10,7 +10,10 @@ import AdminList from './pages/Admin/AdminList';
 import CreateAdmin from './pages/Admin/CreateAdmin';
 import AdminEdit from './pages/Admin/AdminEdit';
 import AdminAssignPage from './pages/Admin/AdminAssignPage';
-
+import Kwitansi from './pages/kwitansi/KwitansiCreate';
+import CustomerListPage from './pages/customers/CustomerListPage';
+import CustomerCreatePage from './pages/customers/CustomerCreatePage';
+import CustomerEditPage from './pages/customers/CustomerEditPage';
 
 export default function AppRoutes() {
     return (
@@ -19,16 +22,27 @@ export default function AppRoutes() {
             
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<CoupleList />} />
+                
+                {/* Couples Routes */}
                 <Route path="couples">
                     <Route index element={<CoupleList />} />
                     <Route path=":id" element={<CoupleManage />} />
                 </Route>
+                
+                {/* Customers Routes (NEW) */}
+                <Route path="customers">
+                    <Route index element={<CustomerListPage />} />
+                    <Route path="create" element={<CustomerCreatePage />} />
+                    <Route path="edit/:id" element={<CustomerEditPage />} />
+                </Route>
+                
+                {/* Other Routes */}
                 <Route path="qr-scan" element={<QrScanPage />} />
                 <Route path="admin-management" element={<AdminList/>} />
                 <Route path="create-admin" element={<CreateAdmin />} />
                 <Route path="edit-admin/:id" element={<AdminEdit />} />
-                <Route path="assign-admin/:id" element={<AdminAssignPage />} /> 
-
+                <Route path="assign-admin/:id" element={<AdminAssignPage />} />
+                <Route path="kwitansi" element={<Kwitansi />} /> 
                 <Route path="guests" element={<GuestListPage />} />
             </Route>
 
