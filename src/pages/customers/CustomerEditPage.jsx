@@ -17,7 +17,9 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions
+    DialogActions,
+    useMediaQuery,
+    useTheme
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -45,13 +47,14 @@ export default function CustomerEditPage() {
     const [showPhotoDialog, setShowPhotoDialog] = useState(false);
     const [photoToView, setPhotoToView] = useState(null);
     
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const message = useAlert();
     const loadingProvider = useLoading();
 
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
         phone: '',
         address: '',
         notes: '',
@@ -77,7 +80,6 @@ export default function CustomerEditPage() {
                 setCustomer(response.customer);
                 setFormData({
                     name: response.customer.name || '',
-                    email: response.customer.email || '',
                     phone: response.customer.phone || '',
                     address: response.customer.address || '',
                     notes: response.customer.notes || '',
@@ -157,10 +159,6 @@ export default function CustomerEditPage() {
         const newErrors = {};
         
         if (!formData.name.trim()) newErrors.name = 'Name is required';
-        if (!formData.email.trim()) newErrors.email = 'Email is required';
-        if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email is invalid';
-        }
         if (!formData.plateNumber.trim()) newErrors.plateNumber = 'Plate number is required';
         if (!formData.carBrand.trim()) newErrors.carBrand = 'Car brand is required';
         
@@ -178,7 +176,6 @@ export default function CustomerEditPage() {
             // Update customer data
             const updateData = {
                 name: formData.name,
-                email: formData.email,
                 phone: formData.phone,
                 address: formData.address,
                 notes: formData.notes,
@@ -244,23 +241,31 @@ export default function CustomerEditPage() {
     }
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
             {/* Header */}
             <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 2, sm: 0 }
+                }}>
                     <Box>
-                        <Typography variant="h4" fontWeight="bold">
+                        <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                             Edit Customer
                         </Typography>
-                        <Typography variant="body1" color="textSecondary">
+                        <Typography variant="body2" color="textSecondary">
                             Customer ID: {id}
                         </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
                         <Button
                             variant="outlined"
                             startIcon={<Icon icon="mdi:arrow-left" />}
                             onClick={() => navigate(`/customers/${id}`)}
+                            fullWidth={isMobile}
                         >
                             View Details
                         </Button>
@@ -269,23 +274,29 @@ export default function CustomerEditPage() {
                             onClick={handleSave}
                             disabled={saving}
                             startIcon={<Icon icon="mdi:content-save" />}
+                            fullWidth={isMobile}
                         >
                             {saving ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </Box>
                 </Box>
 
-                <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
+                <Tabs 
+                    value={tabValue} 
+                    onChange={handleTabChange} 
+                    sx={{ mb: 2 }}
+                    variant={isMobile ? "fullWidth" : "standard"}
+                >
                     <Tab label="Customer Info" />
                     <Tab label="Car Details" />
                     <Tab label="Photos" />
                 </Tabs>
             </Box>
 
-            <Paper sx={{ p: 4 }}>
+            <Paper sx={{ p: { xs: 2, sm: 4 } }}>
                 <TabPanel value={tabValue} index={0}>
                     <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12}>
                             <TextField
                                 fullWidth
                                 label="Full Name *"
@@ -295,19 +306,7 @@ export default function CustomerEditPage() {
                                 error={!!errors.name}
                                 helperText={errors.name}
                                 required
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Email Address *"
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                error={!!errors.email}
-                                helperText={errors.email}
-                                required
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -317,6 +316,7 @@ export default function CustomerEditPage() {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -326,6 +326,7 @@ export default function CustomerEditPage() {
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -336,7 +337,8 @@ export default function CustomerEditPage() {
                                 value={formData.notes}
                                 onChange={handleChange}
                                 multiline
-                                rows={3}
+                                rows={isMobile ? 4 : 3}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                     </Grid>
@@ -351,6 +353,7 @@ export default function CustomerEditPage() {
                                 name="carOwnerName"
                                 value={formData.carOwnerName}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -363,6 +366,7 @@ export default function CustomerEditPage() {
                                 error={!!errors.carBrand}
                                 helperText={errors.carBrand}
                                 required
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -372,6 +376,7 @@ export default function CustomerEditPage() {
                                 name="carModel"
                                 value={formData.carModel}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -384,6 +389,7 @@ export default function CustomerEditPage() {
                                 error={!!errors.plateNumber}
                                 helperText={errors.plateNumber}
                                 required
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -393,6 +399,7 @@ export default function CustomerEditPage() {
                                 name="chassisNumber"
                                 value={formData.chassisNumber}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -402,6 +409,7 @@ export default function CustomerEditPage() {
                                 name="engineNumber"
                                 value={formData.engineNumber}
                                 onChange={handleChange}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -413,6 +421,7 @@ export default function CustomerEditPage() {
                                 value={formData.dueDate}
                                 onChange={handleChange}
                                 InputLabelProps={{ shrink: true }}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                     </Grid>
@@ -429,7 +438,7 @@ export default function CustomerEditPage() {
                         {['leftSide', 'rightSide', 'front', 'back'].map((side) => (
                             <Grid item xs={12} sm={6} md={3} key={side}>
                                 <Card>
-                                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                                    <CardContent sx={{ p: 1, textAlign: 'center' }}>
                                         <Typography variant="subtitle2" gutterBottom>
                                             {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                         </Typography>
@@ -441,7 +450,7 @@ export default function CustomerEditPage() {
                                                     image={previewUrls[side]}
                                                     alt={`Car ${side}`}
                                                     sx={{
-                                                        height: 120,
+                                                        height: isMobile ? 100 : 120,
                                                         objectFit: 'cover',
                                                         borderRadius: 1,
                                                         cursor: 'pointer'
@@ -465,7 +474,7 @@ export default function CustomerEditPage() {
                                             <Paper
                                                 variant="outlined"
                                                 sx={{
-                                                    height: 120,
+                                                    height: isMobile ? 100 : 120,
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
@@ -481,7 +490,7 @@ export default function CustomerEditPage() {
                                                     style={{ display: 'none' }}
                                                     onChange={(e) => handleFileUpload(side, e.target.files[0])}
                                                 />
-                                                <Icon icon="mdi:camera-plus" width={40} color="#9e9e9e" />
+                                                <Icon icon="mdi:camera-plus" width={isMobile ? 32 : 40} color="#9e9e9e" />
                                             </Paper>
                                         )}
                                         
@@ -507,28 +516,38 @@ export default function CustomerEditPage() {
                 onClose={() => setShowPhotoDialog(false)}
                 maxWidth="md"
                 fullWidth
+                fullScreen={isMobile}
             >
-                <DialogTitle>
+                <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="h6">Photo Preview</Typography>
+                        <Typography variant={isMobile ? "h6" : "h5"}>Photo Preview</Typography>
                         <IconButton onClick={() => setShowPhotoDialog(false)} size="small">
                             <Icon icon="mdi:close" />
                         </IconButton>
                     </Box>
                 </DialogTitle>
-                <DialogContent sx={{ textAlign: 'center', p: 3 }}>
+                <DialogContent sx={{ textAlign: 'center', p: { xs: 1, sm: 3 } }}>
                     {photoToView && (
                         <img
                             src={photoToView}
                             alt="Car Preview"
-                            style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }}
+                            style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: isMobile ? '70vh' : '60vh', 
+                                objectFit: 'contain' 
+                            }}
                         />
                     )}
                 </DialogContent>
-                <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+                <DialogActions sx={{ 
+                    justifyContent: 'center', 
+                    pb: { xs: 2, sm: 3 },
+                    flexDirection: { xs: 'column', sm: 'row' }
+                }}>
                     <Button
                         variant="contained"
                         onClick={() => setShowPhotoDialog(false)}
+                        fullWidth={isMobile}
                     >
                         Close
                     </Button>

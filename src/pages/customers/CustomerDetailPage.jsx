@@ -8,7 +8,6 @@ import {
     Paper,
     Chip,
     Avatar,
-    Divider,
     Card,
     CardContent,
     CardMedia,
@@ -19,7 +18,9 @@ import {
     DialogActions,
     Tabs,
     Tab,
-    Alert
+    Alert,
+    useMediaQuery,
+    useTheme
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -44,6 +45,8 @@ export default function CustomerDetailPage() {
     const [showPhotoDialog, setShowPhotoDialog] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const message = useAlert();
     const loadingProvider = useLoading();
@@ -146,23 +149,30 @@ export default function CustomerDetailPage() {
     const status = getStatus();
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
             {/* Header */}
             <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ width: 64, height: 64, bgcolor: '#1976d2', fontSize: 24 }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: { xs: 'stretch', sm: 'flex-start' }, 
+                    mb: 3,
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 2, sm: 0 }
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, textAlign: { xs: 'center', sm: 'left' } }}>
+                        <Avatar sx={{ width: { xs: 80, sm: 64 }, height: { xs: 80, sm: 64 }, bgcolor: '#1976d2', fontSize: { xs: 32, sm: 24 } }}>
                             {customer.name?.charAt(0)?.toUpperCase() || 'C'}
                         </Avatar>
                         <Box>
-                            <Typography variant="h4" fontWeight="bold">
+                            <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                                 {customer.name}
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                                 <Chip 
                                     label={status.label} 
                                     color={status.color}
-                                    size="small"
+                                    size={isMobile ? "medium" : "small"}
                                 />
                                 <Typography variant="body2" color="textSecondary">
                                     ID: {customer.id}
@@ -171,11 +181,12 @@ export default function CustomerDetailPage() {
                         </Box>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
                         <Button
                             variant="outlined"
                             startIcon={<Icon icon="mdi:arrow-left" />}
                             onClick={() => navigate('/customers')}
+                            fullWidth={isMobile}
                         >
                             Back to List
                         </Button>
@@ -184,6 +195,7 @@ export default function CustomerDetailPage() {
                             color="error"
                             startIcon={<Icon icon="mdi:delete" />}
                             onClick={() => setShowDeleteDialog(true)}
+                            fullWidth={isMobile}
                         >
                             Delete
                         </Button>
@@ -191,13 +203,20 @@ export default function CustomerDetailPage() {
                             variant="contained"
                             startIcon={<Icon icon="mdi:pencil" />}
                             onClick={() => navigate(`/customers/edit/${id}`)}
+                            fullWidth={isMobile}
                         >
                             Edit Customer
                         </Button>
                     </Box>
                 </Box>
 
-                <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
+                <Tabs 
+                    value={tabValue} 
+                    onChange={handleTabChange} 
+                    sx={{ mb: 2 }}
+                    variant={isMobile ? "fullWidth" : "standard"}
+                    centered={!isMobile}
+                >
                     <Tab label="Overview" />
                     <Tab label="Car Details" />
                     <Tab label="Photos" />
@@ -205,7 +224,7 @@ export default function CustomerDetailPage() {
                 </Tabs>
             </Box>
 
-            <Paper sx={{ p: 4 }}>
+            <Paper sx={{ p: { xs: 2, sm: 4 } }}>
                 <TabPanel value={tabValue} index={0}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>
@@ -215,7 +234,6 @@ export default function CustomerDetailPage() {
                                         <Icon icon="mdi:account" width={20} />
                                         Customer Information
                                     </Typography>
-                                    <DetailItem label="Email" value={customer.email} />
                                     <DetailItem label="Phone" value={customer.phone || 'Not provided'} />
                                     <DetailItem label="Address" value={customer.address || 'Not provided'} />
                                     <DetailItem label="Notes" value={customer.notes || 'No notes'} />
@@ -232,7 +250,6 @@ export default function CustomerDetailPage() {
                                     </Typography>
                                     <DetailItem label="Created" value={formatDate(customer.createdAt)} />
                                     <DetailItem label="Last Updated" value={formatDate(customer.updatedAt)} />
-                                    <DetailItem label="Created By" value={customer.createdBy} />
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -249,22 +266,22 @@ export default function CustomerDetailPage() {
                                         Vehicle Information
                                     </Typography>
                                     <Grid container spacing={2}>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Car Owner" value={customer.carData?.ownerName || 'Not provided'} />
                                         </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Car Brand" value={customer.carData?.carBrand || 'Not provided'} />
                                         </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Car Model" value={customer.carData?.carModel || 'Not provided'} />
                                         </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Plate Number" value={customer.carData?.plateNumber || 'Not provided'} />
                                         </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Chassis Number" value={customer.carData?.chassisNumber || 'Not provided'} />
                                         </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <DetailItem label="Engine Number" value={customer.carData?.engineNumber || 'Not provided'} />
                                         </Grid>
                                         <Grid item xs={12}>
@@ -282,12 +299,12 @@ export default function CustomerDetailPage() {
 
                 <TabPanel value={tabValue} index={2}>
                     {Object.values(customer.carPhotos || {}).some(url => url) ? (
-                        <Grid container spacing={3}>
+                        <Grid container spacing={2}>
                             {Object.entries(customer.carPhotos || {}).map(([side, url]) => (
                                 url && (
                                     <Grid item xs={12} sm={6} md={3} key={side}>
                                         <Card>
-                                            <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                                            <CardContent sx={{ p: 1, textAlign: 'center' }}>
                                                 <Typography variant="subtitle2" gutterBottom>
                                                     {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                                 </Typography>
@@ -296,7 +313,7 @@ export default function CustomerDetailPage() {
                                                     image={url}
                                                     alt={`Car ${side}`}
                                                     sx={{
-                                                        height: 150,
+                                                        height: isMobile ? 120 : 150,
                                                         objectFit: 'cover',
                                                         borderRadius: 1,
                                                         cursor: 'pointer',
@@ -343,11 +360,17 @@ export default function CustomerDetailPage() {
             </Paper>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>
-                    <Typography variant="h6">Confirm Delete</Typography>
+            <Dialog 
+                open={showDeleteDialog} 
+                onClose={() => setShowDeleteDialog(false)} 
+                maxWidth="xs" 
+                fullWidth
+                fullScreen={isMobile}
+            >
+                <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography variant={isMobile ? "h6" : "h5"}>Confirm Delete</Typography>
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
                     <Typography variant="body1" paragraph>
                         Are you sure you want to delete customer <strong>{customer.name}</strong>?
                     </Typography>
@@ -355,8 +378,16 @@ export default function CustomerDetailPage() {
                         This action cannot be undone. All customer data and photos will be permanently deleted.
                     </Typography>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setShowDeleteDialog(false)}>
+                <DialogActions sx={{ 
+                    px: { xs: 2, sm: 3 }, 
+                    pb: { xs: 2, sm: 2 },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1, sm: 0 }
+                }}>
+                    <Button 
+                        onClick={() => setShowDeleteDialog(false)}
+                        fullWidth={isMobile}
+                    >
                         Cancel
                     </Button>
                     <Button
@@ -364,6 +395,7 @@ export default function CustomerDetailPage() {
                         color="error"
                         onClick={handleDelete}
                         startIcon={<Icon icon="mdi:delete" />}
+                        fullWidth={isMobile}
                     >
                         Delete Customer
                     </Button>
@@ -376,12 +408,13 @@ export default function CustomerDetailPage() {
                 onClose={() => setShowPhotoDialog(false)}
                 maxWidth="md"
                 fullWidth
+                fullScreen={isMobile}
             >
                 {selectedPhoto && (
                     <>
-                        <DialogTitle>
+                        <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="h6">
+                                <Typography variant={isMobile ? "h6" : "h5"}>
                                     {selectedPhoto.side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                 </Typography>
                                 <IconButton onClick={() => setShowPhotoDialog(false)} size="small">
@@ -389,25 +422,36 @@ export default function CustomerDetailPage() {
                                 </IconButton>
                             </Box>
                         </DialogTitle>
-                        <DialogContent sx={{ textAlign: 'center', p: 3 }}>
+                        <DialogContent sx={{ textAlign: 'center', p: { xs: 1, sm: 3 } }}>
                             <img
                                 src={selectedPhoto.url}
                                 alt={`Car ${selectedPhoto.side}`}
-                                style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }}
+                                style={{ 
+                                    maxWidth: '100%', 
+                                    maxHeight: isMobile ? '70vh' : '60vh', 
+                                    objectFit: 'contain' 
+                                }}
                             />
                         </DialogContent>
-                        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+                        <DialogActions sx={{ 
+                            justifyContent: 'center', 
+                            pb: { xs: 2, sm: 3 },
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: { xs: 1, sm: 0 }
+                        }}>
                             <Button
                                 variant="outlined"
                                 startIcon={<Icon icon="mdi:download" />}
                                 href={selectedPhoto.url}
                                 target="_blank"
+                                fullWidth={isMobile}
                             >
                                 Download
                             </Button>
                             <Button
                                 variant="contained"
                                 onClick={() => setShowPhotoDialog(false)}
+                                fullWidth={isMobile}
                             >
                                 Close
                             </Button>
@@ -420,12 +464,15 @@ export default function CustomerDetailPage() {
 }
 
 function DetailItem({ label, value }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     return (
         <Box sx={{ mb: 2 }}>
             <Typography variant="caption" color="textSecondary" display="block">
                 {label}
             </Typography>
-            <Typography variant="body1">
+            <Typography variant={isMobile ? "body2" : "body1"}>
                 {value}
             </Typography>
         </Box>

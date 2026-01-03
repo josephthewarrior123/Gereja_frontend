@@ -16,7 +16,10 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions
+    DialogActions,
+    useMediaQuery,
+    useTheme,
+    MobileStepper
 } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -40,6 +43,8 @@ export default function CustomerCreatePage() {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [createdCustomer, setCreatedCustomer] = useState(null);
     
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const message = useAlert();
     const loadingProvider = useLoading();
@@ -47,7 +52,6 @@ export default function CustomerCreatePage() {
     const [formData, setFormData] = useState({
         // Customer Info
         name: '',
-        email: '',
         phone: '',
         address: '',
         notes: '',
@@ -112,10 +116,6 @@ export default function CustomerCreatePage() {
         switch (activeStep) {
             case 0:
                 if (!formData.name.trim()) newErrors.name = 'Name is required';
-                if (!formData.email.trim()) newErrors.email = 'Email is required';
-                if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-                    newErrors.email = 'Email is invalid';
-                }
                 break;
             case 1:
                 if (!formData.plateNumber.trim()) newErrors.plateNumber = 'Plate number is required';
@@ -188,7 +188,6 @@ export default function CustomerCreatePage() {
             setActiveStep(0);
             setFormData({
                 name: '',
-                email: '',
                 phone: '',
                 address: '',
                 notes: '',
@@ -216,7 +215,7 @@ export default function CustomerCreatePage() {
                 return (
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <Typography variant="h6" gutterBottom>
+                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
                                 Customer Information
                             </Typography>
                             <Typography variant="body2" color="textSecondary" paragraph>
@@ -224,7 +223,7 @@ export default function CustomerCreatePage() {
                             </Typography>
                         </Grid>
                         
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12}>
                             <TextField
                                 fullWidth
                                 label="Full Name *"
@@ -234,21 +233,7 @@ export default function CustomerCreatePage() {
                                 error={!!errors.name}
                                 helperText={errors.name}
                                 required
-                                size="medium"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Email Address *"
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                error={!!errors.email}
-                                helperText={errors.email}
-                                required
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -258,7 +243,7 @@ export default function CustomerCreatePage() {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -268,7 +253,7 @@ export default function CustomerCreatePage() {
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -279,8 +264,8 @@ export default function CustomerCreatePage() {
                                 value={formData.notes}
                                 onChange={handleChange}
                                 multiline
-                                rows={3}
-                                size="medium"
+                                rows={isMobile ? 4 : 3}
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                     </Grid>
@@ -290,7 +275,7 @@ export default function CustomerCreatePage() {
                 return (
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <Typography variant="h6" gutterBottom>
+                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
                                 Car Information
                             </Typography>
                             <Typography variant="body2" color="textSecondary" paragraph>
@@ -305,7 +290,7 @@ export default function CustomerCreatePage() {
                                 name="carOwnerName"
                                 value={formData.carOwnerName}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -318,7 +303,7 @@ export default function CustomerCreatePage() {
                                 error={!!errors.carBrand}
                                 helperText={errors.carBrand}
                                 required
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -328,7 +313,7 @@ export default function CustomerCreatePage() {
                                 name="carModel"
                                 value={formData.carModel}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -341,7 +326,7 @@ export default function CustomerCreatePage() {
                                 error={!!errors.plateNumber}
                                 helperText={errors.plateNumber}
                                 required
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                                 placeholder="B 1234 ABC"
                             />
                         </Grid>
@@ -352,7 +337,7 @@ export default function CustomerCreatePage() {
                                 name="chassisNumber"
                                 value={formData.chassisNumber}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -362,7 +347,7 @@ export default function CustomerCreatePage() {
                                 name="engineNumber"
                                 value={formData.engineNumber}
                                 onChange={handleChange}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -374,7 +359,7 @@ export default function CustomerCreatePage() {
                                 value={formData.dueDate}
                                 onChange={handleChange}
                                 InputLabelProps={{ shrink: true }}
-                                size="medium"
+                                size={isMobile ? "medium" : "small"}
                             />
                         </Grid>
                     </Grid>
@@ -384,7 +369,7 @@ export default function CustomerCreatePage() {
                 return (
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <Typography variant="h6" gutterBottom>
+                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
                                 Upload Car Photos
                             </Typography>
                             <Typography variant="body2" color="textSecondary" paragraph>
@@ -393,11 +378,11 @@ export default function CustomerCreatePage() {
                         </Grid>
                         
                         {['leftSide', 'rightSide', 'front', 'back'].map((side) => (
-                            <Grid item xs={12} sm={6} key={side}>
+                            <Grid item xs={12} sm={6} md={3} key={side}>
                                 <Paper
                                     variant="outlined"
                                     sx={{
-                                        p: 3,
+                                        p: isMobile ? 2 : 3,
                                         textAlign: 'center',
                                         cursor: 'pointer',
                                         backgroundColor: uploadedFiles[side] ? '#f0f9ff' : 'inherit',
@@ -423,7 +408,7 @@ export default function CustomerCreatePage() {
                                                 alt={`Car ${side}`}
                                                 sx={{
                                                     width: '100%',
-                                                    height: 150,
+                                                    height: isMobile ? 100 : 150,
                                                     objectFit: 'cover',
                                                     borderRadius: 1,
                                                     mb: 1
@@ -446,8 +431,8 @@ export default function CustomerCreatePage() {
                                             </IconButton>
                                         </Box>
                                     ) : (
-                                        <Box sx={{ py: 4 }}>
-                                            <Icon icon="mdi:camera-plus" width={48} color="#9e9e9e" />
+                                        <Box sx={{ py: isMobile ? 3 : 4 }}>
+                                            <Icon icon="mdi:camera-plus" width={isMobile ? 36 : 48} color="#9e9e9e" />
                                             <Typography variant="body2" sx={{ mt: 1 }}>
                                                 {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                             </Typography>
@@ -479,7 +464,7 @@ export default function CustomerCreatePage() {
                 return (
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <Typography variant="h6" gutterBottom>
+                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
                                 Review Information
                             </Typography>
                             <Typography variant="body2" color="textSecondary" paragraph>
@@ -494,17 +479,17 @@ export default function CustomerCreatePage() {
                                         Customer Details
                                     </Typography>
                                     <Grid container spacing={2}>
-                                        <Grid item xs={12} md={6}>
+                                        <Grid item xs={12}>
                                             <DetailRow label="Name" value={formData.name} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Email" value={formData.email} />
                                         </Grid>
                                         <Grid item xs={12} md={6}>
                                             <DetailRow label="Phone" value={formData.phone || 'Not provided'} />
                                         </Grid>
                                         <Grid item xs={12} md={6}>
                                             <DetailRow label="Address" value={formData.address || 'Not provided'} />
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <DetailRow label="Notes" value={formData.notes || 'No notes'} />
                                         </Grid>
                                     </Grid>
                                 </CardContent>
@@ -549,7 +534,7 @@ export default function CustomerCreatePage() {
                                     <Grid container spacing={2}>
                                         {Object.entries(uploadedFiles).map(([side, file]) => (
                                             file && (
-                                                <Grid item xs={12} sm={6} md={3} key={side}>
+                                                <Grid item xs={6} sm={3} key={side}>
                                                     <Paper sx={{ p: 1, textAlign: 'center' }}>
                                                         <Typography variant="caption" display="block">
                                                             {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
@@ -581,53 +566,68 @@ export default function CustomerCreatePage() {
     };
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
             {/* Header */}
             <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h4" fontWeight="bold">
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                         Create New Customer
                     </Typography>
                     <Button
                         variant="outlined"
                         startIcon={<Icon icon="mdi:arrow-left" />}
                         onClick={() => navigate('/customers')}
+                        fullWidth={isMobile}
                     >
                         Back to List
                     </Button>
                 </Box>
                 
-                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-                    {steps.map((label) => (
-                        <Step key={label}>
-                            <StepLabel>{label}</StepLabel>
-                        </Step>
-                    ))}
-                </Stepper>
+                {isMobile ? (
+                    <MobileStepper
+                        variant="dots"
+                        steps={steps.length}
+                        position="static"
+                        activeStep={activeStep}
+                        sx={{ mb: 3, justifyContent: 'center', bgcolor: 'transparent' }}
+                        nextButton={null}
+                        backButton={null}
+                    />
+                ) : (
+                    <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                        {steps.map((label) => (
+                            <Step key={label}>
+                                <StepLabel>{label}</StepLabel>
+                            </Step>
+                        ))}
+                    </Stepper>
+                )}
             </Box>
 
             {/* Form Content */}
-            <Paper sx={{ p: 4, mb: 3 }}>
+            <Paper sx={{ p: { xs: 2, sm: 4 }, mb: 3 }}>
                 {renderStepContent()}
             </Paper>
 
             {/* Navigation Buttons */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
                 <Button
                     onClick={handleBack}
                     disabled={activeStep === 0}
                     startIcon={<Icon icon="mdi:chevron-left" />}
+                    fullWidth={isMobile}
                 >
                     Back
                 </Button>
                 
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
                     {activeStep === steps.length - 1 ? (
                         <>
                             <Button
                                 variant="outlined"
                                 onClick={() => setActiveStep(0)}
                                 startIcon={<Icon icon="mdi:refresh" />}
+                                fullWidth={isMobile}
                             >
                                 Start Over
                             </Button>
@@ -636,7 +636,8 @@ export default function CustomerCreatePage() {
                                 onClick={handleSubmit}
                                 disabled={loading}
                                 startIcon={<Icon icon="mdi:check" />}
-                                size="large"
+                                size={isMobile ? "medium" : "large"}
+                                fullWidth={isMobile}
                             >
                                 {loading ? 'Creating...' : 'Create Customer'}
                             </Button>
@@ -646,6 +647,7 @@ export default function CustomerCreatePage() {
                             variant="contained"
                             onClick={handleNext}
                             endIcon={<Icon icon="mdi:chevron-right" />}
+                            fullWidth={isMobile}
                         >
                             Next
                         </Button>
@@ -654,14 +656,14 @@ export default function CustomerCreatePage() {
             </Box>
 
             {/* Success Dialog */}
-            <Dialog open={showSuccessDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>
+            <Dialog open={showSuccessDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
+                <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Icon icon="mdi:check-circle" color="#4caf50" width={24} />
-                        <Typography variant="h6">Customer Created Successfully!</Typography>
+                        <Typography variant={isMobile ? "h6" : "h5"}>Customer Created Successfully!</Typography>
                     </Box>
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
                     <Typography variant="body1" paragraph>
                         Customer <strong>{createdCustomer?.name}</strong> has been created successfully.
                     </Typography>
@@ -669,15 +671,22 @@ export default function CustomerCreatePage() {
                         Customer ID: <strong>{createdCustomer?.id}</strong>
                     </Typography>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions sx={{ 
+                    px: { xs: 2, sm: 3 }, 
+                    pb: { xs: 2, sm: 2 },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1, sm: 0 }
+                }}>
                     <Button
                         onClick={() => handleSuccessClose('another')}
+                        fullWidth={isMobile}
                     >
                         Create Another
                     </Button>
                     <Button
                         onClick={() => handleSuccessClose('list')}
                         variant="outlined"
+                        fullWidth={isMobile}
                     >
                         Back to List
                     </Button>
@@ -685,6 +694,7 @@ export default function CustomerCreatePage() {
                         onClick={() => handleSuccessClose('view')}
                         variant="contained"
                         startIcon={<Icon icon="mdi:eye" />}
+                        fullWidth={isMobile}
                     >
                         View Customer
                     </Button>
@@ -695,12 +705,15 @@ export default function CustomerCreatePage() {
 }
 
 function DetailRow({ label, value }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     return (
         <Box sx={{ mb: 1 }}>
             <Typography variant="caption" color="textSecondary">
                 {label}
             </Typography>
-            <Typography variant="body1">
+            <Typography variant={isMobile ? "body2" : "body1"}>
                 {value}
             </Typography>
         </Box>

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import {
     Dialog,
@@ -14,9 +15,11 @@ import {
     StepLabel,
     Paper,
     IconButton,
-    Alert
+    Alert,
+    useMediaQuery,
+    useTheme,
+    MobileStepper
 } from '@mui/material';
-import { useState } from 'react';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
@@ -34,18 +37,16 @@ export default function CreateCustomerDialog({ open, onClose }) {
         back: null
     });
     
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const message = useAlert();
     const loadingProvider = useLoading();
 
     const [formData, setFormData] = useState({
-        // Customer Info
         name: '',
-        email: '',
         phone: '',
         address: '',
         notes: '',
-        
-        // Car Details
         carOwnerName: '',
         carBrand: '',
         carModel: '',
@@ -62,7 +63,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
             [name]: value
         }));
         
-        // Clear error when user types
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -80,10 +80,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
         
         if (activeStep === 0) {
             if (!formData.name.trim()) newErrors.name = 'Name is required';
-            if (!formData.email.trim()) newErrors.email = 'Email is required';
-            if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-                newErrors.email = 'Email is invalid';
-            }
         }
         
         if (activeStep === 1) {
@@ -109,7 +105,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
         try {
             loadingProvider.start();
             
-            // Step 1: Create customer
             const customerResponse = await CustomerDAO.createCustomer(formData);
             
             if (!customerResponse.success) {
@@ -118,7 +113,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
             
             const customerId = customerResponse.customer.id;
             
-            // Step 2: Upload photos if any
             const hasPhotos = Object.values(uploadedFiles).some(file => file !== null);
             
             if (hasPhotos) {
@@ -133,7 +127,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
             }
             
             message('Customer created successfully!', 'success');
-            onClose(true); // Refresh data
+            onClose(true);
             resetForm();
             
         } catch (error) {
@@ -147,7 +141,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
     const resetForm = () => {
         setFormData({
             name: '',
-            email: '',
             phone: '',
             address: '',
             notes: '',
@@ -179,7 +172,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
             case 0:
                 return (
                     <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={12}>
                             <TextField
                                 fullWidth
                                 label="Customer Name *"
@@ -188,19 +181,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 onChange={handleChange}
                                 error={!!errors.name}
                                 helperText={errors.name}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Email *"
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                error={!!errors.email}
-                                helperText={errors.email}
                                 required
                             />
                         </Grid>
@@ -230,7 +210,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.notes}
                                 onChange={handleChange}
                                 multiline
-                                rows={2}
+                                rows={3}
                             />
                         </Grid>
                     </Grid>
@@ -239,11 +219,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
             case 1:
                 return (
                     <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                Car Information
-                            </Typography>
-                        </Grid>
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
@@ -304,7 +279,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 onChange={handleChange}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={12}>
                             <TextField
                                 fullWidth
                                 label="Due Date"
@@ -337,6 +312,11 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                             p: 2,
                                             textAlign: 'center',
                                             cursor: 'pointer',
+                                            minHeight: 120,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
                                             backgroundColor: uploadedFiles[side] ? '#e8f5e8' : 'inherit',
                                             borderColor: uploadedFiles[side] ? '#4caf50' : 'inherit',
                                             '&:hover': { borderColor: '#1976d2' }
@@ -359,7 +339,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                             {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                         </Typography>
                                         {uploadedFiles[side] && (
-                                            <Typography variant="caption" color="success.main">
+                                            <Typography variant="caption" color="success.main" sx={{ mt: 1 }}>
                                                 ✓ {uploadedFiles[side].name}
                                             </Typography>
                                         )}
@@ -380,38 +360,64 @@ export default function CreateCustomerDialog({ open, onClose }) {
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-            <DialogTitle>
+        <Dialog 
+            open={open} 
+            onClose={handleClose} 
+            maxWidth="md" 
+            fullWidth
+            fullScreen={isMobile}
+        >
+            <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6">Create New Customer</Typography>
+                    <Typography variant={isMobile ? "h6" : "h5"} fontWeight="bold">
+                        Create New Customer
+                    </Typography>
                     <IconButton onClick={handleClose} size="small">
                         <Icon icon="mdi:close" />
                     </IconButton>
                 </Box>
             </DialogTitle>
             
-            <DialogContent dividers>
-                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-                    {steps.map((label) => (
-                        <Step key={label}>
-                            <StepLabel>{label}</StepLabel>
-                        </Step>
-                    ))}
-                </Stepper>
+            <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
+                {isMobile ? (
+                    <MobileStepper
+                        variant="dots"
+                        steps={steps.length}
+                        position="static"
+                        activeStep={activeStep}
+                        sx={{ mb: 3, justifyContent: 'center', bgcolor: 'transparent' }}
+                        nextButton={null}
+                        backButton={null}
+                    />
+                ) : (
+                    <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                        {steps.map((label) => (
+                            <Step key={label}>
+                                <StepLabel>{label}</StepLabel>
+                            </Step>
+                        ))}
+                    </Stepper>
+                )}
                 
                 {renderStepContent()}
             </DialogContent>
             
-            <DialogActions sx={{ px: 3, pb: 2 }}>
+            <DialogActions sx={{ 
+                px: { xs: 2, sm: 3 }, 
+                pb: { xs: 2, sm: 2 },
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1, sm: 0 }
+            }}>
                 <Button
                     onClick={handleBack}
                     disabled={activeStep === 0}
                     startIcon={<Icon icon="mdi:chevron-left" />}
+                    fullWidth={isMobile}
                 >
                     Back
                 </Button>
                 
-                <Box sx={{ flex: 1 }} />
+                <Box sx={{ flex: 1, display: { xs: 'none', sm: 'block' } }} />
                 
                 {activeStep === steps.length - 1 ? (
                     <Button
@@ -419,6 +425,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                         onClick={handleSubmit}
                         startIcon={<Icon icon="mdi:check" />}
                         disabled={loading}
+                        fullWidth={isMobile}
                     >
                         Create Customer
                     </Button>
@@ -427,6 +434,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                         variant="contained"
                         onClick={handleNext}
                         endIcon={<Icon icon="mdi:chevron-right" />}
+                        fullWidth={isMobile}
                     >
                         Next
                     </Button>
