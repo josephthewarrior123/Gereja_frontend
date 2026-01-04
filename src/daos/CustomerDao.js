@@ -1,6 +1,5 @@
 import ApiRequest from '../utils/ApiRequest';
 
-
 export default class CustomerDAO {
   // Get all customers for current user
   static getAllCustomers = async () => {
@@ -44,14 +43,20 @@ export default class CustomerDAO {
     );
   };
 
-  // Upload car photos
+  // Upload car photos - PAKAI setMultipart untuk file upload
   static uploadCarPhotos = async (customerId, formData) => {
-    return await ApiRequest.set(
+    console.log('📸 CustomerDAO: Uploading photos for customer:', customerId);
+    console.log('📦 Files in FormData:', [...formData.entries()].map(([key, val]) => ({
+      key,
+      name: val.name,
+      size: val.size,
+      type: val.type
+    })));
+    
+    return await ApiRequest.setMultipart(
       `/api/customers/${customerId}/upload-photos`,
       ApiRequest.HTTP_METHOD.POST,
-      formData,
-      null,
-      false, // Don't set content-type for FormData
+      formData
     );
   };
 
