@@ -455,7 +455,12 @@ export default function CustomerListPage() {
 
     return (
         <>
-            <Box sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                p: { xs: 2, sm: 3 }, 
+                width: '100%', 
+                minHeight: '100vh',
+                boxSizing: 'border-box'
+            }}>
                 {/* Header with stats */}
                 <Box sx={{ mb: 4 }}>
                     <Box sx={{ 
@@ -591,15 +596,18 @@ export default function CustomerListPage() {
                         />
                     </Box>
                 ) : (
-                    // Desktop View
+                    // Desktop View - FIXED SCROLL ISSUE
                     <Paper sx={{ 
                         bgcolor: 'background.paper', 
                         borderRadius: 2, 
                         overflow: 'hidden',
-                        boxShadow: 1
+                        boxShadow: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: 'calc(100vh - 320px)' // Adjust based on your header height
                     }}>
-                        <TableContainer>
-                            <Table>
+                        <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
+                            <Table stickyHeader>
                                 <TableHead>
                                     <TableRow>
                                         {columns.map((column) => (
@@ -655,6 +663,11 @@ export default function CustomerListPage() {
                             page={page}
                             onPageChange={handleChangePage}
                             onRowsPerPageChange={handleChangeRowsPerPage}
+                            sx={{
+                                flexShrink: 0,
+                                borderTop: '1px solid',
+                                borderColor: 'divider'
+                            }}
                         />
                     </Paper>
                 )}
