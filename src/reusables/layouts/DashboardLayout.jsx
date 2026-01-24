@@ -30,9 +30,15 @@ export default function DashboardLayout() {
     },
     {
       icon: 'heroicons:users',
-      label: 'Customers', // ADDED CUSTOMER MENU
+      label: 'Customers',
       url: '/customers',
       title: 'Customer Management',
+    },
+    {
+      icon: 'heroicons:building-office-2',
+      label: 'Properties',
+      url: '/properties',
+      title: 'Property Management',
     },
     {
       icon: 'heroicons:users',
@@ -60,7 +66,7 @@ export default function DashboardLayout() {
       adminOnly: true
     },
     {
-      icon: 'heroicons:users',
+      icon: 'heroicons:document-text',
       label: 'Kwitansi',
       url: '/kwitansi',
       title: 'Kwitansi',

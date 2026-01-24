@@ -14,6 +14,8 @@ import Kwitansi from './pages/kwitansi/KwitansiCreate';
 import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerCreatePage from './pages/customers/CustomerCreatePage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
+import PropertyListPage from './pages/Property/PropertyList';
+
 
 export default function AppRoutes() {
     return (
@@ -29,11 +31,16 @@ export default function AppRoutes() {
                     <Route path=":id" element={<CoupleManage />} />
                 </Route>
                 
-                {/* Customers Routes (NEW) */}
+                {/* Customers Routes */}
                 <Route path="customers">
                     <Route index element={<CustomerListPage />} />
                     <Route path="create" element={<CustomerCreatePage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
+                </Route>
+                
+                {/* Properties Routes (NEW) */}
+                <Route path="properties">
+                    <Route index element={<PropertyListPage />} />
                 </Route>
                 
                 {/* Other Routes */}
