@@ -104,6 +104,10 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
     const statusColor = (s) =>
         s === 'Active' ? '#34C759' : s === 'Expired' ? '#FF3B30' : '#8E8E93';
 
+    // ✅ FIX: Check if customer has photos
+    const hasPhotos = customer.carPhotos && 
+        Object.values(customer.carPhotos).some(url => url && url.trim() !== '');
+
     return (
         <>
             <Dialog
@@ -154,10 +158,10 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                             <Box display="flex" gap={1} mt={0.5}>
                                 <Chip
                                     size="small"
-                                    label={customer.status}
+                                    label={customer.status || 'Active'}
                                     sx={{
-                                        bgcolor: `${statusColor(customer.status)}22`,
-                                        color: statusColor(customer.status)
+                                        bgcolor: `${statusColor(customer.status || 'Active')}22`,
+                                        color: statusColor(customer.status || 'Active')
                                     }}
                                 />
                                 <Typography fontSize={13} color="text.secondary">
@@ -200,41 +204,46 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                         </IOSCard>
                     </TabPanel>
 
-                    {/* PHOTOS */}
+                    {/* PHOTOS - ✅ FIX HERE */}
                     <TabPanel value={tabValue} index={2}>
-                        {customer.hasPhotos ? (
+                        {hasPhotos ? (
                             <Grid container spacing={2}>
-                                {Object.entries(customer.carPhotos || {}).map(
-                                    ([key, url]) =>
-                                        url && (
-                                            <Grid item xs={12} sm={6} key={key}>
-                                                <Paper
-                                                    onClick={() => setPreviewImage(url)}
-                                                    sx={{
-                                                        p: 1,
-                                                        borderRadius: 3,
-                                                        bgcolor: '#F2F2F7',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <Typography fontSize={13} mb={1}>
-                                                        {key.toUpperCase()}
-                                                    </Typography>
+                                {Object.entries(customer.carPhotos || {})
+                                    .filter(([_, url]) => typeof url === 'string' && url.trim() !== '')
+                                    .map(([key, url]) => (
+                                        <Grid item xs={12} sm={6} key={key}>
+                                            <Paper
+                                                onClick={() => setPreviewImage(url)}
+                                                sx={{
+                                                    p: 1,
+                                                    borderRadius: 3,
+                                                    bgcolor: '#F2F2F7',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    '&:hover': {
+                                                        transform: 'scale(1.02)',
+                                                        boxShadow: 2
+                                                    }
+                                                }}
+                                            >
+                                                <Typography fontSize={13} mb={1} fontWeight={500}>
+                                                    {key.replace(/([A-Z])/g, ' $1').toUpperCase()}
+                                                </Typography>
 
-                                                    <Box
-                                                        component="img"
-                                                        src={url}
-                                                        sx={{
-                                                            width: '100%',
-                                                            height: 180,
-                                                            objectFit: 'cover',
-                                                            borderRadius: 2
-                                                        }}
-                                                    />
-                                                </Paper>
-                                            </Grid>
-                                        )
-                                )}
+                                                <Box
+                                                    component="img"
+                                                    src={url}
+                                                    alt={key}
+                                                    sx={{
+                                                        width: '100%',
+                                                        height: 180,
+                                                        objectFit: 'cover',
+                                                        borderRadius: 2
+                                                    }}
+                                                />
+                                            </Paper>
+                                        </Grid>
+                                    ))}
                             </Grid>
                         ) : (
                             <Box textAlign="center" py={6}>
@@ -297,3 +306,33 @@ function InfoRow({ label, value, icon }) {
         </Box>
     );
 }
+
+ViewCustomerDialog.propTypes = {
+    open: PropTypes.bool.isRequired,
+    customer: PropTypes.object,
+    onClose: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired
+};
+
+TabPanel.propTypes = {
+    children: PropTypes.node,
+    value: PropTypes.number.isRequired,
+    index: PropTypes.number.isRequired
+};
+
+ImagePreviewDialog.propTypes = {
+    open: PropTypes.bool.isRequired,
+    image: PropTypes.string,
+    onClose: PropTypes.func.isRequired
+};
+
+IOSCard.propTypes = {
+    children: PropTypes.node
+};
+
+InfoRow.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string,
+    icon: PropTypes.string.isRequired
+};
