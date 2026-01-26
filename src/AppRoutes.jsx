@@ -3,8 +3,6 @@ import QrScanPage from './pages/qr-scan/QrScanPage';
 import Page404 from './pages/miscellaneous/Page404';
 import DashboardLayout from './reusables/layouts/DashboardLayout';
 import GuestListPage from './pages/guests/GuestListPage';
-import CoupleList from './pages/studios/CoupleListPage';
-import CoupleManage from './pages/studios/CoupleManagePage';
 import LoginPage from './pages/authentications/LoginPage';
 import AdminList from './pages/Admin/AdminList';
 import CreateAdmin from './pages/Admin/CreateAdmin';
@@ -16,20 +14,13 @@ import CustomerCreatePage from './pages/customers/CustomerCreatePage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import PropertyListPage from './pages/Property/PropertyList';
 
-
 export default function AppRoutes() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
             
             <Route path="/" element={<DashboardLayout />}>
-                <Route index element={<CoupleList />} />
-                
-                {/* Couples Routes */}
-                <Route path="couples">
-                    <Route index element={<CoupleList />} />
-                    <Route path=":id" element={<CoupleManage />} />
-                </Route>
+                <Route index element={<PropertyListPage />} /> {/* Ubah default ke PropertyListPage */}
                 
                 {/* Customers Routes */}
                 <Route path="customers">
@@ -38,7 +29,7 @@ export default function AppRoutes() {
                     <Route path="edit/:id" element={<CustomerEditPage />} />
                 </Route>
                 
-                {/* Properties Routes (NEW) */}
+                {/* Properties Routes */}
                 <Route path="properties">
                     <Route index element={<PropertyListPage />} />
                 </Route>

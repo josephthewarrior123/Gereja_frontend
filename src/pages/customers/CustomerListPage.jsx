@@ -8,7 +8,6 @@ import {
     Chip,
     Avatar,
     Tooltip,
-    Fab,
     TextField,
     InputAdornment,
     Card,
@@ -24,7 +23,9 @@ import {
     TableRow,
     TablePagination,
     Paper,
-    Divider
+    Divider,
+    MenuItem,
+    Stack
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -34,19 +35,36 @@ import { useUser } from '../../hooks/UserProvider';
 import CustomerDAO from '../../daos/CustomerDao';
 import CreateCustomerDialog from './CreateCustomerDialog';
 import ViewCustomerDialog from './ViewCustomerDialog';
+import {
+    CustomButton,
+    CustomDashboardStatsCard,
+    CustomDatatable,
+    CustomIcon,
+    CustomRow,
+    CustomSelect,
+    CustomTextInput,
+} from '../../reusables';
+import CustomColumn from '../../reusables/layouts/CustomColumn';
 
 export default function CustomerListPage() {
     const { user } = useUser();
     const [allCustomers, setAllCustomers] = useState([]);
-    const [filteredCustomers, setFilteredCustomers] = useState([]);
+    const [dataSource, setDataSource] = useState([]);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [stats, setStats] = useState(null);
+    const [dataSourceOptions, setDataSourceOptions] = useState({
+        keyword: '',
+        page: 0,
+        limit: 10,
+        total: 0,
+        sortColumn: '',
+        sortDirection: 'asc',
+        carBrand: null,
+    });
+    const [summaries, setSummaries] = useState([]);
+    const [selectedStatus, setSelectedStatus] = useState("ALL");
     
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -55,9 +73,10 @@ export default function CustomerListPage() {
     const navigate = useNavigate();
 
     // Fetch customers data
-    const getData = async () => {
+    const fetchCustomers = async () => {
         try {
             loading.start();
+            
             const response = await CustomerDAO.getAllCustomers();
             
             if (response.success) {
@@ -80,7 +99,56 @@ export default function CustomerListPage() {
                 }));
                 
                 setAllCustomers(customers);
-                setFilteredCustomers(customers);
+
+                // Filter by status
+                let filteredData = [...customers];
+                
+                if (selectedStatus !== "ALL") {
+                    filteredData = filteredData.filter(customer => customer.status === selectedStatus);
+                }
+
+                // Filter by keyword
+                if (dataSourceOptions.keyword) {
+                    const keyword = dataSourceOptions.keyword.toLowerCase();
+                    filteredData = filteredData.filter(customer => 
+                        customer.name.toLowerCase().includes(keyword) ||
+                        customer.phone.toLowerCase().includes(keyword) ||
+                        customer.carBrand.toLowerCase().includes(keyword) ||
+                        customer.plateNumber.toLowerCase().includes(keyword)
+                    );
+                }
+
+                // Filter by car brand
+                if (dataSourceOptions.carBrand) {
+                    filteredData = filteredData.filter(customer => 
+                        customer.carBrand === dataSourceOptions.carBrand
+                    );
+                }
+
+                // Sorting
+                if (dataSourceOptions.sortColumn) {
+                    filteredData.sort((a, b) => {
+                        let aVal = a[dataSourceOptions.sortColumn] || '';
+                        let bVal = b[dataSourceOptions.sortColumn] || '';
+                        
+                        if (dataSourceOptions.sortDirection === 'asc') {
+                            return aVal > bVal ? 1 : -1;
+                        } else {
+                            return aVal < bVal ? 1 : -1;
+                        }
+                    });
+                }
+
+                // Pagination
+                const startIndex = dataSourceOptions.page * dataSourceOptions.limit;
+                const endIndex = startIndex + dataSourceOptions.limit;
+                const paginatedData = filteredData.slice(startIndex, endIndex);
+
+                setDataSource(paginatedData);
+                setDataSourceOptions((prevOptions) => ({
+                    ...prevOptions,
+                    total: filteredData.length,
+                }));
             } else {
                 message(response.error || 'Failed to fetch customers', 'error');
             }
@@ -97,29 +165,62 @@ export default function CustomerListPage() {
         try {
             const response = await CustomerDAO.getCustomerStats();
             if (response.success) {
-                setStats(response.stats);
+                const stats = response.stats;
+                const activeCount = allCustomers.filter(c => c.status === 'Active').length;
+                const expiredCount = allCustomers.filter(c => c.status === 'Expired').length;
+                const unknownCount = allCustomers.filter(c => c.status === 'Unknown').length;
+
+                const summaryData = [
+                    {
+                        status: "ALL",
+                        total: stats?.totalCustomers || 0,
+                    },
+                    {
+                        status: "Active",
+                        total: activeCount,
+                    },
+                    {
+                        status: "Expired",
+                        total: expiredCount,
+                    },
+                    {
+                        status: "Unknown",
+                        total: unknownCount,
+                    },
+                ];
+
+                setSummaries(summaryData);
             }
         } catch (error) {
             console.error('Error fetching stats:', error);
         }
     };
 
-    // Search customers
-    useEffect(() => {
-        if (searchQuery.trim() === '') {
-            setFilteredCustomers(allCustomers);
-        } else {
-            const query = searchQuery.toLowerCase();
-            const filtered = allCustomers.filter(customer => 
-                customer.name.toLowerCase().includes(query) ||
-                customer.phone.toLowerCase().includes(query) ||
-                customer.carBrand.toLowerCase().includes(query) ||
-                customer.plateNumber.toLowerCase().includes(query)
-            );
-            setFilteredCustomers(filtered);
-        }
-        setPage(0);
-    }, [searchQuery, allCustomers]);
+    const statusOrder = {
+        "ALL": 0,
+        "Active": 1,
+        "Expired": 2,
+        "Unknown": 3
+    };
+    
+    const statusLabels = {
+        "ALL": "All",
+        "Active": "Active",
+        "Expired": "Expired",
+        "Unknown": "Unknown"
+    };
+
+    const sortedSummaries = [...summaries].sort((a, b) => {
+        return statusOrder[a.status] - statusOrder[b.status];
+    });
+
+    const handleStatusChange = (status) => {
+        setSelectedStatus(status);
+        setDataSourceOptions((prevOptions) => ({
+            ...prevOptions,
+            page: 0,
+        }));
+    };
 
     // Open delete confirmation dialog
     const openDeleteDialog = (customer) => {
@@ -152,7 +253,7 @@ export default function CustomerListPage() {
             
             if (response.success) {
                 message('Customer deleted successfully', 'success');
-                getData();
+                fetchCustomers();
                 getStats();
             } else {
                 message(response.error || 'Failed to delete customer', 'error');
@@ -167,13 +268,33 @@ export default function CustomerListPage() {
     };
 
     // Handle page change
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
+    const handlePageChange = (newPage) => {
+        setDataSourceOptions({ ...dataSourceOptions, page: newPage });
     };
 
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
+    const handleLimitChange = (newLimit) => {
+        setDataSourceOptions({ ...dataSourceOptions, limit: newLimit, page: 0 });
+    };
+
+    const handleFilterChange = (field, value) => {
+        setDataSourceOptions((prevOptions) => ({
+            ...prevOptions,
+            [field]: value,
+            page: 0,
+        }));
+    };
+
+    const handleSort = (columnKey) => {
+        setDataSourceOptions({
+            ...dataSourceOptions,
+            sortColumn: columnKey,
+            sortDirection:
+                dataSourceOptions.sortColumn === columnKey
+                    ? dataSourceOptions.sortDirection === 'asc'
+                        ? 'desc'
+                        : 'asc'
+                    : 'asc',
+        });
     };
 
     // Format date
@@ -190,169 +311,42 @@ export default function CustomerListPage() {
     // Get status color
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Active': return 'success';
-            case 'Expired': return 'error';
-            default: return 'default';
+            case 'Active': return '#2E7D32';
+            case 'Expired': return '#D32F2F';
+            default: return '#9E9E9E';
         }
+    };
+
+    // Get unique car brands
+    const getUniqueBrands = () => {
+        const brands = [...new Set(allCustomers.map(c => c.carBrand))];
+        return brands.filter(b => b && b !== 'No Brand');
     };
 
     // Initial data fetch
     useEffect(() => {
-        getData();
+        fetchCustomers();
+    }, [
+        dataSourceOptions.page,
+        dataSourceOptions.limit,
+        dataSourceOptions.sortColumn,
+        dataSourceOptions.sortDirection,
+        dataSourceOptions.keyword,
+        dataSourceOptions.carBrand,
+        selectedStatus,
+    ]);
+
+    useEffect(() => {
         getStats();
-    }, [user]);
-
-    // Stats Card Component
-    const StatsCard = ({ icon, title, value, color }) => (
-        <Card sx={{ bgcolor: color, color: 'white', height: '100%' }}>
-            <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                        <Typography variant="caption" sx={{ opacity: 0.9, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                            {title}
-                        </Typography>
-                        <Typography variant={isMobile ? "h6" : "h5"} fontWeight="bold">
-                            {value}
-                        </Typography>
-                    </Box>
-                    <Icon icon={icon} width={isMobile ? 32 : 40} style={{ opacity: 0.8 }} />
-                </Box>
-            </CardContent>
-        </Card>
-    );
-
-    // Mobile Customer Item
-    const MobileCustomerItem = ({ customer }) => {
-        return (
-            <Card
-                sx={{
-                    mb: 2,
-                    borderRadius: 3,
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.06)',
-                    position: 'relative',
-                    overflow: 'visible'
-                }}
-            >
-                {/* Status Badge */}
-                <Chip
-                    label={customer.status}
-                    color={getStatusColor(customer.status)}
-                    size="small"
-                    sx={{
-                        position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        fontWeight: 600
-                    }}
-                />
-    
-                <CardContent sx={{ pb: 1.5 }}>
-                    {/* Header */}
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                        <Avatar
-                            sx={{
-                                width: 44,
-                                height: 44,
-                                bgcolor: '#1976d2',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            {customer.name?.charAt(0)?.toUpperCase() || 'C'}
-                        </Avatar>
-    
-                        <Box>
-                            <Typography fontWeight={600}>
-                                {customer.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                {customer.phone}
-                            </Typography>
-                        </Box>
-                    </Box>
-    
-                    {/* Info */}
-                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Icon icon="mdi:car" width={18} />
-                            <Typography variant="body2">
-                                {customer.carBrand}
-                            </Typography>
-                        </Box>
-    
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Icon icon="mdi:card-text-outline" width={18} />
-                            <Chip
-                                label={customer.plateNumber}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ fontWeight: 600 }}
-                            />
-                        </Box>
-    
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Icon icon="mdi:calendar" width={18} />
-                            <Typography variant="body2" color="text.secondary">
-                                Due {formatDate(customer.dueDate)}
-                            </Typography>
-                        </Box>
-                    </Box>
-                </CardContent>
-    
-                <Divider />
-    
-                {/* Actions */}
-                <Box
-                    sx={{
-                        px: 1.5,
-                        py: 1,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}
-                >
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => openViewDialog(customer)}
-                        >
-                            <Icon icon="mdi:eye" width={20} />
-                        </IconButton>
-    
-                        <IconButton
-                            size="small"
-                            color="warning"
-                            onClick={() => navigate(`/customers/edit/${customer.id}`)}
-                        >
-                            <Icon icon="mdi:pencil" width={20} />
-                        </IconButton>
-    
-                        <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => openDeleteDialog(customer)}
-                        >
-                            <Icon icon="mdi:delete" width={20} />
-                        </IconButton>
-                    </Box>
-    
-                    {customer.hasPhotos && (
-                        <Tooltip title="Has photos">
-                            <Icon icon="mdi:camera" width={22} color="#4caf50" />
-                        </Tooltip>
-                    )}
-                </Box>
-            </Card>
-        );
-    };
+    }, [allCustomers]);
 
     // Desktop Table Columns
     const columns = [
         {
-            key: 'name',
-            dataIndex: 'name',
             title: 'Customer Name',
+            dataIndex: 'name',
+            key: 'name',
+            sortable: true,
             render: (value, row) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2' }}>
@@ -370,9 +364,10 @@ export default function CustomerListPage() {
             )
         },
         {
-            key: 'carBrand',
-            dataIndex: 'carBrand',
             title: 'Car Brand',
+            dataIndex: 'carBrand',
+            key: 'carBrand',
+            sortable: true,
             render: (value) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Icon icon="mdi:car" width={18} />
@@ -381,9 +376,10 @@ export default function CustomerListPage() {
             )
         },
         {
-            key: 'plateNumber',
-            dataIndex: 'plateNumber',
             title: 'Plate Number',
+            dataIndex: 'plateNumber',
+            key: 'plateNumber',
+            sortable: false,
             render: (value) => (
                 <Chip 
                     label={value} 
@@ -394,295 +390,376 @@ export default function CustomerListPage() {
             )
         },
         {
-            key: 'dueDate',
-            dataIndex: 'dueDate',
             title: 'Due Date',
+            dataIndex: 'dueDate',
+            key: 'dueDate',
+            sortable: false,
             render: (value) => formatDate(value)
         },
         {
-            key: 'status',
-            dataIndex: 'status',
             title: 'Status',
-            render: (value) => {
-                const color = getStatusColor(value);
-                return (
-                    <Chip 
-                        label={value} 
-                        size="small" 
-                        color={color}
-                        variant={color === 'default' ? 'outlined' : 'filled'}
-                    />
-                );
-            }
+            dataIndex: 'status',
+            key: 'status',
+            sortable: true,
+            render: (value) => (
+                <Chip
+                    label={value || '-'}
+                    size="small"
+                    sx={{
+                        fontWeight: 'bold',
+                        fontSize: '12px',
+                        backgroundColor: getStatusColor(value),
+                        color: '#FFFFFF',
+                    }}
+                />
+            )
         },
         {
-            key: 'actions',
-            dataIndex: 'actions',
             title: 'Actions',
+            dataIndex: 'actions',
+            key: 'actions',
+            sortable: false,
             render: (_, row) => (
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Tooltip title="View Details">
-                        <IconButton
-                            size="small"
-                            onClick={() => openViewDialog(row)}
-                            color="primary"
-                        >
-                            <Icon icon="mdi:eye" width={18} />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                        <IconButton
-                            size="small"
-                            onClick={() => navigate(`/customers/edit/${row.id}`)}
-                            color="warning"
-                        >
-                            <Icon icon="mdi:pencil" width={18} />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton
-                            size="small"
-                            onClick={() => openDeleteDialog(row)}
-                            color="error"
-                        >
-                            <Icon icon="mdi:delete" width={18} />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                <Stack direction={'row'} spacing={1}>
+                    <IconButton
+                        size={'small'}
+                        onClick={() => openViewDialog(row)}
+                        sx={{ borderRadius: 0.8 }}
+                    >
+                        <Icon icon={'mdi:eye-outline'} />
+                    </IconButton>
+                    <IconButton
+                        size={'small'}
+                        onClick={() => navigate(`/customers/edit/${row.id}`)}
+                        sx={{ borderRadius: 0.8 }}
+                    >
+                        <Icon icon={'mdi:pencil-outline'} />
+                    </IconButton>
+                    <IconButton
+                        size={'small'}
+                        onClick={() => openDeleteDialog(row)}
+                        sx={{ borderRadius: 0.8 }}
+                    >
+                        <Icon icon={'mdi:trash-can-outline'} />
+                    </IconButton>
+                </Stack>
             )
         }
     ];
 
-    return (
-        <>
-            <Box sx={{ 
-                p: { xs: 2, sm: 3 }, 
-                width: '100%', 
-                minHeight: '100vh',
-                boxSizing: 'border-box'
-            }}>
-                {/* Header with stats */}
-                <Box sx={{ mb: 4 }}>
+    // Mobile View
+    const renderMobileView = () => {
+        return (
+            <Box sx={{ p: 2 }}>
+                {/* Search and Filter Section */}
+                <Box sx={{ mb: 3 }}>
+                    <TextField
+                        fullWidth
+                        placeholder="Search customers..."
+                        value={dataSourceOptions.keyword}
+                        onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Icon icon="mdi:magnify" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    
+                    <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
+                        <CustomSelect
+                            fullWidth
+                            value={dataSourceOptions.carBrand || 'ALL_BRANDS'}
+                            onChange={(e) =>
+                                setDataSourceOptions({
+                                    ...dataSourceOptions,
+                                    carBrand: e.target.value === 'ALL_BRANDS' ? null : e.target.value,
+                                    page: 0,
+                                })
+                            }
+                            sx={{ flex: 1 }}
+                        >
+                            <MenuItem value="ALL_BRANDS">All Brands</MenuItem>
+                            {getUniqueBrands().map((brand, index) => (
+                                <MenuItem value={brand} key={index}>
+                                    {brand}
+                                </MenuItem>
+                            ))}
+                        </CustomSelect>
+                        
+                        <Box
+                            onClick={() => {
+                                setIsCreateDialogOpen(true);
+                                setSelectedCustomer(null);
+                            }}
+                            sx={{
+                                minWidth: '56px',
+                                height: '56px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: '#1976d2',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+                                transition: 'all 0.2s',
+                                '&:active': {
+                                    transform: 'scale(0.95)',
+                                },
+                            }}
+                        >
+                            <Icon icon="heroicons:plus" style={{ fontSize: '24px', color: '#fff' }} />
+                        </Box>
+                    </Box>
+                    
+                    {/* Status Filter Chips */}
+                    <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
+                        {sortedSummaries.map((summary) => (
+                            <Chip
+                                key={summary.status}
+                                label={`${statusLabels[summary.status]} (${summary.total})`}
+                                onClick={() => handleStatusChange(summary.status)}
+                                sx={{
+                                    backgroundColor: selectedStatus === summary.status ? '#1976d2' : '#f5f5f5',
+                                    color: selectedStatus === summary.status ? '#fff' : '#666',
+                                    fontWeight: selectedStatus === summary.status ? 'bold' : 'normal',
+                                    transition: 'all 0.2s',
+                                }}
+                            />
+                        ))}
+                    </Box>
+                </Box>
+
+                {/* Customer List */}
+                {dataSource.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Icon icon="mdi:account-search" width={60} color="#9e9e9e" />
+                        <Typography variant="h6" color="textSecondary" sx={{ mt: 2 }}>
+                            No customers found
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Box>
+                        {dataSource.map((customer) => (
+                            <Card 
+                                key={customer.id} 
+                                sx={{ 
+                                    mb: 2, 
+                                    borderRadius: 2,
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                <CardContent>
+                                    {/* Header */}
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                                            <Avatar
+                                                sx={{
+                                                    width: 44,
+                                                    height: 44,
+                                                    bgcolor: '#1976d2',
+                                                }}
+                                            >
+                                                {customer.name?.charAt(0)?.toUpperCase() || 'C'}
+                                            </Avatar>
+                                            <Box>
+                                                <Typography fontWeight={600}>
+                                                    {customer.name}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {customer.phone}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                        <Chip
+                                            label={customer.status}
+                                            size="small"
+                                            sx={{
+                                                fontWeight: 'bold',
+                                                backgroundColor: getStatusColor(customer.status),
+                                                color: '#fff',
+                                            }}
+                                        />
+                                    </Box>
+
+                                    {/* Details */}
+                                    <Box sx={{ mb: 2 }}>
+                                        <Typography variant="body2">
+                                            <strong>Brand:</strong> {customer.carBrand}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            <strong>Plate:</strong> {customer.plateNumber}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            <strong>Due Date:</strong> {formatDate(customer.dueDate)}
+                                        </Typography>
+                                    </Box>
+
+                                    {/* Action Buttons */}
+                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => openViewDialog(customer)}
+                                            sx={{ color: '#1976d2' }}
+                                        >
+                                            <Icon icon="mdi:eye-outline" />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => navigate(`/customers/edit/${customer.id}`)}
+                                            sx={{ color: '#ed6c02' }}
+                                        >
+                                            <Icon icon="mdi:pencil-outline" />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => openDeleteDialog(customer)}
+                                            sx={{ color: '#d32f2f' }}
+                                        >
+                                            <Icon icon="mdi:trash-can-outline" />
+                                        </IconButton>
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </Box>
+                )}
+
+                {/* Pagination */}
+                {dataSourceOptions.total > 0 && (
                     <Box sx={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center', 
-                        mb: 3,
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        gap: { xs: 2, sm: 0 }
+                        mt: 3,
+                        pt: 2,
+                        borderTop: '1px solid #e0e0e0'
                     }}>
-                        <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
-                            Customer Management
+                        <Typography variant="body2" color="text.secondary">
+                            Showing {Math.min(dataSourceOptions.page * dataSourceOptions.limit + 1, dataSourceOptions.total)} 
+                            - {Math.min((dataSourceOptions.page + 1) * dataSourceOptions.limit, dataSourceOptions.total)} 
+                            of {dataSourceOptions.total}
                         </Typography>
-                        {/* Tombol New Customer hanya muncul di desktop */}
-                        {!isMobile && (
+                        
+                        <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                                variant="contained"
-                                startIcon={<Icon icon="mdi:plus" />}
-                                onClick={() => setIsCreateDialogOpen(true)}
-                                sx={{ borderRadius: 2 }}
+                                size="small"
+                                disabled={dataSourceOptions.page === 0}
+                                onClick={() => handlePageChange(dataSourceOptions.page - 1)}
                             >
-                                New Customer
+                                Prev
                             </Button>
-                        )}
+                            <Button
+                                size="small"
+                                disabled={(dataSourceOptions.page + 1) * dataSourceOptions.limit >= dataSourceOptions.total}
+                                onClick={() => handlePageChange(dataSourceOptions.page + 1)}
+                            >
+                                Next
+                            </Button>
+                        </Box>
                     </Box>
-
-                    {/* Stats Cards */}
-                    {stats && (
-                        <Grid container spacing={2} sx={{ mb: 3 }}>
-                            <Grid item xs={6} sm={6} md={3}>
-                                <StatsCard 
-                                    icon="mdi:account-group"
-                                    title="Total Customers"
-                                    value={stats.totalCustomers}
-                                    color="#1976d2"
-                                />
-                            </Grid>
-                            <Grid item xs={6} sm={6} md={3}>
-                                <StatsCard 
-                                    icon="mdi:counter"
-                                    title="Current Counter"
-                                    value={stats.currentCounter}
-                                    color="#2e7d32"
-                                />
-                            </Grid>
-                            <Grid item xs={6} sm={6} md={3}>
-                                <StatsCard 
-                                    icon="mdi:id-card"
-                                    title="Next ID"
-                                    value={stats.nextCustomerId}
-                                    color="#ed6c02"
-                                />
-                            </Grid>
-                            <Grid item xs={6} sm={6} md={3}>
-                                <StatsCard 
-                                    icon="mdi:car"
-                                    title="Car Customers"
-                                    value={allCustomers.length}
-                                    color="#9c27b0"
-                                />
-                            </Grid>
-                        </Grid>
-                    )}
-
-                    {/* Search Bar */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
-                        <TextField
-                            placeholder="Search customers..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            sx={{ 
-                                width: '100%',
-                                maxWidth: 600,
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 2
-                                }
-                            }}
-                            size={isMobile ? "medium" : "small"}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Icon icon="mdi:magnify" />
-                                    </InputAdornment>
-                                ),
-                                endAdornment: searchQuery && (
-                                    <InputAdornment position="end">
-                                        <IconButton 
-                                            size="small" 
-                                            onClick={() => setSearchQuery('')}
-                                        >
-                                            <Icon icon="mdi:close" />
-                                        </IconButton>
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
-                        <Typography variant="body2" color="textSecondary">
-                            {filteredCustomers.length} customer(s) found
-                        </Typography>
-                    </Box>
-                </Box>
-
-                {/* Data Display - Different for mobile and desktop */}
-                {isMobile ? (
-                    // Mobile View
-                    <Box>
-                        {filteredCustomers
-                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map((customer) => (
-                                <MobileCustomerItem key={customer.id} customer={customer} />
-                            ))}
-                        
-                        {filteredCustomers.length === 0 && (
-                            <Paper sx={{ p: 4, textAlign: 'center' }}>
-                                <Icon icon="mdi:account-search" width={60} color="#9e9e9e" />
-                                <Typography variant="h6" color="textSecondary" sx={{ mt: 2 }}>
-                                    No customers found
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                    {searchQuery ? 'Try a different search' : 'Create your first customer'}
-                                </Typography>
-                            </Paper>
-                        )}
-                        
-                        <TablePagination
-                            component="div"
-                            count={filteredCustomers.length}
-                            page={page}
-                            onPageChange={handleChangePage}
-                            rowsPerPage={rowsPerPage}
-                            onRowsPerPageChange={handleChangeRowsPerPage}
-                            rowsPerPageOptions={[5, 10, 25]}
-                        />
-                    </Box>
-                ) : (
-                    // Desktop View - FIXED SCROLL ISSUE
-                    <Paper sx={{ 
-                        bgcolor: 'background.paper', 
-                        borderRadius: 2, 
-                        overflow: 'hidden',
-                        boxShadow: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: 'calc(100vh - 320px)' // Adjust based on your header height
-                    }}>
-                        <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
-                            <Table stickyHeader>
-                                <TableHead>
-                                    <TableRow>
-                                        {columns.map((column) => (
-                                            <TableCell key={column.key}>
-                                                <Typography variant="subtitle2" fontWeight="bold">
-                                                    {column.title}
-                                                </Typography>
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {filteredCustomers
-                                        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                        .map((customer) => (
-                                            <TableRow 
-                                                key={customer.id}
-                                                hover
-                                                sx={{ cursor: 'pointer' }}
-                                                onClick={() => openViewDialog(customer)}
-                                            >
-                                                {columns.map((column) => (
-                                                    <TableCell key={column.key}>
-                                                        {column.render ? 
-                                                            column.render(customer[column.dataIndex], customer) : 
-                                                            customer[column.dataIndex]
-                                                        }
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                        
-                        {filteredCustomers.length === 0 && (
-                            <Box sx={{ p: 4, textAlign: 'center' }}>
-                                <Icon icon="mdi:account-search" width={60} color="#9e9e9e" />
-                                <Typography variant="h6" color="textSecondary" sx={{ mt: 2 }}>
-                                    No customers found
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                    {searchQuery ? 'Try a different search' : 'Create your first customer'}
-                                </Typography>
-                            </Box>
-                        )}
-                        
-                        <TablePagination
-                            rowsPerPageOptions={[5, 10, 25]}
-                            component="div"
-                            count={filteredCustomers.length}
-                            rowsPerPage={rowsPerPage}
-                            page={page}
-                            onPageChange={handleChangePage}
-                            onRowsPerPageChange={handleChangeRowsPerPage}
-                            sx={{
-                                flexShrink: 0,
-                                borderTop: '1px solid',
-                                borderColor: 'divider'
-                            }}
-                        />
-                    </Paper>
-                )}
-
-                {/* Floating Action Button untuk mobile saja */}
-                {isMobile && (
-                    <Fab
-                        color="primary"
-                        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-                        onClick={() => setIsCreateDialogOpen(true)}
-                    >
-                        <Icon icon="mdi:plus" />
-                    </Fab>
                 )}
             </Box>
+        );
+    };
+
+    // Desktop View
+    const renderDesktopView = () => {
+        return (
+            <CustomColumn className={'gap-y-8 max-h-full'}>
+                <CustomRow className={'gap-x-4'}>
+                    <CustomTextInput
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                handleFilterChange('keyword', e.target.value);
+                            }
+                        }}
+                        placeholder={'Search customers...'}
+                        searchIcon={true}
+                    />
+                    <CustomRow className={'justify-center gap-x-4'}>
+                        <CustomSelect
+                            value={dataSourceOptions.carBrand ?? 'ALL_BRANDS'}
+                            onChange={(e) =>
+                                setDataSourceOptions({
+                                    ...dataSourceOptions,
+                                    carBrand: e.target.value === 'ALL_BRANDS' ? null : e.target.value,
+                                    page: 0,
+                                })
+                            }
+                        >
+                            <MenuItem value="ALL_BRANDS">All Brands</MenuItem>
+                            {getUniqueBrands().map((brand, index) => (
+                                <MenuItem value={brand} key={index}>
+                                    {brand}
+                                </MenuItem>
+                            ))}
+                        </CustomSelect>
+
+                        <CustomButton
+                            startIcon={
+                                <CustomIcon
+                                    icon={'heroicons:plus'}
+                                    sx={{ py: 6 }}
+                                />
+                            }
+                            onClick={() => {
+                                setIsCreateDialogOpen(true);
+                                setSelectedCustomer(null);
+                            }}
+                            color="secondary"
+                        >
+                            New Customer
+                        </CustomButton>
+                    </CustomRow>
+                </CustomRow>
+
+                <CustomRow className={'lg:gap-x-6 md:gap-x-2 sm:gap-x-0 items-start'}>
+                    {sortedSummaries.map((summary) => (
+                        <div
+                            key={summary.status}
+                            onClick={() => handleStatusChange(summary.status)}
+                            className={`cursor-pointer rounded-lg transition-all duration-200 ${
+                                selectedStatus === summary.status
+                                    ? "border-2 border-blue-500"
+                                    : "border border-transparent"
+                            }`}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                            }}
+                        >
+                            <CustomDashboardStatsCard
+                                value={summary?.total}
+                                label={statusLabels[summary.status] || summary.status}
+                                className="w-full h-full"
+                            />
+                        </div>
+                    ))}
+                </CustomRow>
+
+                <CustomDatatable
+                    dataSource={dataSource}
+                    columns={columns}
+                    page={dataSourceOptions.page}
+                    limit={dataSourceOptions.limit}
+                    totalRecords={dataSourceOptions.total}
+                    handlePageChange={handlePageChange}
+                    handleLimitChange={handleLimitChange}
+                    handleSort={handleSort}
+                    sortColumn={dataSourceOptions.sortColumn}
+                    sortDirection={dataSourceOptions.sortDirection}
+                />
+            </CustomColumn>
+        );
+    };
+
+    return (
+        <>
+            {isMobile ? renderMobileView() : renderDesktopView()}
 
             {/* Create Customer Dialog */}
             <CreateCustomerDialog
@@ -690,7 +767,7 @@ export default function CustomerListPage() {
                 onClose={(refresh) => {
                     setIsCreateDialogOpen(false);
                     if (refresh) {
-                        getData();
+                        fetchCustomers();
                         getStats();
                     }
                 }}
