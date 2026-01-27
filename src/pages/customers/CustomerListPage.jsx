@@ -61,7 +61,6 @@ export default function CustomerListPage() {
         total: 0,
         sortColumn: '',
         sortDirection: 'asc',
-        carBrand: null,
     });
     const [summaries, setSummaries] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState("ALL");
@@ -115,13 +114,6 @@ export default function CustomerListPage() {
                         customer.phone.toLowerCase().includes(keyword) ||
                         customer.carBrand.toLowerCase().includes(keyword) ||
                         customer.plateNumber.toLowerCase().includes(keyword)
-                    );
-                }
-
-                // Filter by car brand
-                if (dataSourceOptions.carBrand) {
-                    filteredData = filteredData.filter(customer => 
-                        customer.carBrand === dataSourceOptions.carBrand
                     );
                 }
 
@@ -317,12 +309,6 @@ export default function CustomerListPage() {
         }
     };
 
-    // Get unique car brands
-    const getUniqueBrands = () => {
-        const brands = [...new Set(allCustomers.map(c => c.carBrand))];
-        return brands.filter(b => b && b !== 'No Brand');
-    };
-
     // Initial data fetch
     useEffect(() => {
         fetchCustomers();
@@ -332,7 +318,6 @@ export default function CustomerListPage() {
         dataSourceOptions.sortColumn,
         dataSourceOptions.sortDirection,
         dataSourceOptions.keyword,
-        dataSourceOptions.carBrand,
         selectedStatus,
     ]);
 
@@ -449,6 +434,47 @@ export default function CustomerListPage() {
 
     // Mobile View
     const renderMobileView = () => {
+        // Gunakan limit 5 khusus untuk mobile
+        const mobileLimit = 5;
+        const startIndex = dataSourceOptions.page * mobileLimit;
+        const endIndex = startIndex + mobileLimit;
+        
+        // Filter by status
+        let filteredData = [...allCustomers];
+        
+        if (selectedStatus !== "ALL") {
+            filteredData = filteredData.filter(customer => customer.status === selectedStatus);
+        }
+
+        // Filter by keyword
+        if (dataSourceOptions.keyword) {
+            const keyword = dataSourceOptions.keyword.toLowerCase();
+            filteredData = filteredData.filter(customer => 
+                customer.name.toLowerCase().includes(keyword) ||
+                customer.phone.toLowerCase().includes(keyword) ||
+                customer.carBrand.toLowerCase().includes(keyword) ||
+                customer.plateNumber.toLowerCase().includes(keyword)
+            );
+        }
+
+        // Sorting
+        if (dataSourceOptions.sortColumn) {
+            filteredData.sort((a, b) => {
+                let aVal = a[dataSourceOptions.sortColumn] || '';
+                let bVal = b[dataSourceOptions.sortColumn] || '';
+                
+                if (dataSourceOptions.sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+        }
+
+        // Pagination dengan limit 5
+        const paginatedData = filteredData.slice(startIndex, endIndex);
+        const totalRecords = filteredData.length;
+
         return (
             <Box sx={{ p: 2 }}>
                 {/* Search and Filter Section */}
@@ -468,34 +494,15 @@ export default function CustomerListPage() {
                         }}
                     />
                     
-                    <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-                        <CustomSelect
-                            fullWidth
-                            value={dataSourceOptions.carBrand || 'ALL_BRANDS'}
-                            onChange={(e) =>
-                                setDataSourceOptions({
-                                    ...dataSourceOptions,
-                                    carBrand: e.target.value === 'ALL_BRANDS' ? null : e.target.value,
-                                    page: 0,
-                                })
-                            }
-                            sx={{ flex: 1 }}
-                        >
-                            <MenuItem value="ALL_BRANDS">All Brands</MenuItem>
-                            {getUniqueBrands().map((brand, index) => (
-                                <MenuItem value={brand} key={index}>
-                                    {brand}
-                                </MenuItem>
-                            ))}
-                        </CustomSelect>
-                        
+                    {/* Add Customer Button */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                         <Box
                             onClick={() => {
                                 setIsCreateDialogOpen(true);
                                 setSelectedCustomer(null);
                             }}
                             sx={{
-                                minWidth: '56px',
+                                width: '56px',
                                 height: '56px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -533,16 +540,21 @@ export default function CustomerListPage() {
                 </Box>
 
                 {/* Customer List */}
-                {dataSource.length === 0 ? (
+                {paginatedData.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 4 }}>
                         <Icon icon="mdi:account-search" width={60} color="#9e9e9e" />
                         <Typography variant="h6" color="textSecondary" sx={{ mt: 2 }}>
                             No customers found
                         </Typography>
+                        {filteredData.length > 0 && (
+                            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                                Try going to the next page
+                            </Typography>
+                        )}
                     </Box>
                 ) : (
                     <Box>
-                        {dataSource.map((customer) => (
+                        {paginatedData.map((customer) => (
                             <Card 
                                 key={customer.id} 
                                 sx={{ 
@@ -627,34 +639,42 @@ export default function CustomerListPage() {
                     </Box>
                 )}
 
-                {/* Pagination */}
-                {dataSourceOptions.total > 0 && (
+                {/* Pagination - Show 5 per page */}
+                {totalRecords > 0 && (
                     <Box sx={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
                         alignItems: 'center', 
                         mt: 3,
                         pt: 2,
-                        borderTop: '1px solid #e0e0e0'
+                        borderTop: '1px solid #e0e0e0',
+                        flexWrap: 'wrap',
+                        gap: 2
                     }}>
                         <Typography variant="body2" color="text.secondary">
-                            Showing {Math.min(dataSourceOptions.page * dataSourceOptions.limit + 1, dataSourceOptions.total)} 
-                            - {Math.min((dataSourceOptions.page + 1) * dataSourceOptions.limit, dataSourceOptions.total)} 
-                            of {dataSourceOptions.total}
+                            Showing {startIndex + 1} - {Math.min(endIndex, totalRecords)} of {totalRecords}
+                            <br />
+                            <Typography variant="caption" color="text.secondary">
+                                Page {dataSourceOptions.page + 1} of {Math.ceil(totalRecords / mobileLimit)}
+                            </Typography>
                         </Typography>
                         
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
                                 size="small"
                                 disabled={dataSourceOptions.page === 0}
-                                onClick={() => handlePageChange(dataSourceOptions.page - 1)}
+                                onClick={() => setDataSourceOptions(prev => ({ ...prev, page: prev.page - 1 }))}
+                                variant="outlined"
+                                startIcon={<Icon icon="mdi:chevron-left" />}
                             >
                                 Prev
                             </Button>
                             <Button
                                 size="small"
-                                disabled={(dataSourceOptions.page + 1) * dataSourceOptions.limit >= dataSourceOptions.total}
-                                onClick={() => handlePageChange(dataSourceOptions.page + 1)}
+                                disabled={endIndex >= totalRecords}
+                                onClick={() => setDataSourceOptions(prev => ({ ...prev, page: prev.page + 1 }))}
+                                variant="contained"
+                                endIcon={<Icon icon="mdi:chevron-right" />}
                             >
                                 Next
                             </Button>
@@ -680,24 +700,6 @@ export default function CustomerListPage() {
                         searchIcon={true}
                     />
                     <CustomRow className={'justify-center gap-x-4'}>
-                        <CustomSelect
-                            value={dataSourceOptions.carBrand ?? 'ALL_BRANDS'}
-                            onChange={(e) =>
-                                setDataSourceOptions({
-                                    ...dataSourceOptions,
-                                    carBrand: e.target.value === 'ALL_BRANDS' ? null : e.target.value,
-                                    page: 0,
-                                })
-                            }
-                        >
-                            <MenuItem value="ALL_BRANDS">All Brands</MenuItem>
-                            {getUniqueBrands().map((brand, index) => (
-                                <MenuItem value={brand} key={index}>
-                                    {brand}
-                                </MenuItem>
-                            ))}
-                        </CustomSelect>
-
                         <CustomButton
                             startIcon={
                                 <CustomIcon

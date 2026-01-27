@@ -240,10 +240,10 @@ export default function DashboardLayout() {
               sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px`,
             },
             maxHeight: {
-              xs: `calc(100% - ${Constants.HEADER_MOBILE_HEIGHT}px)`,
-              sm: `calc(100% - ${Constants.HEADER_DESKTOP_HEIGHT}px)`,
+              xs: `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px)`,
+              sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)`,
             },
-            overflow: 'hidden',
+            overflow: 'auto',
             display: 'flex',
           }}
         >
