@@ -65,11 +65,19 @@ export default function CustomerListPage() {
     const [summaries, setSummaries] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState("ALL");
     
+    // TAMBAHAN: State buat mobile search input
+    const [mobileSearchInput, setMobileSearchInput] = useState('');
+    
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const message = useAlert();
     const loading = useLoading();
     const navigate = useNavigate();
+
+    // TAMBAHAN: Sync mobile search input kalo keyword berubah dari luar
+    useEffect(() => {
+        setMobileSearchInput(dataSourceOptions.keyword);
+    }, [dataSourceOptions.keyword]);
 
     // Fetch customers data
     const fetchCustomers = async () => {
@@ -479,20 +487,29 @@ export default function CustomerListPage() {
             <Box sx={{ p: 2 }}>
                 {/* Search and Filter Section */}
                 <Box sx={{ mb: 3 }}>
-                    <TextField
-                        fullWidth
-                        placeholder="Search customers..."
-                        value={dataSourceOptions.keyword}
-                        onChange={(e) => handleFilterChange('keyword', e.target.value)}
-                        sx={{ mb: 2 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <Icon icon="mdi:magnify" />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
+                <form 
+    onSubmit={(e) => {
+        e.preventDefault();
+        handleFilterChange('keyword', mobileSearchInput);
+    }}
+    style={{ width: '100%' }}
+>
+    <TextField
+        type="search"
+        fullWidth
+        placeholder="Search customers..."
+        value={mobileSearchInput}
+        onChange={(e) => setMobileSearchInput(e.target.value)}
+        sx={{ mb: 2 }}
+        InputProps={{
+            startAdornment: (
+                <InputAdornment position="start">
+                    <Icon icon="mdi:magnify" />
+                </InputAdornment>
+            ),
+        }}
+    />
+</form>
                     
                     {/* Add Customer Button */}
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
