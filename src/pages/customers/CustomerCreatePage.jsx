@@ -7,19 +7,18 @@ import {
     Step,
     StepLabel,
     Button,
-    Grid,
     TextField,
     Paper,
     Alert,
-    Card,
-    CardContent,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
     useMediaQuery,
     useTheme,
-    MobileStepper
+    MobileStepper,
+    MenuItem,
+    IconButton
 } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -50,13 +49,10 @@ export default function CustomerCreatePage() {
     const loadingProvider = useLoading();
 
     const [formData, setFormData] = useState({
-        // Customer Info
         name: '',
         phone: '',
         address: '',
         notes: '',
-        
-        // Car Details
         carOwnerName: '',
         carBrand: '',
         carModel: '',
@@ -73,7 +69,6 @@ export default function CustomerCreatePage() {
             [name]: value
         }));
         
-        // Clear error when user types
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -86,7 +81,6 @@ export default function CustomerCreatePage() {
                 [side]: file
             }));
             
-            // Create preview URL
             const reader = new FileReader();
             reader.onload = (e) => {
                 setPreviewUrls(prev => ({
@@ -142,7 +136,6 @@ export default function CustomerCreatePage() {
             loadingProvider.start();
             setLoading(true);
             
-            // Step 1: Create customer
             const customerResponse = await CustomerDAO.createCustomer(formData);
             
             if (!customerResponse.success) {
@@ -152,7 +145,6 @@ export default function CustomerCreatePage() {
             const customerId = customerResponse.customer.id;
             setCreatedCustomer(customerResponse.customer);
             
-            // Step 2: Upload photos if any
             const hasPhotos = Object.values(uploadedFiles).some(file => file !== null);
             
             if (hasPhotos) {
@@ -184,7 +176,6 @@ export default function CustomerCreatePage() {
         } else if (action === 'list') {
             navigate('/customers');
         } else {
-            // Reset form for new entry
             setActiveStep(0);
             setFormData({
                 name: '',
@@ -213,87 +204,77 @@ export default function CustomerCreatePage() {
         switch (activeStep) {
             case 0:
                 return (
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
-                                Customer Information
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary" paragraph>
-                                Enter the customer's personal details.
-                            </Typography>
-                        </Grid>
+                    <div className="flex flex-col gap-4">
+                        <div className={`${isMobile ? 'typography-2' : 'typography-3'} font-bold mb-2`}>
+                            Customer Information
+                        </div>
+                        <Typography variant="body2" color="textSecondary" className="mb-4">
+                            Enter the customer's personal details.
+                        </Typography>
                         
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Full Name *"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                                helperText={errors.name}
-                                required
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
+                        <TextField
+                            fullWidth
+                            label="Full Name *"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            error={!!errors.name}
+                            helperText={errors.name}
+                            required
+                            size={isMobile ? "small" : "medium"}
+                        />
+                        
+                        <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
                             <TextField
                                 fullWidth
                                 label="Phone Number"
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
                                 label="Address"
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Additional Notes"
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                                multiline
-                                rows={isMobile ? 4 : 3}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                    </Grid>
+                        </div>
+                        
+                        <TextField
+                            fullWidth
+                            label="Additional Notes"
+                            name="notes"
+                            value={formData.notes}
+                            onChange={handleChange}
+                            multiline
+                            rows={isMobile ? 3 : 3}
+                            size={isMobile ? "small" : "medium"}
+                        />
+                    </div>
                 );
                 
             case 1:
                 return (
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
-                                Car Information
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary" paragraph>
-                                Enter the vehicle details for insurance purposes.
-                            </Typography>
-                        </Grid>
+                    <div className="flex flex-col gap-4">
+                        <div className={`${isMobile ? 'typography-2' : 'typography-3'} font-bold mb-2`}>
+                            Car Information
+                        </div>
+                        <Typography variant="body2" color="textSecondary" className="mb-4">
+                            Enter the vehicle details for insurance purposes.
+                        </Typography>
                         
-                        <Grid item xs={12} md={6}>
+                        <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
                             <TextField
                                 fullWidth
                                 label="Car Owner Name"
                                 name="carOwnerName"
                                 value={formData.carOwnerName}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
                                 label="Car Brand *"
@@ -303,20 +284,19 @@ export default function CustomerCreatePage() {
                                 error={!!errors.carBrand}
                                 helperText={errors.carBrand}
                                 required
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
+                        </div>
+                        
+                        <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
                             <TextField
                                 fullWidth
                                 label="Car Model"
                                 name="carModel"
                                 value={formData.carModel}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
                                 label="Plate Number *"
@@ -326,69 +306,70 @@ export default function CustomerCreatePage() {
                                 error={!!errors.plateNumber}
                                 helperText={errors.plateNumber}
                                 required
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                                 placeholder="B 1234 ABC"
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
+                        </div>
+                        
+                        <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
                             <TextField
                                 fullWidth
                                 label="Chassis Number"
                                 name="chassisNumber"
                                 value={formData.chassisNumber}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
                                 label="Engine Number"
                                 name="engineNumber"
                                 value={formData.engineNumber}
                                 onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Insurance Due Date"
-                                name="dueDate"
-                                type="date"
-                                value={formData.dueDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                    </Grid>
+                        </div>
+                        
+                        <TextField
+                            fullWidth
+                            label="Insurance Due Date"
+                            name="dueDate"
+                            type="date"
+                            value={formData.dueDate}
+                            onChange={handleChange}
+                            InputLabelProps={{ shrink: true }}
+                            size={isMobile ? "small" : "medium"}
+                        />
+                    </div>
                 );
                 
             case 2:
                 return (
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
-                                Upload Car Photos
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary" paragraph>
-                                Upload 4 photos of the car for documentation. This step is optional and can be done later.
-                            </Typography>
-                        </Grid>
+                    <div className="flex flex-col gap-4">
+                        <div className={`${isMobile ? 'typography-2' : 'typography-3'} font-bold mb-2`}>
+                            Upload Car Photos
+                        </div>
+                        <Typography variant="body2" color="textSecondary" className="mb-4">
+                            Upload 4 photos of the car for documentation. This step is optional and can be done later.
+                        </Typography>
                         
-                        {['leftSide', 'rightSide', 'front', 'back'].map((side) => (
-                            <Grid item xs={12} sm={6} md={3} key={side}>
+                        <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
+                            {['leftSide', 'rightSide', 'front', 'back'].map((side) => (
                                 <Paper
+                                    key={side}
                                     variant="outlined"
                                     sx={{
-                                        p: isMobile ? 2 : 3,
+                                        p: 3,
                                         textAlign: 'center',
                                         cursor: 'pointer',
                                         backgroundColor: uploadedFiles[side] ? '#f0f9ff' : 'inherit',
                                         border: '2px dashed',
                                         borderColor: uploadedFiles[side] ? '#1976d2' : '#e0e0e0',
-                                        '&:hover': { borderColor: '#1976d2', backgroundColor: '#f5f5f5' }
+                                        '&:hover': { borderColor: '#1976d2', backgroundColor: '#f5f5f5' },
+                                        minHeight: isMobile ? '180px' : '200px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center'
                                     }}
                                     onClick={() => !uploadedFiles[side] && document.getElementById(`file-${side}`).click()}
                                 >
@@ -408,7 +389,7 @@ export default function CustomerCreatePage() {
                                                 alt={`Car ${side}`}
                                                 sx={{
                                                     width: '100%',
-                                                    height: isMobile ? 100 : 150,
+                                                    height: 120,
                                                     objectFit: 'cover',
                                                     borderRadius: 1,
                                                     mb: 1
@@ -424,140 +405,111 @@ export default function CustomerCreatePage() {
                                                     position: 'absolute',
                                                     top: 8,
                                                     right: 8,
-                                                    backgroundColor: 'rgba(255,255,255,0.8)'
+                                                    backgroundColor: 'rgba(255,255,255,0.9)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(255,255,255,1)'
+                                                    }
                                                 }}
                                             >
                                                 <Icon icon="mdi:close" />
                                             </IconButton>
+                                            <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                                                {uploadedFiles[side]?.name}
+                                            </Typography>
                                         </Box>
                                     ) : (
-                                        <Box sx={{ py: isMobile ? 3 : 4 }}>
-                                            <Icon icon="mdi:camera-plus" width={isMobile ? 36 : 48} color="#9e9e9e" />
-                                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                        <Box>
+                                            <Icon icon="mdi:camera-plus" width={48} color="#9e9e9e" />
+                                            <Typography variant="body2" sx={{ mt: 2, fontWeight: 500 }}>
                                                 {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
                                             </Typography>
-                                            <Typography variant="caption" color="textSecondary">
+                                            <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 0.5 }}>
                                                 Click to upload
                                             </Typography>
                                         </Box>
                                     )}
-                                    
-                                    <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                                        {uploadedFiles[side]?.name || 'No file selected'}
-                                    </Typography>
                                 </Paper>
-                            </Grid>
-                        ))}
+                            ))}
+                        </div>
                         
-                        <Grid item xs={12}>
-                            <Alert severity="info">
-                                <Typography variant="body2">
-                                    <strong>Note:</strong> Photos can also be uploaded later from the customer details page. 
-                                    Maximum file size is 10MB per photo.
-                                </Typography>
-                            </Alert>
-                        </Grid>
-                    </Grid>
+                        <Alert severity="info" sx={{ mt: 2 }}>
+                            <Typography variant="body2">
+                                <strong>Note:</strong> Photos can also be uploaded later from the customer details page. 
+                                Maximum file size is 10MB per photo.
+                            </Typography>
+                        </Alert>
+                    </div>
                 );
                 
             case 3:
                 return (
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
-                                Review Information
+                    <div className="flex flex-col gap-4">
+                        <div className={`${isMobile ? 'typography-2' : 'typography-3'} font-bold mb-2`}>
+                            Review Information
+                        </div>
+                        <Typography variant="body2" color="textSecondary" className="mb-4">
+                            Please review all information before submitting.
+                        </Typography>
+                        
+                        <Paper variant="outlined" sx={{ p: 3 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                Customer Details
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" paragraph>
-                                Please review all information before submitting.
+                            <div className="flex flex-col gap-3 mt-3">
+                                <DetailRow label="Name" value={formData.name} />
+                                <div className={isMobile ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3"}>
+                                    <DetailRow label="Phone" value={formData.phone || 'Not provided'} />
+                                    <DetailRow label="Address" value={formData.address || 'Not provided'} />
+                                </div>
+                                <DetailRow label="Notes" value={formData.notes || 'No notes'} />
+                            </div>
+                        </Paper>
+                        
+                        <Paper variant="outlined" sx={{ p: 3 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                Car Details
                             </Typography>
-                        </Grid>
+                            <div className="flex flex-col gap-3 mt-3">
+                                <div className={isMobile ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3"}>
+                                    <DetailRow label="Car Owner" value={formData.carOwnerName || 'Not provided'} />
+                                    <DetailRow label="Car Brand" value={formData.carBrand} />
+                                </div>
+                                <div className={isMobile ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3"}>
+                                    <DetailRow label="Car Model" value={formData.carModel || 'Not provided'} />
+                                    <DetailRow label="Plate Number" value={formData.plateNumber} />
+                                </div>
+                                {formData.dueDate && (
+                                    <DetailRow label="Due Date" value={new Date(formData.dueDate).toLocaleDateString('id-ID')} />
+                                )}
+                            </div>
+                        </Paper>
                         
-                        <Grid item xs={12}>
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                        Customer Details
+                        <Paper variant="outlined" sx={{ p: 3 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                Photos Uploaded ({Object.values(uploadedFiles).filter(f => f).length}/4)
+                            </Typography>
+                            <div className={isMobile ? "flex flex-col gap-2 mt-3" : "grid grid-cols-4 gap-2 mt-3"}>
+                                {Object.entries(uploadedFiles).map(([side, file]) => (
+                                    file && (
+                                        <Paper key={side} sx={{ p: 2, textAlign: 'center', bgcolor: '#f0f9ff' }}>
+                                            <Typography variant="caption" display="block" fontWeight={500}>
+                                                {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
+                                            </Typography>
+                                            <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
+                                                <Icon icon="mdi:check-circle" width={14} />
+                                                Uploaded
+                                            </Typography>
+                                        </Paper>
+                                    )
+                                ))}
+                                {Object.values(uploadedFiles).filter(f => f).length === 0 && (
+                                    <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2, gridColumn: '1 / -1' }}>
+                                        No photos uploaded
                                     </Typography>
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12}>
-                                            <DetailRow label="Name" value={formData.name} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Phone" value={formData.phone || 'Not provided'} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Address" value={formData.address || 'Not provided'} />
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <DetailRow label="Notes" value={formData.notes || 'No notes'} />
-                                        </Grid>
-                                    </Grid>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                        
-                        <Grid item xs={12}>
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                        Car Details
-                                    </Typography>
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Car Owner" value={formData.carOwnerName || 'Not provided'} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Car Brand" value={formData.carBrand} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Car Model" value={formData.carModel || 'Not provided'} />
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <DetailRow label="Plate Number" value={formData.plateNumber} />
-                                        </Grid>
-                                        {formData.dueDate && (
-                                            <Grid item xs={12}>
-                                                <DetailRow label="Due Date" value={new Date(formData.dueDate).toLocaleDateString('id-ID')} />
-                                            </Grid>
-                                        )}
-                                    </Grid>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                        
-                        <Grid item xs={12}>
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                        Photos Uploaded ({Object.values(uploadedFiles).filter(f => f).length}/4)
-                                    </Typography>
-                                    <Grid container spacing={2}>
-                                        {Object.entries(uploadedFiles).map(([side, file]) => (
-                                            file && (
-                                                <Grid item xs={6} sm={3} key={side}>
-                                                    <Paper sx={{ p: 1, textAlign: 'center' }}>
-                                                        <Typography variant="caption" display="block">
-                                                            {side.replace('Side', ' Side').replace('front', 'Front').replace('back', 'Back')}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="success.main">
-                                                            ✓ Uploaded
-                                                        </Typography>
-                                                    </Paper>
-                                                </Grid>
-                                            )
-                                        ))}
-                                        {Object.values(uploadedFiles).filter(f => f).length === 0 && (
-                                            <Grid item xs={12}>
-                                                <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                                                    No photos uploaded
-                                                </Typography>
-                                            </Grid>
-                                        )}
-                                    </Grid>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    </Grid>
+                                )}
+                            </div>
+                        </Paper>
+                    </div>
                 );
                 
             default:
@@ -569,7 +521,14 @@ export default function CustomerCreatePage() {
         <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
             {/* Header */}
             <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    flexDirection: { xs: 'column', sm: 'row' }, 
+                    gap: { xs: 2, sm: 0 } 
+                }}>
                     <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
                         Create New Customer
                     </Typography>
@@ -605,22 +564,33 @@ export default function CustomerCreatePage() {
             </Box>
 
             {/* Form Content */}
-            <Paper sx={{ p: { xs: 2, sm: 4 }, mb: 3 }}>
+            <Paper sx={{ p: { xs: 3, sm: 4 }, mb: 3 }}>
                 {renderStepContent()}
             </Paper>
 
             {/* Navigation Buttons */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                gap: { xs: 2, sm: 0 } 
+            }}>
                 <Button
                     onClick={handleBack}
                     disabled={activeStep === 0}
                     startIcon={<Icon icon="mdi:chevron-left" />}
                     fullWidth={isMobile}
+                    size={isMobile ? "medium" : "large"}
                 >
                     Back
                 </Button>
                 
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2, 
+                    flexDirection: { xs: 'column', sm: 'row' }, 
+                    width: { xs: '100%', sm: 'auto' } 
+                }}>
                     {activeStep === steps.length - 1 ? (
                         <>
                             <Button
@@ -628,6 +598,7 @@ export default function CustomerCreatePage() {
                                 onClick={() => setActiveStep(0)}
                                 startIcon={<Icon icon="mdi:refresh" />}
                                 fullWidth={isMobile}
+                                size={isMobile ? "medium" : "large"}
                             >
                                 Start Over
                             </Button>
@@ -648,6 +619,7 @@ export default function CustomerCreatePage() {
                             onClick={handleNext}
                             endIcon={<Icon icon="mdi:chevron-right" />}
                             fullWidth={isMobile}
+                            size={isMobile ? "medium" : "large"}
                         >
                             Next
                         </Button>
@@ -659,7 +631,7 @@ export default function CustomerCreatePage() {
             <Dialog open={showSuccessDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
                 <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Icon icon="mdi:check-circle" color="#4caf50" width={24} />
+                        <Icon icon="mdi:check-circle" color="#4caf50" width={28} />
                         <Typography variant={isMobile ? "h6" : "h5"}>Customer Created Successfully!</Typography>
                     </Box>
                 </DialogTitle>
@@ -705,15 +677,12 @@ export default function CustomerCreatePage() {
 }
 
 function DetailRow({ label, value }) {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
     return (
-        <Box sx={{ mb: 1 }}>
-            <Typography variant="caption" color="textSecondary">
+        <Box>
+            <Typography variant="caption" color="textSecondary" display="block">
                 {label}
             </Typography>
-            <Typography variant={isMobile ? "body2" : "body1"}>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
                 {value}
             </Typography>
         </Box>

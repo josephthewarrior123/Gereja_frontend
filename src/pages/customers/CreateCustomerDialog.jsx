@@ -7,7 +7,6 @@ import {
     DialogActions,
     Button,
     TextField,
-    Grid,
     Box,
     Typography,
     Stepper,
@@ -29,7 +28,7 @@ const steps = ['Customer Info', 'Car Details', 'Upload Photos'];
 // Helper function untuk delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ⭐ TAMBAHAN: Helper function untuk compress image
+// Helper function untuk compress image
 const compressImage = (file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -42,7 +41,6 @@ const compressImage = (file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) =
                 let width = img.width;
                 let height = img.height;
 
-                // Calculate new dimensions
                 if (width > height) {
                     if (width > maxWidth) {
                         height *= maxWidth / width;
@@ -64,7 +62,6 @@ const compressImage = (file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) =
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            // Create new file from blob
                             const compressedFile = new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()
@@ -92,7 +89,6 @@ const uploadWithRetry = async (customerId, formData, maxRetries = 3) => {
         try {
             console.log(`📤 Upload attempt ${attempt}/${maxRetries}`);
             
-            // Tambah delay sebelum upload (semakin lama di retry selanjutnya)
             await delay(attempt * 1000);
             
             const response = await CustomerDAO.uploadCarPhotos(customerId, formData);
@@ -104,7 +100,6 @@ const uploadWithRetry = async (customerId, formData, maxRetries = 3) => {
             
             console.warn(`⚠️ Upload failed on attempt ${attempt}:`, response.error);
             
-            // Jika sudah attempt terakhir, throw error
             if (attempt === maxRetries) {
                 return { success: false, error: response.error };
             }
@@ -112,7 +107,6 @@ const uploadWithRetry = async (customerId, formData, maxRetries = 3) => {
         } catch (error) {
             console.error(`❌ Upload error on attempt ${attempt}:`, error);
             
-            // Jika CORS error atau network error, retry
             if (attempt < maxRetries && (
                 error.message?.includes('Failed to fetch') ||
                 error.message?.includes('CORS') ||
@@ -122,7 +116,6 @@ const uploadWithRetry = async (customerId, formData, maxRetries = 3) => {
                 continue;
             }
             
-            // Jika sudah attempt terakhir atau error lain, return gagal
             return { success: false, error: error.message };
         }
     }
@@ -173,7 +166,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
         }
     };
 
-    // ⭐ UPDATED: Handle file upload dengan compression
     const handleFileUpload = async (side, file) => {
         if (!file) {
             setUploadedFiles(prev => ({
@@ -186,7 +178,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
         try {
             setCompressing(true);
             
-            // Compress image jika lebih dari 500KB
             let processedFile = file;
             if (file.size > 500 * 1024) {
                 console.log(`🔧 Compressing ${file.name}...`);
@@ -232,7 +223,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
         try {
             loadingProvider.start();
             
-            // 1. Prepare data for API
             const customerData = {
                 name: formData.name.trim(),
                 email: formData.email ? formData.email.trim() : '',
@@ -250,7 +240,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
             
             console.log('🆕 Creating customer with data:', customerData);
             
-            // 2. Create customer first
             const customerResponse = await CustomerDAO.createCustomer(customerData);
             
             if (!customerResponse.success) {
@@ -260,46 +249,31 @@ export default function CreateCustomerDialog({ open, onClose }) {
             const customerId = customerResponse.customer.id;
             console.log('✅ Customer created with ID:', customerId);
             
-            // 3. Check if there are any photos to upload
             const hasPhotos = Object.values(uploadedFiles).some(file => file !== null);
             
             if (hasPhotos) {
                 console.log('📸 Preparing to upload photos for customer:', customerId);
-                
-                // ⏰ TAMBAHKAN DELAY 2 DETIK sebelum upload
                 console.log('⏳ Waiting 2 seconds before uploading photos...');
                 await delay(2000);
                 
                 const formDataObj = new FormData();
-                
-                // Calculate total size
                 let totalSize = 0;
-                const filesInfo = [];
                 
                 Object.entries(uploadedFiles).forEach(([side, file]) => {
                     if (file) {
                         totalSize += file.size;
-                        filesInfo.push({
-                            side,
-                            name: file.name,
-                            size: (file.size / 1024).toFixed(2) + 'KB',
-                            type: file.type
-                        });
                         console.log(`📎 Adding photo: ${side} - ${file.name} (${(file.size / 1024).toFixed(2)}KB, ${file.type})`);
                         formDataObj.append(side, file, file.name);
                     }
                 });
                 
                 console.log(`📦 Total upload size: ${(totalSize / 1024).toFixed(2)}KB`);
-                console.log(`📋 Files summary:`, filesInfo);
                 
-                // Check if total size exceeds limit
-                if (totalSize > 40 * 1024 * 1024) { // 40MB limit
+                if (totalSize > 40 * 1024 * 1024) {
                     message('Total file size too large. Please use smaller images.', 'error');
                     return;
                 }
                 
-                // 🔄 Upload dengan retry mechanism
                 const uploadResult = await uploadWithRetry(customerId, formDataObj);
                 
                 if (!uploadResult.success) {
@@ -315,14 +289,12 @@ export default function CreateCustomerDialog({ open, onClose }) {
                 message('Customer created successfully!', 'success');
             }
             
-            // 4. Close dialog and reset form
             onClose(true);
             resetForm();
             
         } catch (error) {
             console.error('❌ Error creating customer:', error);
             
-            // Show appropriate error message
             if (error.message === 'TOKEN_EXPIRED') {
                 message('Session expired. Please login again.', 'error');
             } else if (error.error) {
@@ -369,21 +341,20 @@ export default function CreateCustomerDialog({ open, onClose }) {
         switch (activeStep) {
             case 0:
                 return (
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Customer Name *"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                                helperText={errors.name}
-                                required
-                                autoFocus
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <TextField
+                            fullWidth
+                            label="Customer Name *"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            error={!!errors.name}
+                            helperText={errors.name}
+                            required
+                            autoFocus
+                            size={isMobile ? "small" : "medium"}
+                        />
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                             <TextField
                                 fullWidth
                                 label="Email (Optional)"
@@ -392,9 +363,8 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="customer@example.com"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
                                 label="Phone Number"
@@ -402,44 +372,41 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.phone}
                                 onChange={handleChange}
                                 placeholder="08123456789"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                multiline
-                                rows={2}
-                                placeholder="Customer address"
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Notes"
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                                multiline
-                                rows={3}
-                                placeholder="Additional notes or comments"
-                            />
-                        </Grid>
-                    </Grid>
+                        </Box>
+                        <TextField
+                            fullWidth
+                            label="Address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            multiline
+                            rows={2}
+                            placeholder="Customer address"
+                            size={isMobile ? "small" : "medium"}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Notes"
+                            name="notes"
+                            value={formData.notes}
+                            onChange={handleChange}
+                            multiline
+                            rows={3}
+                            placeholder="Additional notes or comments"
+                            size={isMobile ? "small" : "medium"}
+                        />
+                    </Box>
                 );
                 
             case 1:
                 return (
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                                Car Information
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Car Information
+                        </Typography>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                             <TextField
                                 fullWidth
                                 label="Car Owner Name"
@@ -448,9 +415,8 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 onChange={handleChange}
                                 placeholder="Defaults to customer name"
                                 helperText="Leave empty to use customer name"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
                                 label="Car Brand"
@@ -458,9 +424,10 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.carBrand}
                                 onChange={handleChange}
                                 placeholder="Toyota, Honda, etc."
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                             <TextField
                                 fullWidth
                                 label="Car Model"
@@ -468,9 +435,8 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.carModel}
                                 onChange={handleChange}
                                 placeholder="Avanza, Civic, etc."
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
                                 label="Plate Number"
@@ -478,9 +444,10 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.plateNumber}
                                 onChange={handleChange}
                                 placeholder="B 1234 ABC"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                             <TextField
                                 fullWidth
                                 label="Chassis Number"
@@ -488,9 +455,8 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.chassisNumber}
                                 onChange={handleChange}
                                 placeholder="Chassis number"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
                                 label="Engine Number"
@@ -498,26 +464,24 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 value={formData.engineNumber}
                                 onChange={handleChange}
                                 placeholder="Engine number"
+                                size={isMobile ? "small" : "medium"}
                             />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Insurance Due Date"
-                                name="dueDate"
-                                type="date"
-                                value={formData.dueDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                helperText="Insurance expiration date"
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Alert severity="info" sx={{ mt: 1 }}>
-                                All car information fields are optional. You can add or update them later.
-                            </Alert>
-                        </Grid>
-                    </Grid>
+                        </Box>
+                        <TextField
+                            fullWidth
+                            label="Insurance Due Date"
+                            name="dueDate"
+                            type="date"
+                            value={formData.dueDate}
+                            onChange={handleChange}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="Insurance expiration date"
+                            size={isMobile ? "small" : "medium"}
+                        />
+                        <Alert severity="info" sx={{ mt: 1 }}>
+                            All car information fields are optional. You can add or update them later.
+                        </Alert>
+                    </Box>
                 );
                 
             case 2:
@@ -536,96 +500,80 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             </Alert>
                         )}
                         
-                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 2 }}>
                             {[
                                 { key: 'leftSide', label: 'Left Side' },
                                 { key: 'rightSide', label: 'Right Side' },
                                 { key: 'front', label: 'Front' },
                                 { key: 'back', label: 'Back' }
                             ].map(({ key, label }) => (
-                                <Grid item xs={12} sm={6} key={key}>
-                                    <Paper
-                                        variant="outlined"
-                                        sx={{
-                                            p: 2,
-                                            textAlign: 'center',
-                                            cursor: 'pointer',
-                                            minHeight: 120,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            backgroundColor: uploadedFiles[key] ? '#e8f5e8' : 'inherit',
-                                            borderColor: uploadedFiles[key] ? '#4caf50' : 'inherit',
-                                            borderStyle: uploadedFiles[key] ? 'solid' : 'dashed',
-                                            borderWidth: uploadedFiles[key] ? 2 : 1,
-                                            '&:hover': { 
-                                                borderColor: '#1976d2',
-                                                backgroundColor: uploadedFiles[key] ? '#e8f5e8' : '#f5f5f5'
+                                <Paper
+                                    key={key}
+                                    variant="outlined"
+                                    sx={{
+                                        p: 2,
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        minHeight: 120,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        backgroundColor: uploadedFiles[key] ? '#e8f5e8' : 'inherit',
+                                        borderColor: uploadedFiles[key] ? '#4caf50' : 'inherit',
+                                        borderStyle: uploadedFiles[key] ? 'solid' : 'dashed',
+                                        borderWidth: uploadedFiles[key] ? 2 : 1,
+                                        '&:hover': { 
+                                            borderColor: '#1976d2',
+                                            backgroundColor: uploadedFiles[key] ? '#e8f5e8' : '#f5f5f5'
+                                        }
+                                    }}
+                                    onClick={() => document.getElementById(`file-${key}`).click()}
+                                >
+                                    <input
+                                        id={`file-${key}`}
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                handleFileUpload(key, file);
                                             }
                                         }}
-                                        onClick={() => document.getElementById(`file-${key}`).click()}
-                                    >
-                                        <input
-                                            id={`file-${key}`}
-                                            type="file"
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    handleFileUpload(key, file);
-                                                }
-                                            }}
-                                        />
-                                        {uploadedFiles[key] ? (
-                                            <>
-                                                <Icon 
-                                                    icon="mdi:check-circle" 
-                                                    width={40} 
-                                                    color="#4caf50" 
-                                                />
-                                                <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium' }}>
-                                                    {label}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
-                                                    {(uploadedFiles[key].size / 1024).toFixed(2)}KB
-                                                </Typography>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Icon 
-                                                    icon="mdi:camera-plus" 
-                                                    width={40} 
-                                                    color="#9e9e9e" 
-                                                />
-                                                <Typography variant="body2" sx={{ mt: 1 }}>
-                                                    {label}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
-                                                    Click to upload
-                                                </Typography>
-                                            </>
-                                        )}
-                                    </Paper>
-                                    
-                                    {uploadedFiles[key] && (
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            startIcon={<Icon icon="mdi:delete" width={16} />}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleFileUpload(key, null);
-                                            }}
-                                            sx={{ mt: 0.5 }}
-                                        >
-                                            Remove
-                                        </Button>
+                                    />
+                                    {uploadedFiles[key] ? (
+                                        <>
+                                            <Icon 
+                                                icon="mdi:check-circle" 
+                                                width={40} 
+                                                color="#4caf50" 
+                                            />
+                                            <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium' }}>
+                                                {label}
+                                            </Typography>
+                                            <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                                                {(uploadedFiles[key].size / 1024).toFixed(2)}KB
+                                            </Typography>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon 
+                                                icon="mdi:camera-plus" 
+                                                width={40} 
+                                                color="#9e9e9e" 
+                                            />
+                                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                                {label}
+                                            </Typography>
+                                            <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                                                Click to upload
+                                            </Typography>
+                                        </>
                                     )}
-                                </Grid>
+                                </Paper>
                             ))}
-                        </Grid>
+                        </Box>
                         
                         <Alert severity="info" sx={{ mt: 3 }}>
                             <Typography variant="body2">
@@ -638,13 +586,6 @@ export default function CreateCustomerDialog({ open, onClose }) {
             default:
                 return null;
         }
-    };
-
-    const getStepLabel = (index) => {
-        if (isMobile) {
-            return `${index + 1}. ${steps[index]}`;
-        }
-        return steps[index];
     };
 
     return (
@@ -673,7 +614,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             Step {activeStep + 1} of {steps.length}
                         </Typography>
                         <Typography variant="body1" align="center" fontWeight="medium">
-                            {getStepLabel(activeStep)}
+                            {steps[activeStep]}
                         </Typography>
                         <MobileStepper
                             variant="dots"
