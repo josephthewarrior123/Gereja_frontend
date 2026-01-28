@@ -1,58 +1,71 @@
+import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
-import FormControl from '@mui/material/FormControl';
 
 export default function CustomSelect({
-    label,
-    children,
-    value,
-    onChange,
-    className,
-    options,
-    error,
-    helperText,
-    fullWidth,
-    name,
-    ...props
+  label,
+  name,
+  value,
+  onChange,
+  onBlur,
+  children,
+  error = false,
+  helperText,
+  fullWidth = true,
+  size = 'medium',
+  ...props
 }) {
-    return (
-        <div>
-            <div className="mb-2">
-                <label className="typography-1">{label}</label>
-            </div>
-            <FormControl sx={{ width: fullWidth && '100%' }} error={error}>
-                <Select
-                    name={name}
-                    sx={{
-                        '& .MuiSelect-select': { py: 3, px: 4 },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                            borderRadius: 2,
-                            border: `1px solid var(--color-project-tertiary)`,
-                        },
-                        width: '100%',
-                    }}
-                    value={value}
-                    onChange={onChange}
-                    className={className}
-                    {...props}
-                >
-                    {children}
-                </Select>
-                {helperText && (
-                    <FormHelperText
-                        sx={{
-                            '&.MuiFormHelperText-root': {
-                                marginLeft: 0,
-                                marginRight: 0,
-                                marginTop: 2,
-                            },
-                        }}
-                    >
-                        {helperText}
-                    </FormHelperText>
-                )}
-            </FormControl>
-        </div>
-    );
+  const labelId = `${name}-label`;
+
+  return (
+    <FormControl
+      fullWidth={fullWidth}
+      error={error}
+      size={size}
+      variant="outlined"
+    >
+      {label && (
+        <InputLabel id={labelId} shrink>
+          {label}
+        </InputLabel>
+      )}
+
+      <Select
+        labelId={labelId}
+        name={name}
+        value={value ?? ''}
+        label={label}
+        onChange={onChange}
+        onBlur={onBlur}
+        MenuProps={{
+          disablePortal: false,
+          PaperProps: {
+            sx: {
+              zIndex: 1500,
+            },
+          },
+        }}
+        sx={{
+          '& .MuiSelect-select': {
+            py: size === 'small' ? 1.5 : 2,
+            px: 2,
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderRadius: 2,
+          },
+        }}
+        {...props}
+      >
+        {children}
+      </Select>
+
+      {helperText && (
+        <FormHelperText>
+          {helperText}
+        </FormHelperText>
+      )}
+    </FormControl>
+  );
 }

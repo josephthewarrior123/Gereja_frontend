@@ -8,11 +8,11 @@ import AdminList from './pages/Admin/AdminList';
 import CreateAdmin from './pages/Admin/CreateAdmin';
 import AdminEdit from './pages/Admin/AdminEdit';
 import AdminAssignPage from './pages/Admin/AdminAssignPage';
-import Kwitansi from './pages/kwitansi/KwitansiCreate';
+import Kwitansi from './pages/Kwitansi/KwitansiCreate';
 import CustomerListPage from './pages/customers/CustomerListPage';
-import CustomerCreatePage from './pages/customers/CustomerCreatePage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import PropertyListPage from './pages/Property/PropertyList';
+
 
 export default function AppRoutes() {
     return (
@@ -25,7 +25,6 @@ export default function AppRoutes() {
                 {/* Customers Routes */}
                 <Route path="customers">
                     <Route index element={<CustomerListPage />} />
-                    <Route path="create" element={<CustomerCreatePage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
                 </Route>
                 
