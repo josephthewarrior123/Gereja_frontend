@@ -320,27 +320,46 @@ export default function CreateQuotationPage() {
         return [coverageLabels[key], rateText];
       });
 
-    autoTable(doc, {
-      startY: y + 12,
-      head: [['Coverage', 'Rate']],
-      body: coverageBody,
-      theme: 'plain',
-      styles: { 
-        fontSize: 9.5, 
-        cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
-        overflow: 'linebreak'
-      },
-      headStyles: { 
-        fontStyle: 'bold', 
-        textColor: [0, 0, 0],
-        halign: 'left'
-      },
-      columnStyles: {
-        0: { cellWidth: 120, halign: 'left' },
-        1: { cellWidth: 35, halign: 'right' }
-      },
-      margin: { left: marginX, right: marginX }
-    });
+      autoTable(doc, {
+        startY: y + 12,
+        head: [['Coverage', 'Rate']],
+        body: coverageBody,
+        theme: 'plain',
+        styles: { 
+          fontSize: 9.5, 
+          cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
+          overflow: 'linebreak'
+        },
+        headStyles: { 
+          fontStyle: 'bold', 
+          textColor: [0, 0, 0]
+        },
+        columnStyles: {
+          0: { cellWidth: 120, halign: 'left' },
+          1: { cellWidth: 35, halign: 'right' }
+        },
+        didParseCell: function(data) {
+          // ========== HEADER ROW ==========
+          if (data.section === 'head') {
+            // KOLOM 0 - "Coverage"
+            if (data.column.index === 0) {
+              data.cell.styles.halign = 'left';
+            }
+            
+            // KOLOM 1 - "Rate" - CUSTOM PADDING DI SINI BRO
+            if (data.column.index === 1) {
+              data.cell.styles.halign = 'right';
+              data.cell.styles.cellPadding = { 
+                top: 1.6, 
+                right: 5,  // ← UBAH ANGKA INI BRO (makin besar makin ke kiri)
+                bottom: 1.6, 
+                left: 2
+              };
+            }
+          }
+        },
+        margin: { left: marginX, right: marginX }
+      });
 
     const afterCoverageY = (doc.lastAutoTable?.finalY ?? (y + 12)) + 10;
 
@@ -356,30 +375,33 @@ export default function CreateQuotationPage() {
       const pct = Number(c.percentage) || 0;
       const amount = roundIDR((tsiValue * pct) / 100);
 
-      const formattedBase = formatCurrencyShort(tsiValue);
+      // TAMBAH "Rp" di depan angka base
+      const formattedBase = `Rp ${formatCurrencyShort(tsiValue)}`;
       
       calcBody.push([
         coverageLabels[key],
-        formattedBase,
+        formattedBase,  // Sekarang dengan "Rp"
         `x ${pct} %`,
         formatCurrency(amount)
       ]);
     });
 
-    // admin + stamp
+    // admin + stamp - TAMBAH KODE BARU DI SINI
     if ((calculations.adminFee ?? 0) > 0) {
+      // Admin Fee: base = Rp 50.000, rate = kosong
       calcBody.push([
         'Admin Fee',
-        '50.000',
-        '',
+        'Rp 50.000',  // Base dengan Rp
+        '',           // Rate kosong
         formatCurrency(calculations.adminFee)
       ]);
     }
     if ((calculations.stampDuty ?? 0) > 0) {
+      // Stamp Duty: base = Rp 10.000, rate = kosong
       calcBody.push([
         'Stamp Duty',
-        '10.000',
-        '',
+        'Rp 10.000',  // Base dengan Rp
+        '',           // Rate kosong
         formatCurrency(calculations.stampDuty)
       ]);
     }
@@ -409,7 +431,7 @@ export default function CreateQuotationPage() {
       },
       columnStyles: {
         0: { cellWidth: 60, halign: 'left' },
-        1: { cellWidth: 35, halign: 'right' },
+        1: { cellWidth: 45, halign: 'right' },
         2: { cellWidth: 25, halign: 'right' },
         3: { cellWidth: 'auto', halign: 'right' }
       },
@@ -422,25 +444,25 @@ export default function CreateQuotationPage() {
             data.cell.styles.halign = 'left';
           }
           
-          // KOLOM 1 - "Base" 
+          // KOLOM 1 - "Base" - PERBAIKAN DI SINI
           if (data.column.index === 1) {
-            data.cell.styles.halign = 'left';
+            data.cell.styles.halign = 'right';  // UBAH JADI 'right' BUKAN 'left'
             data.cell.styles.cellPadding = { 
               top: 2.6, 
-              right: 2, 
+              right: 20,  // PERBAIKAN: tambahkan right padding
               bottom: 2.6, 
-              left: 5
+              left: 2
             };
           }
           
           // KOLOM 2 - "Rate"
           if (data.column.index === 2) {
-            data.cell.styles.halign = 'left';
+            data.cell.styles.halign = 'right';  // UBAH JADI 'right' BUKAN 'left'
             data.cell.styles.cellPadding = { 
               top: 2.6, 
-              right: 6, 
+              right: 10,  // PERBAIKAN: tambahkan right padding
               bottom: 2.6, 
-              left: 10
+              left: 2
             };
           }
           
@@ -464,11 +486,12 @@ export default function CreateQuotationPage() {
             data.cell.styles.halign = 'left';
           }
           
-          // KOLOM 1 - Base data (400.000.000 atau 50.000)
+          // KOLOM 1 - Base data (Rp 400.000.000 atau Rp 50.000)
           if (data.column.index === 1) {
             data.cell.styles.halign = 'right';
-            // Atur padding khusus untuk Admin Fee dan Stamp Duty agar rata dengan data coverage
-            if (data.cell.text[0] === '50.000' || data.cell.text[0] === '10.000') {
+            // Atur padding untuk semua data base
+            if (data.cell.text[0] === 'Rp 50.000' || data.cell.text[0] === 'Rp 10.000') {
+              // Untuk Admin Fee dan Stamp Duty
               data.cell.styles.cellPadding = { 
                 top: 2.6, 
                 right: 12,
@@ -476,6 +499,7 @@ export default function CreateQuotationPage() {
                 left: 2
               };
             } else {
+              // Untuk coverage lain
               data.cell.styles.cellPadding = { 
                 top: 2.6, 
                 right: 12,
