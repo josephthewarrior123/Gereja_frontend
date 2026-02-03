@@ -46,18 +46,7 @@ export default function DashboardLayout() {
       url: '/guests',
       title: 'Guests List',
     },
-    {
-      icon: 'mdi:heart',
-      label: 'Couple',
-      url: '/couples',
-      title: 'Couple',
-    },
-    {
-      icon: 'ic:round-qr-code',
-      label: 'QR Scan',
-      url: '/qr-scan',
-      title: 'QR Scan',
-    },
+    
     {
       icon: 'heroicons:shield-check',
       label: 'Admin Management',

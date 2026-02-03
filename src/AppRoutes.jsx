@@ -1,5 +1,4 @@
 import { Route, Routes } from 'react-router';
-import QrScanPage from './pages/qr-scan/QrScanPage';
 import Page404 from './pages/miscellaneous/Page404';
 import DashboardLayout from './reusables/layouts/DashboardLayout';
 import GuestListPage from './pages/guests/GuestListPage';
@@ -12,6 +11,7 @@ import Kwitansi from './pages/Kwitansi/KwitansiCreate';
 import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import PropertyListPage from './pages/Property/PropertyList';
+import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 
 
 export default function AppRoutes() {
@@ -26,15 +26,21 @@ export default function AppRoutes() {
                 <Route path="customers">
                     <Route index element={<CustomerListPage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
+                    
                 </Route>
                 
                 {/* Properties Routes */}
                 <Route path="properties">
                     <Route index element={<PropertyListPage />} />
                 </Route>
+
+                  {/* Quotations Routes */}
+                  <Route path="quotations">
+                    <Route path="create" element={<CreateQuotationPage />} />
+                </Route>
                 
                 {/* Other Routes */}
-                <Route path="qr-scan" element={<QrScanPage />} />
+               
                 <Route path="admin-management" element={<AdminList/>} />
                 <Route path="create-admin" element={<CreateAdmin />} />
                 <Route path="edit-admin/:id" element={<AdminEdit />} />

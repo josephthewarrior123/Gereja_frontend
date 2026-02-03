@@ -509,7 +509,7 @@ export default function CustomerListPage() {
             ),
         }}
     />
-</form>
+</form> 
                     
                     {/* Add Customer Button */}
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
