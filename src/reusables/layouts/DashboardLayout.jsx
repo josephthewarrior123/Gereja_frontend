@@ -46,7 +46,7 @@ export default function DashboardLayout() {
       url: '/guests',
       title: 'Guests List',
     },
-    
+    { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     {
       icon: 'heroicons:shield-check',
       label: 'Admin Management',

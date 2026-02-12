@@ -94,7 +94,7 @@ export default function LoginPage() {
             <form onSubmit={formik.handleSubmit} className="w-full max-w-lg">
                 <div className="px-4 py-4 bg-white text-project-black-1 rounded-lg w-full">
                     <div className="text-center">
-                        <h1 className="text-2xl font-bold">Momento Wedding Dashboard</h1>
+                        <h1 className="text-2xl font-bold">Insurance</h1>
                         <p className="text-sm text-gray-500 mt-1">Please login to continue</p>
                     </div>
                     

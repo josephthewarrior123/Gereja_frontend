@@ -19,13 +19,17 @@ import {
   Avatar,
   useMediaQuery,
   useTheme,
-  Stack
+  Stack,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
+import CompanyDAO from '../../daos/CompanyDao';
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -36,11 +40,16 @@ export default function CreateQuotationPage() {
   const message = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const logoInputRef = useRef(null);
 
   // ============ Company / Header ============
+  const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
   const [companyCity, setCompanyCity] = useState('Jakarta');
+  const [companyLogo, setCompanyLogo] = useState(null); // URL dari server
+  const [logoFile, setLogoFile] = useState(null); // File buat upload
+  const [logoPreview, setLogoPreview] = useState(null); // Preview local
 
   // ============ Customer Selection ============
   const [customers, setCustomers] = useState([]);
@@ -52,13 +61,15 @@ export default function CreateQuotationPage() {
   const [quotationNumber, setQuotationNumber] = useState('');
   const [tsi, setTsi] = useState('');
 
-  // IMPORTANT: now every coverage can be FREE INCLUDE (per item)
+  // ============ Preview Dialog ============
+  const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
+
+  // ✅ UPDATED: Gabung angin topan + typhoon, hapus hail
   const [coverages, setCoverages] = useState({
     comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
     flood: { enabled: false, percentage: 0.1, freeInclude: false },
     earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
-    typhoon: { enabled: false, percentage: 0.05, freeInclude: false },
-    hail: { enabled: false, percentage: 0.05, freeInclude: false },
+    typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false }, // ✅ Gabungan
     landslide: { enabled: false, percentage: 0.05, freeInclude: false },
     waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
     thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
@@ -70,8 +81,7 @@ export default function CreateQuotationPage() {
       comprehensive: 'Comprehensive',
       flood: 'Banjir',
       earthquake: 'Gempa Bumi',
-      typhoon: 'Angin Topan',
-      hail: 'Hujan Es',
+      typhoonAndStorm: 'Angin Topan, Badai, Taifun, Hujan Es, Tornado', // ✅ Gabungan label
       landslide: 'Tanah Longsor',
       waterHammer: 'Water Hammer',
       thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
@@ -90,6 +100,7 @@ export default function CreateQuotationPage() {
 
   // ============ Effects ============
   useEffect(() => {
+    fetchCompanyProfile();
     fetchCustomers();
     generateQuotationNumber();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,6 +135,25 @@ export default function CreateQuotationPage() {
     );
   };
 
+  // ============ Fetch Company Profile ============
+  const fetchCompanyProfile = async () => {
+    try {
+      const response = await CompanyDAO.getCompanyProfile();
+      
+      console.log('🔍 GET Response:', response);
+      
+      if (response.success && response.profile) {
+        setCompanyProfile(response.profile);
+        setCompanyName(response.profile.companyName || 'PT. JAYAINDO ARTHA SUKSES');
+        setCompanySubtitle(response.profile.companySubtitle || 'INSURANCE AGENCY');
+        setCompanyCity(response.profile.companyCity || 'Jakarta');
+        setCompanyLogo(response.profile.companyLogo?.url || null);
+      }
+    } catch (error) {
+      console.error('Error fetching company profile:', error);
+    }
+  };
+
   const fetchCustomers = async () => {
     try {
       loading.start();
@@ -144,6 +174,109 @@ export default function CreateQuotationPage() {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     setQuotationNumber(`QUO-${year}${month}-${random}`);
+  };
+
+  // ============ Logo Handlers ============
+  const handleLogoClick = () => {
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi file type
+    if (!file.type.startsWith('image/')) {
+      message('Please select an image file', 'error');
+      return;
+    }
+
+    // Validasi file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      message('Image size must be less than 2MB', 'error');
+      return;
+    }
+
+    setLogoFile(file);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveCompanyProfile = async () => {
+    try {
+      // ✅ VALIDATION
+      if (!companyName || companyName.trim() === '') {
+        message('Company name is required', 'error');
+        return;
+      }
+
+      loading.start();
+
+      // ✅ FIX: Pake field name yang bener sesuai backend
+      const profileData = {
+        companyName: companyName.trim(),
+        companySubtitle: companySubtitle?.trim() || '',
+        companyCity: companyCity?.trim() || ''
+      };
+
+      console.log('🔍 Profile data being sent:', profileData);
+
+      let profileResponse;
+      
+      // ✅ Cek dari state companyProfile
+      if (companyProfile && companyProfile.createdAt) {
+        // Update existing (PUT)
+        console.log('📝 Updating existing profile...');
+        profileResponse = await CompanyDAO.updateCompanyProfile(profileData);
+      } else {
+        // Create new (POST)
+        console.log('✨ Creating new profile...');
+        profileResponse = await CompanyDAO.createCompanyProfile(profileData);
+      }
+
+      if (!profileResponse.success) {
+        message(profileResponse.error || 'Failed to save company profile', 'error');
+        return;
+      }
+
+      // Upload logo if ada file baru
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append('logo', logoFile);
+
+        const logoResponse = await CompanyDAO.uploadCompanyLogo(formData);
+        if (logoResponse.success) {
+          setCompanyLogo(logoResponse.logo.url);
+          message('Company profile and logo saved successfully!', 'success');
+        } else {
+          message('Profile saved but logo upload failed', 'warning');
+        }
+      } else {
+        message('Company profile saved successfully!', 'success');
+      }
+
+      // Refresh company profile
+      await fetchCompanyProfile();
+      
+    } catch (error) {
+      console.error('Error saving company profile:', error);
+      message('Failed to save company profile', 'error');
+    } finally {
+      loading.stop();
+    }
   };
 
   const handleCoverageToggle = (coverageKey) => {
@@ -214,10 +347,16 @@ export default function CreateQuotationPage() {
       return;
     }
 
+    // Buka preview dialog
+    setOpenPreviewDialog(true);
+  };
+
+  const handleConfirmDownload = () => {
     try {
       loading.start();
       generatePDF();
       message('Quotation PDF generated successfully!', 'success');
+      setOpenPreviewDialog(false);
     } catch (error) {
       console.error('Error creating quotation:', error);
       message('Failed to generate quotation', 'error');
@@ -241,8 +380,7 @@ export default function CreateQuotationPage() {
       comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
       flood: { enabled: false, percentage: 0.1, freeInclude: false },
       earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
-      typhoon: { enabled: false, percentage: 0.05, freeInclude: false },
-      hail: { enabled: false, percentage: 0.05, freeInclude: false },
+      typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
       landslide: { enabled: false, percentage: 0.05, freeInclude: false },
       waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
       thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
@@ -265,31 +403,50 @@ export default function CreateQuotationPage() {
     const marginX = 18;
     const rightX = pageWidth - marginX;
 
+    let currentY = 18;
+
+    // Logo di kiri atas (kalo ada)
+    const logoToUse = logoPreview || companyLogo;
+    if (logoToUse) {
+      try {
+        // Logo size 25x25mm
+        doc.addImage(logoToUse, 'PNG', marginX, currentY, 25, 25);
+        currentY += 28; // Space after logo
+      } catch (err) {
+        console.error('Error adding logo to PDF:', err);
+        // Kalo error, lanjut aja tanpa logo
+      }
+    }
+
     // Header
     doc.setFont(undefined, 'bold');
     doc.setFontSize(16);
-    doc.text((companyName || '').toUpperCase(), pageWidth / 2, 18, { align: 'center' });
+    doc.text((companyName || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+    currentY += 6;
 
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
-    doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, 24, { align: 'center' });
+    doc.text((companySubtitle || '').toUpperCase(), pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
 
     doc.setFont(undefined, 'bold');
     doc.setFontSize(14);
-    doc.text('QUOTATION', pageWidth / 2, 34, { align: 'center' });
+    doc.text('QUOTATION', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 11;
 
     // Top info line
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
 
-    doc.text(`No. ${quotationNumber}`, marginX, 45);
+    doc.text(`No. ${quotationNumber}`, marginX, currentY);
 
     const dateStr = new Date().toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
-    doc.text(`${companyCity || 'Jakarta'}, ${dateStr}`, rightX, 45, { align: 'right' });
+    doc.text(`${companyCity || 'Jakarta'}, ${dateStr}`, rightX, currentY, { align: 'right' });
+    currentY += 13;
 
     // Helper for aligned label/value
     const labelX = marginX;
@@ -304,12 +461,17 @@ export default function CreateQuotationPage() {
       doc.text(String(value ?? ''), valueX, y);
     };
 
-    let y = 58;
-    row(y, 'Perhitungan Premi', `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim());
-    y += 7;
-    row(y, 'No Polisi', selectedCustomer.carData?.plateNumber || 'TBA');
-    y += 7;
-    row(y, 'Harga TSI', `${formatCurrencyIDR(Number(tsi) || 0)} (IDR)`);
+    // Customer info
+    row(currentY, 'Nama', selectedCustomer?.name || 'TBA');
+    currentY += 7;
+    row(currentY, 'Alamat', selectedCustomer?.address || 'TBA');
+    currentY += 7;
+    row(currentY, 'Perhitungan Premi', `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim());
+    currentY += 7;
+    row(currentY, 'No Polisi', selectedCustomer.carData?.plateNumber || 'TBA');
+    currentY += 7;
+    row(currentY, 'Harga TSI', `${formatCurrencyIDR(Number(tsi) || 0)} (IDR)`);
+    currentY += 12;
 
     // Coverage table - FIXED WIDTH
     const coverageBody = Object.keys(coverages)
@@ -320,48 +482,45 @@ export default function CreateQuotationPage() {
         return [coverageLabels[key], rateText];
       });
 
-      autoTable(doc, {
-        startY: y + 12,
-        head: [['Coverage', 'Rate']],
-        body: coverageBody,
-        theme: 'plain',
-        styles: { 
-          fontSize: 9.5, 
-          cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
-          overflow: 'linebreak'
-        },
-        headStyles: { 
-          fontStyle: 'bold', 
-          textColor: [0, 0, 0]
-        },
-        columnStyles: {
-          0: { cellWidth: 120, halign: 'left' },
-          1: { cellWidth: 35, halign: 'right' }
-        },
-        didParseCell: function(data) {
-          // ========== HEADER ROW ==========
-          if (data.section === 'head') {
-            // KOLOM 0 - "Coverage"
-            if (data.column.index === 0) {
-              data.cell.styles.halign = 'left';
-            }
-            
-            // KOLOM 1 - "Rate" - CUSTOM PADDING DI SINI BRO
-            if (data.column.index === 1) {
-              data.cell.styles.halign = 'right';
-              data.cell.styles.cellPadding = { 
-                top: 1.6, 
-                right: 5,  // ← UBAH ANGKA INI BRO (makin besar makin ke kiri)
-                bottom: 1.6, 
-                left: 2
-              };
-            }
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Coverage', 'Rate']],
+      body: coverageBody,
+      theme: 'plain',
+      styles: { 
+        fontSize: 9.5, 
+        cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
+        overflow: 'linebreak'
+      },
+      headStyles: { 
+        fontStyle: 'bold', 
+        textColor: [0, 0, 0]
+      },
+      columnStyles: {
+        0: { cellWidth: 120, halign: 'left' },
+        1: { cellWidth: 35, halign: 'right' }
+      },
+      didParseCell: function(data) {
+        if (data.section === 'head') {
+          if (data.column.index === 0) {
+            data.cell.styles.halign = 'left';
           }
-        },
-        margin: { left: marginX, right: marginX }
-      });
+          
+          if (data.column.index === 1) {
+            data.cell.styles.halign = 'right';
+            data.cell.styles.cellPadding = { 
+              top: 1.6, 
+              right: 5,
+              bottom: 1.6, 
+              left: 2
+            };
+          }
+        }
+      },
+      margin: { left: marginX, right: marginX }
+    });
 
-    const afterCoverageY = (doc.lastAutoTable?.finalY ?? (y + 12)) + 10;
+    const afterCoverageY = (doc.lastAutoTable?.finalY ?? currentY) + 10;
 
     // Calculation table - FIXED WIDTH
     const tsiValue = Number(tsi) || 0;
@@ -375,38 +534,33 @@ export default function CreateQuotationPage() {
       const pct = Number(c.percentage) || 0;
       const amount = roundIDR((tsiValue * pct) / 100);
 
-      // TAMBAH "Rp" di depan angka base
       const formattedBase = `Rp ${formatCurrencyShort(tsiValue)}`;
       
       calcBody.push([
         coverageLabels[key],
-        formattedBase,  // Sekarang dengan "Rp"
+        formattedBase,
         `x ${pct} %`,
         formatCurrency(amount)
       ]);
     });
 
-    // admin + stamp - TAMBAH KODE BARU DI SINI
     if ((calculations.adminFee ?? 0) > 0) {
-      // Admin Fee: base = Rp 50.000, rate = kosong
       calcBody.push([
         'Admin Fee',
-        'Rp 50.000',  // Base dengan Rp
-        '',           // Rate kosong
+        'Rp 50.000',
+        '',
         formatCurrency(calculations.adminFee)
       ]);
     }
     if ((calculations.stampDuty ?? 0) > 0) {
-      // Stamp Duty: base = Rp 10.000, rate = kosong
       calcBody.push([
         'Stamp Duty',
-        'Rp 10.000',  // Base dengan Rp
-        '',           // Rate kosong
+        'Rp 10.000',
+        '',
         formatCurrency(calculations.stampDuty)
       ]);
     }
 
-    // total row
     calcBody.push([
       { content: 'Total Premi', styles: { fontStyle: 'bold' } },
       { content: '', styles: { fontStyle: 'bold' } },
@@ -436,37 +590,31 @@ export default function CreateQuotationPage() {
         3: { cellWidth: 'auto', halign: 'right' }
       },
       didParseCell: function(data) {
-        // ========== HEADER ROW ==========
         if (data.section === 'head') {
-          
-          // KOLOM 0 - "Item" (ga usah diubah, udah oke)
           if (data.column.index === 0) {
             data.cell.styles.halign = 'left';
           }
           
-          // KOLOM 1 - "Base" - PERBAIKAN DI SINI
           if (data.column.index === 1) {
-            data.cell.styles.halign = 'right';  // UBAH JADI 'right' BUKAN 'left'
+            data.cell.styles.halign = 'right';
             data.cell.styles.cellPadding = { 
               top: 2.6, 
-              right: 20,  // PERBAIKAN: tambahkan right padding
+              right: 20,
               bottom: 2.6, 
               left: 2
             };
           }
           
-          // KOLOM 2 - "Rate"
           if (data.column.index === 2) {
-            data.cell.styles.halign = 'right';  // UBAH JADI 'right' BUKAN 'left'
+            data.cell.styles.halign = 'right';
             data.cell.styles.cellPadding = { 
               top: 2.6, 
-              right: 10,  // PERBAIKAN: tambahkan right padding
+              right: 10,
               bottom: 2.6, 
               left: 2
             };
           }
           
-          // KOLOM 3 - "Amount"
           if (data.column.index === 3) {
             data.cell.styles.halign = 'right';
             data.cell.styles.cellPadding = { 
@@ -478,20 +626,14 @@ export default function CreateQuotationPage() {
           }
         }
         
-        // ========== BODY ROW ==========
         if (data.section === 'body') {
-          
-          // KOLOM 0 - Item name (Comprehensive, dll)
           if (data.column.index === 0) {
             data.cell.styles.halign = 'left';
           }
           
-          // KOLOM 1 - Base data (Rp 400.000.000 atau Rp 50.000)
           if (data.column.index === 1) {
             data.cell.styles.halign = 'right';
-            // Atur padding untuk semua data base
             if (data.cell.text[0] === 'Rp 50.000' || data.cell.text[0] === 'Rp 10.000') {
-              // Untuk Admin Fee dan Stamp Duty
               data.cell.styles.cellPadding = { 
                 top: 2.6, 
                 right: 12,
@@ -499,7 +641,6 @@ export default function CreateQuotationPage() {
                 left: 2
               };
             } else {
-              // Untuk coverage lain
               data.cell.styles.cellPadding = { 
                 top: 2.6, 
                 right: 12,
@@ -509,7 +650,6 @@ export default function CreateQuotationPage() {
             }
           }
           
-          // KOLOM 2 - Rate data ("x 1.32 %" atau kosong untuk admin/stamp)
           if (data.column.index === 2) {
             data.cell.styles.halign = 'right';
             data.cell.styles.cellPadding = { 
@@ -520,7 +660,6 @@ export default function CreateQuotationPage() {
             };
           }
           
-          // KOLOM 3 - Amount data
           if (data.column.index === 3) {
             data.cell.styles.halign = 'right';
             data.cell.styles.cellPadding = { 
@@ -589,12 +728,104 @@ export default function CreateQuotationPage() {
           {/* Company Settings */}
           <Card sx={{ mb: 3, borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography fontSize={16} fontWeight={700} mb={2.5}>
-                <Icon icon="mdi:office-building" width={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-                Company Header (PDF)
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2.5}>
+                <Typography fontSize={16} fontWeight={700}>
+                  <Icon icon="mdi:office-building" width={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
+                  Company Header (PDF)
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSaveCompanyProfile}
+                  startIcon={<Icon icon="mdi:content-save" />}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Save Profile
+                </Button>
+              </Box>
 
               <Grid container spacing={2}>
+                {/* Logo Upload */}
+                <Grid item xs={12}>
+                  <Typography fontSize={14} fontWeight={600} mb={1}>
+                    Company Logo
+                  </Typography>
+                  
+                  <Box display="flex" gap={2} alignItems="center">
+                    <Box
+                      onClick={handleLogoClick}
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        border: '2px dashed #ccc',
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        bgcolor: '#f9f9f9',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          borderColor: '#007AFF',
+                          bgcolor: '#f0f8ff'
+                        },
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {(logoPreview || companyLogo) ? (
+                        <img
+                          src={logoPreview || companyLogo}
+                          alt="Company Logo"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      ) : (
+                        <Icon icon="mdi:image-plus" width={32} color="#ccc" />
+                      )}
+                    </Box>
+
+                    <Box flex={1}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleLogoClick}
+                        startIcon={<Icon icon="mdi:upload" />}
+                        sx={{ borderRadius: 2, mb: 1 }}
+                      >
+                        {(logoPreview || companyLogo) ? 'Change Logo' : 'Upload Logo'}
+                      </Button>
+                      
+                      {(logoPreview || companyLogo) && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          color="error"
+                          onClick={handleRemoveLogo}
+                          startIcon={<Icon icon="mdi:delete" />}
+                          sx={{ borderRadius: 2, ml: 1 }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+
+                      <Typography variant="caption" display="block" color="text.secondary" mt={1}>
+                        Max 2MB, PNG/JPG recommended
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    style={{ display: 'none' }}
+                  />
+                </Grid>
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -602,6 +833,9 @@ export default function CreateQuotationPage() {
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="PT. ..."
+                    required
+                    error={!companyName || companyName.trim() === ''}
+                    helperText={(!companyName || companyName.trim() === '') ? 'Company name is required' : ''}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -979,7 +1213,7 @@ export default function CreateQuotationPage() {
                     startIcon={<Icon icon="mdi:file-pdf-box" />}
                     sx={{ bgcolor: '#d32f2f', borderRadius: 2, py: 1.4, '&:hover': { bgcolor: '#b71c1c' } }}
                   >
-                    Download PDF
+                    Preview & Download
                   </Button>
                 </Box>
               </CardContent>
@@ -1084,6 +1318,125 @@ export default function CreateQuotationPage() {
             )}
           </Box>
         </Box>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog
+        open={openPreviewDialog}
+        onClose={() => setOpenPreviewDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Icon icon="mdi:file-pdf-box" width={24} color="#d32f2f" />
+            <Typography variant="h6" fontWeight={700}>
+              Preview Quotation
+            </Typography>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent dividers>
+          <Paper sx={{ p: 3, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+            {/* Preview Header dengan Logo */}
+            <Box display="flex" gap={2} mb={3} alignItems="center">
+              {(logoPreview || companyLogo) && (
+                <Box
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    bgcolor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <img
+                    src={logoPreview || companyLogo}
+                    alt="Logo Preview"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </Box>
+              )}
+              
+              <Box flex={1}>
+                <Typography variant="h6" fontWeight={700}>
+                  {companyName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {companySubtitle}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {companyCity}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Customer Info */}
+            <Box mb={2}>
+              <Typography variant="caption" color="text.secondary">
+                Customer
+              </Typography>
+              <Typography variant="body1" fontWeight={600}>
+                {selectedCustomer?.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedCustomer?.carData?.carBrand} {selectedCustomer?.carData?.carModel} • {selectedCustomer?.carData?.plateNumber}
+              </Typography>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Summary */}
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">TSI</Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {formatCurrency(Number(tsi) || 0)}
+                </Typography>
+              </Box>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">Total Premium</Typography>
+                <Typography variant="body2" fontWeight={700} color="#d32f2f">
+                  {formatCurrency(calculations.totalPremium)}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+
+          <Box mt={2}>
+            <Typography variant="caption" color="text.secondary">
+              📄 PDF will include company logo, header info, customer details, coverage breakdown, and premium calculation.
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button
+            onClick={() => setOpenPreviewDialog(false)}
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDownload}
+            variant="contained"
+            startIcon={<Icon icon="mdi:download" />}
+            sx={{ bgcolor: '#d32f2f', borderRadius: 2, '&:hover': { bgcolor: '#b71c1c' } }}
+          >
+            Download PDF
+          </Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );
