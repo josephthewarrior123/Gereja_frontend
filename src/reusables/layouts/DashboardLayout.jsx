@@ -14,6 +14,7 @@ export default function DashboardLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { user, logout, isLoading } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Temporary bypass auth for testing
@@ -40,12 +41,7 @@ export default function DashboardLayout() {
       url: '/properties',
       title: 'Property Management',
     },
-    {
-      icon: 'heroicons:users',
-      label: 'Guests',
-      url: '/guests',
-      title: 'Guests List',
-    },
+   
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
     {
       icon: 'heroicons:shield-check',
@@ -62,19 +58,16 @@ export default function DashboardLayout() {
     }
   ];
 
-  const PageTitle = () => {
-    const location = useLocation();
+  // Update document title based on route
+  useEffect(() => {
     const matchedSection = sections.find(
       (section) => section.url === location.pathname
     );
     const pageTitle = matchedSection ? matchedSection.title : '';
-    
-    useEffect(() => {
+    if (pageTitle) {
       document.title = pageTitle;
-    }, [location.pathname, pageTitle]);
-
-    return <h1 className="text-2xl">{pageTitle}</h1>;
-  };
+    }
+  }, [location.pathname]);
 
   const handleDrawerClose = () => {
     setIsDrawerOpen(false);
@@ -181,7 +174,7 @@ export default function DashboardLayout() {
               xs: 'none',
               sm: 'flex',
             },
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             alignItems: 'center',
             px: {
               xs: 4,
@@ -197,9 +190,6 @@ export default function DashboardLayout() {
             height: `${Constants.HEADER_DESKTOP_HEIGHT}px`,
           }}
         >
-          <div>
-            <PageTitle />
-          </div>
           <div className="flex gap-3 items-center">
             <div className="text-lg text-right">
               <div>{user?.username || 'Demo User'}</div>

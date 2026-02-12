@@ -17,17 +17,18 @@ import {
     useMediaQuery,
     useTheme,
     Divider,
-    Fade
+    Fade,
+    Stack
 } from '@mui/material';
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 
 /* ---------------- TAB PANEL ---------------- */
 function TabPanel({ children, value, index }) {
-    return value === index && <Box sx={{ pt: 2 }}>{children}</Box>;
+    return value === index && <Box sx={{ pt: 3 }}>{children}</Box>;
 }
 
-/* ---------------- IMAGE PREVIEW ---------------- */
+/* ---------------- IMAGE PREVIEW DIALOG ---------------- */
 function ImagePreviewDialog({ open, image, onClose }) {
     return (
         <Dialog
@@ -37,7 +38,7 @@ function ImagePreviewDialog({ open, image, onClose }) {
             TransitionComponent={Fade}
             PaperProps={{
                 sx: {
-                    bgcolor: 'rgba(0,0,0,0.9)',
+                    bgcolor: 'rgba(0,0,0,0.95)',
                     backdropFilter: 'blur(20px)'
                 }
             }}
@@ -46,13 +47,18 @@ function ImagePreviewDialog({ open, image, onClose }) {
                 onClick={onClose}
                 sx={{
                     position: 'absolute',
-                    top: 16,
-                    right: 16,
+                    top: 24,
+                    right: 24,
                     color: '#fff',
-                    zIndex: 10
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    zIndex: 10,
+                    '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.2)'
+                    }
                 }}
             >
-                <Icon icon="mdi:close" width={28} />
+                <Icon icon="mdi:close" width={24} />
             </IconButton>
 
             <Box
@@ -61,7 +67,7 @@ function ImagePreviewDialog({ open, image, onClose }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    p: 2
+                    p: 3
                 }}
             >
                 <Box
@@ -72,7 +78,8 @@ function ImagePreviewDialog({ open, image, onClose }) {
                         maxWidth: '100%',
                         maxHeight: '100%',
                         borderRadius: 3,
-                        objectFit: 'contain'
+                        objectFit: 'contain',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                     }}
                 />
             </Box>
@@ -80,7 +87,7 @@ function ImagePreviewDialog({ open, image, onClose }) {
     );
 }
 
-/* ---------------- MAIN ---------------- */
+/* ---------------- MAIN COMPONENT ---------------- */
 export default function ViewCustomerDialog({ open, customer, onClose, onEdit, onDelete }) {
     const [tabValue, setTabValue] = useState(0);
     const [previewImage, setPreviewImage] = useState(null);
@@ -101,10 +108,32 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
               })
             : 'Not available';
 
-    const statusColor = (s) =>
-        s === 'Active' ? '#34C759' : s === 'Expired' ? '#FF3B30' : '#8E8E93';
+    const formatCurrency = (value) => {
+        if (!value) return 'Not available';
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(value);
+    };
 
-    // ✅ FIX: Check if customer has photos
+    const statusColor = (s) => {
+        switch(s) {
+            case 'Active': return '#10B981';
+            case 'Expired': return '#DC2626';
+            default: return '#64748B';
+        }
+    };
+
+    const statusBgColor = (s) => {
+        switch(s) {
+            case 'Active': return '#D1FAE5';
+            case 'Expired': return '#FEE2E2';
+            default: return '#F1F5F9';
+        }
+    };
+
+    // Check if customer has photos
     const hasPhotos = customer.carPhotos && 
         Object.values(customer.carPhotos).some(url => url && url.trim() !== '');
 
@@ -118,117 +147,341 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                 fullScreen={isMobile}
                 PaperProps={{
                     sx: {
-                        borderRadius: isMobile ? 0 : 4,
-                        background: 'rgba(255,255,255,0.88)',
-                        backdropFilter: 'blur(18px)'
+                        borderRadius: isMobile ? 0 : 3,
+                        bgcolor: '#fff',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
                     }
                 }}
             >
                 {/* HEADER */}
-                <DialogTitle sx={{ px: 3, pt: 3 }}>
-                    <Box display="flex" justifyContent="space-between">
-                        <Typography fontSize={20} fontWeight={600}>
-                            Customer Details
-                        </Typography>
-                        <IconButton onClick={onClose}>
-                            <Icon icon="mdi:close" />
-                        </IconButton>
-                    </Box>
-                </DialogTitle>
-
-                <DialogContent sx={{ px: 3 }}>
-                    {/* PROFILE */}
-                    <Box display="flex" gap={2} mb={3}>
-                        <Avatar
-                            sx={{
-                                width: 64,
-                                height: 64,
-                                bgcolor: '#007AFF',
-                                fontSize: 28
+                <DialogTitle sx={{ 
+                    px: { xs: 3, sm: 4 }, 
+                    pt: { xs: 3, sm: 4 },
+                    pb: 0
+                }}>
+                    <Stack 
+                        direction="row" 
+                        justifyContent="space-between" 
+                        alignItems="center"
+                    >
+                        <Typography 
+                            variant="h5"
+                            sx={{ 
+                                fontWeight: 700,
+                                color: '#1E293B',
+                                fontSize: { xs: '1.25rem', sm: '1.5rem' }
                             }}
                         >
-                            {customer.name?.[0]}
-                        </Avatar>
+                            Customer Details
+                        </Typography>
+                        <IconButton 
+                            onClick={onClose}
+                            sx={{
+                                color: '#64748B',
+                                '&:hover': {
+                                    bgcolor: '#F1F5F9'
+                                }
+                            }}
+                        >
+                            <Icon icon="mdi:close" width={24} />
+                        </IconButton>
+                    </Stack>
+                </DialogTitle>
 
-                        <Box flex={1}>
-                            <Typography fontSize={22} fontWeight={600}>
-                                {customer.name}
-                            </Typography>
+                <DialogContent sx={{ px: { xs: 3, sm: 4 }, py: 3 }}>
+                    {/* PROFILE SECTION */}
+                    <Paper
+                        elevation={0}
+                        sx={{ 
+                            p: 3,
+                            mb: 3,
+                            borderRadius: 3,
+                            border: '1px solid #E2E8F0',
+                            bgcolor: '#F8FAFC'
+                        }}
+                    >
+                        <Stack 
+                            direction={{ xs: 'column', sm: 'row' }} 
+                            spacing={3}
+                            alignItems={{ xs: 'center', sm: 'flex-start' }}
+                        >
+                            <Avatar
+                                sx={{
+                                    width: 80,
+                                    height: 80,
+                                    bgcolor: '#1E40AF',
+                                    fontSize: '2rem',
+                                    fontWeight: 700,
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }}
+                            >
+                                {customer.name?.[0]?.toUpperCase()}
+                            </Avatar>
 
-                            <Box display="flex" gap={1} mt={0.5}>
-                                <Chip
-                                    size="small"
-                                    label={customer.status || 'Active'}
-                                    sx={{
-                                        bgcolor: `${statusColor(customer.status || 'Active')}22`,
-                                        color: statusColor(customer.status || 'Active')
+                            <Box flex={1} sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                                <Typography 
+                                    variant="h4"
+                                    sx={{ 
+                                        fontWeight: 700,
+                                        color: '#1E293B',
+                                        mb: 1,
+                                        fontSize: { xs: '1.5rem', sm: '1.75rem' }
                                     }}
-                                />
-                                <Typography fontSize={13} color="text.secondary">
-                                    ID: {customer.id}
+                                >
+                                    {customer.name}
                                 </Typography>
+
+                                <Stack 
+                                    direction={{ xs: 'column', sm: 'row' }} 
+                                    spacing={1.5} 
+                                    alignItems={{ xs: 'center', sm: 'flex-start' }}
+                                    sx={{ mb: 1 }}
+                                >
+                                    <Chip
+                                        label={customer.status || 'Active'}
+                                        size="medium"
+                                        sx={{
+                                            bgcolor: statusBgColor(customer.status || 'Active'),
+                                            color: statusColor(customer.status || 'Active'),
+                                            fontWeight: 600,
+                                            fontSize: '0.875rem',
+                                            height: 32,
+                                            borderRadius: 2
+                                        }}
+                                    />
+                                    <Typography 
+                                        variant="body2"
+                                        sx={{ 
+                                            color: '#64748B',
+                                            fontWeight: 500,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.5
+                                        }}
+                                    >
+                                        <Icon icon="mdi:identifier" width={16} />
+                                        {customer.id}
+                                    </Typography>
+                                </Stack>
                             </Box>
-                        </Box>
-                    </Box>
+                        </Stack>
+                    </Paper>
 
                     {/* TABS */}
-                    <Tabs
-                        value={tabValue}
-                        onChange={(_, v) => setTabValue(v)}
-                        variant="fullWidth"
+                    <Paper
+                        elevation={0}
+                        sx={{ 
+                            borderRadius: 3,
+                            border: '1px solid #E2E8F0',
+                            overflow: 'hidden',
+                            mb: 3
+                        }}
                     >
-                        <Tab label="Personal" />
-                        <Tab label="Car" />
-                        <Tab label="Photos" />
-                    </Tabs>
+                        <Tabs
+                            value={tabValue}
+                            onChange={(_, v) => setTabValue(v)}
+                            variant="fullWidth"
+                            sx={{
+                                bgcolor: '#fff',
+                                '& .MuiTab-root': {
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.9375rem',
+                                    color: '#64748B',
+                                    py: 2,
+                                    minHeight: 56,
+                                    '&.Mui-selected': {
+                                        color: '#1E40AF'
+                                    }
+                                },
+                                '& .MuiTabs-indicator': {
+                                    height: 3,
+                                    bgcolor: '#1E40AF',
+                                    borderRadius: '3px 3px 0 0'
+                                }
+                            }}
+                        >
+                            <Tab 
+                                label="Personal Info" 
+                                icon={<Icon icon="mdi:account" width={20} />}
+                                iconPosition="start"
+                            />
+                            <Tab 
+                                label="Vehicle" 
+                                icon={<Icon icon="mdi:car" width={20} />}
+                                iconPosition="start"
+                            />
+                            <Tab 
+                                label="Photos" 
+                                icon={<Icon icon="mdi:camera" width={20} />}
+                                iconPosition="start"
+                            />
+                        </Tabs>
+                    </Paper>
 
-                    <Divider sx={{ mb: 2 }} />
-
-                    {/* PERSONAL */}
+                    {/* TAB CONTENT */}
+                    
+                    {/* PERSONAL INFO TAB */}
                     <TabPanel value={tabValue} index={0}>
-                        <IOSCard>
-                            <InfoRow label="Phone" value={customer.phone} icon="mdi:phone" />
-                            <InfoRow label="Address" value={customer.address} icon="mdi:map-marker" />
-                            <InfoRow label="Notes" value={customer.notes} icon="mdi:note-text" />
-                            <InfoRow label="Created" value={formatDate(customer.createdAt)} icon="mdi:calendar-plus" />
-                        </IOSCard>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <InfoCard title="Contact Information">
+                                    <InfoRow 
+                                        label="Phone Number" 
+                                        value={customer.phone} 
+                                        icon="mdi:phone"
+                                    />
+                                    <InfoRow 
+                                        label="Address" 
+                                        value={customer.address} 
+                                        icon="mdi:map-marker"
+                                    />
+                                </InfoCard>
+                            </Grid>
+                            
+                            <Grid item xs={12}>
+                                <InfoCard title="Additional Information">
+                                    <InfoRow 
+                                        label="Notes" 
+                                        value={customer.notes} 
+                                        icon="mdi:note-text"
+                                        fullWidth
+                                    />
+                                    <InfoRow 
+                                        label="Registration Date" 
+                                        value={formatDate(customer.createdAt)} 
+                                        icon="mdi:calendar-plus"
+                                    />
+                                    <InfoRow 
+                                        label="Last Updated" 
+                                        value={formatDate(customer.updatedAt)} 
+                                        icon="mdi:calendar-edit"
+                                    />
+                                </InfoCard>
+                            </Grid>
+                        </Grid>
                     </TabPanel>
 
-                    {/* CAR */}
+                    {/* VEHICLE TAB */}
                     <TabPanel value={tabValue} index={1}>
-                        <IOSCard>
-                            <InfoRow label="Owner" value={customer.carData?.ownerName} icon="mdi:account" />
-                            <InfoRow label="Brand" value={customer.carData?.carBrand} icon="mdi:car" />
-                            <InfoRow label="Model" value={customer.carData?.carModel} icon="mdi:car-info" />
-                            <InfoRow label="Plate" value={customer.carData?.plateNumber} icon="mdi:numeric" />
-                        </IOSCard>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                                <InfoCard title="Owner Details">
+                                    <InfoRow 
+                                        label="Owner Name" 
+                                        value={customer.carData?.ownerName} 
+                                        icon="mdi:account-circle"
+                                    />
+                                </InfoCard>
+                            </Grid>
+
+                            <Grid item xs={12} md={6}>
+                                <InfoCard title="Vehicle Identity">
+                                    <InfoRow 
+                                        label="Plate Number" 
+                                        value={customer.carData?.plateNumber} 
+                                        icon="mdi:numeric"
+                                    />
+                                </InfoCard>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <InfoCard title="Vehicle Specifications">
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Brand" 
+                                                value={customer.carData?.carBrand} 
+                                                icon="mdi:car"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Model" 
+                                                value={customer.carData?.carModel} 
+                                                icon="mdi:car-info"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Chassis Number" 
+                                                value={customer.carData?.chassisNumber} 
+                                                icon="mdi:barcode"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Engine Number" 
+                                                value={customer.carData?.engineNumber} 
+                                                icon="mdi:engine"
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </InfoCard>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <InfoCard title="Financial & Insurance">
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Vehicle Price" 
+                                                value={formatCurrency(customer.carData?.carPrice)} 
+                                                icon="mdi:cash"
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <InfoRow 
+                                                label="Insurance Due Date" 
+                                                value={customer.carData?.dueDate || 'Not set'} 
+                                                icon="mdi:calendar-clock"
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </InfoCard>
+                            </Grid>
+                        </Grid>
                     </TabPanel>
 
-                    {/* PHOTOS - ✅ FIX HERE */}
+                    {/* PHOTOS TAB */}
                     <TabPanel value={tabValue} index={2}>
                         {hasPhotos ? (
-                            <Grid container spacing={2}>
+                            <Grid container spacing={3}>
                                 {Object.entries(customer.carPhotos || {})
                                     .filter(([_, url]) => typeof url === 'string' && url.trim() !== '')
                                     .map(([key, url]) => (
-                                        <Grid item xs={12} sm={6} key={key}>
+                                        <Grid item xs={12} sm={6} md={6} key={key}>
                                             <Paper
+                                                elevation={0}
                                                 onClick={() => setPreviewImage(url)}
                                                 sx={{
-                                                    p: 1,
                                                     borderRadius: 3,
-                                                    bgcolor: '#F2F2F7',
+                                                    border: '1px solid #E2E8F0',
+                                                    overflow: 'hidden',
                                                     cursor: 'pointer',
-                                                    transition: 'all 0.2s',
+                                                    transition: 'all 0.2s ease-in-out',
                                                     '&:hover': {
-                                                        transform: 'scale(1.02)',
-                                                        boxShadow: 2
+                                                        transform: 'translateY(-4px)',
+                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                        borderColor: '#1E40AF'
                                                     }
                                                 }}
                                             >
-                                                <Typography fontSize={13} mb={1} fontWeight={500}>
-                                                    {key.replace(/([A-Z])/g, ' $1').toUpperCase()}
-                                                </Typography>
+                                                <Box sx={{ p: 2, bgcolor: '#F8FAFC' }}>
+                                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                                        <Icon icon="mdi:camera" width={18} color="#1E40AF" />
+                                                        <Typography 
+                                                            variant="subtitle2"
+                                                            sx={{ 
+                                                                fontWeight: 600,
+                                                                color: '#1E293B',
+                                                                textTransform: 'capitalize'
+                                                            }}
+                                                        >
+                                                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                        </Typography>
+                                                    </Stack>
+                                                </Box>
 
                                                 <Box
                                                     component="img"
@@ -236,9 +489,9 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                                     alt={key}
                                                     sx={{
                                                         width: '100%',
-                                                        height: 180,
+                                                        height: 220,
                                                         objectFit: 'cover',
-                                                        borderRadius: 2
+                                                        display: 'block'
                                                     }}
                                                 />
                                             </Paper>
@@ -246,33 +499,117 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
                                     ))}
                             </Grid>
                         ) : (
-                            <Box textAlign="center" py={6}>
-                                <Icon icon="mdi:camera-off" width={64} color="#C7C7CC" />
-                                <Typography mt={1} color="text.secondary">
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 8,
+                                    textAlign: 'center',
+                                    borderRadius: 3,
+                                    border: '2px dashed #E2E8F0',
+                                    bgcolor: '#F8FAFC'
+                                }}
+                            >
+                                <Icon icon="mdi:camera-off" width={64} color="#CBD5E1" />
+                                <Typography 
+                                    variant="h6"
+                                    sx={{ 
+                                        mt: 2,
+                                        color: '#64748B',
+                                        fontWeight: 600
+                                    }}
+                                >
                                     No photos uploaded
                                 </Typography>
-                            </Box>
+                                <Typography 
+                                    variant="body2"
+                                    sx={{ 
+                                        mt: 1,
+                                        color: '#94A3B8'
+                                    }}
+                                >
+                                    Vehicle photos will appear here once uploaded
+                                </Typography>
+                            </Paper>
                         )}
                     </TabPanel>
                 </DialogContent>
 
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <Button sx={{ color: '#FF3B30' }} onClick={onDelete}>
+                {/* FOOTER ACTIONS */}
+                <DialogActions sx={{ 
+                    px: { xs: 3, sm: 4 }, 
+                    pb: { xs: 3, sm: 4 },
+                    pt: 2,
+                    borderTop: '1px solid #E2E8F0',
+                    gap: 1.5
+                }}>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={onDelete}
+                        startIcon={<Icon icon="mdi:delete" />}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 2,
+                            px: 3,
+                            py: 1.25,
+                            borderColor: '#FEE2E2',
+                            color: '#DC2626',
+                            '&:hover': {
+                                borderColor: '#DC2626',
+                                bgcolor: '#FEF2F2'
+                            }
+                        }}
+                    >
                         Delete
                     </Button>
+                    
                     <Box flex={1} />
-                    <Button onClick={onClose}>Close</Button>
+                    
+                    <Button
+                        variant="outlined"
+                        onClick={onClose}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 2,
+                            px: 3,
+                            py: 1.25,
+                            borderColor: '#E2E8F0',
+                            color: '#475569',
+                            '&:hover': {
+                                borderColor: '#CBD5E1',
+                                bgcolor: '#F8FAFC'
+                            }
+                        }}
+                    >
+                        Close
+                    </Button>
+                    
                     <Button
                         variant="contained"
                         onClick={onEdit}
-                        sx={{ bgcolor: '#007AFF', borderRadius: 3 }}
+                        startIcon={<Icon icon="mdi:pencil" />}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 2,
+                            px: 3,
+                            py: 1.25,
+                            bgcolor: '#1E40AF',
+                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                            '&:hover': {
+                                bgcolor: '#1E3A8A',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }
+                        }}
                     >
-                        Edit
+                        Edit Customer
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* IMAGE PREVIEW */}
+            {/* IMAGE PREVIEW DIALOG */}
             <ImagePreviewDialog
                 open={Boolean(previewImage)}
                 image={previewImage}
@@ -282,30 +619,94 @@ export default function ViewCustomerDialog({ open, customer, onClose, onEdit, on
     );
 }
 
-/* ---------------- UI COMPONENTS ---------------- */
-function IOSCard({ children }) {
+/* ---------------- REUSABLE UI COMPONENTS ---------------- */
+
+function InfoCard({ title, children }) {
     return (
-        <Paper sx={{ p: 2, borderRadius: 3, bgcolor: '#F2F2F7' }}>
-            {children}
+        <Paper
+            elevation={0}
+            sx={{
+                p: 3,
+                borderRadius: 3,
+                border: '1px solid #E2E8F0',
+                bgcolor: '#fff',
+                height: '100%'
+            }}
+        >
+            <Typography
+                variant="subtitle1"
+                sx={{
+                    fontWeight: 700,
+                    color: '#1E293B',
+                    mb: 2.5,
+                    fontSize: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                }}
+            >
+                {title}
+            </Typography>
+            <Stack spacing={2.5}>
+                {children}
+            </Stack>
         </Paper>
     );
 }
 
-function InfoRow({ label, value, icon }) {
+function InfoRow({ label, value, icon, fullWidth }) {
     return (
-        <Box display="flex" gap={1.5} mb={1.5}>
-            <Icon icon={icon} width={20} color="#8E8E93" />
-            <Box>
-                <Typography fontSize={12} color="text.secondary">
-                    {label}
-                </Typography>
-                <Typography fontSize={15} fontWeight={500}>
-                    {value || 'Not available'}
-                </Typography>
-            </Box>
+        <Box>
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                <Box
+                    sx={{
+                        mt: 0.5,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 2,
+                        bgcolor: '#EFF6FF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                    }}
+                >
+                    <Icon icon={icon} width={18} color="#1E40AF" />
+                </Box>
+                <Box flex={1}>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: '#64748B',
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            display: 'block',
+                            mb: 0.5
+                        }}
+                    >
+                        {label}
+                    </Typography>
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            color: '#1E293B',
+                            fontSize: '0.9375rem',
+                            fontWeight: 500,
+                            lineHeight: 1.6,
+                            wordBreak: fullWidth ? 'break-word' : 'normal'
+                        }}
+                    >
+                        {value || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Not available</span>}
+                    </Typography>
+                </Box>
+            </Stack>
         </Box>
     );
 }
+
+/* ---------------- PROPTYPES ---------------- */
 
 ViewCustomerDialog.propTypes = {
     open: PropTypes.bool.isRequired,
@@ -327,12 +728,14 @@ ImagePreviewDialog.propTypes = {
     onClose: PropTypes.func.isRequired
 };
 
-IOSCard.propTypes = {
-    children: PropTypes.node
+InfoCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    children: PropTypes.node.isRequired
 };
 
 InfoRow.propTypes = {
     label: PropTypes.string.isRequired,
     value: PropTypes.string,
-    icon: PropTypes.string.isRequired
+    icon: PropTypes.string.isRequired,
+    fullWidth: PropTypes.bool
 };

@@ -1,7 +1,6 @@
 import { Route, Routes } from 'react-router';
 import Page404 from './pages/miscellaneous/Page404';
 import DashboardLayout from './reusables/layouts/DashboardLayout';
-import GuestListPage from './pages/guests/GuestListPage';
 import LoginPage from './pages/authentications/LoginPage';
 import AdminList from './pages/Admin/AdminList';
 import CreateAdmin from './pages/Admin/CreateAdmin';
@@ -46,7 +45,7 @@ export default function AppRoutes() {
                 <Route path="edit-admin/:id" element={<AdminEdit />} />
                 <Route path="assign-admin/:id" element={<AdminAssignPage />} />
                 <Route path="kwitansi" element={<Kwitansi />} /> 
-                <Route path="guests" element={<GuestListPage />} />
+            
             </Route>
 
             <Route path="*" element={<Page404 />} />

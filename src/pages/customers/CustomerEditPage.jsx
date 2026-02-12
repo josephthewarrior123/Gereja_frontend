@@ -21,7 +21,9 @@ import {
     useMediaQuery,
     useTheme,
     Divider,
-    Chip
+    Chip,
+    Stack,
+    alpha
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -32,7 +34,7 @@ import CustomerDAO from '../../daos/CustomerDao';
 function TabPanel({ children, value, index }) {
     return (
         <div hidden={value !== index}>
-            {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
+            {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
         </div>
     );
 }
@@ -420,532 +422,1119 @@ export default function CustomerEditPage() {
 
     if (loading) {
         return (
-            <Container sx={{ py: 4, textAlign: 'center' }}>
-                <Typography>Loading customer data...</Typography>
+            <Container sx={{ py: 8, textAlign: 'center' }}>
+                <Typography variant="h6" color="text.secondary">Loading customer data...</Typography>
             </Container>
         );
     }
 
     const carPhotoSides = [
-        { key: 'leftSide', label: 'Left Side' },
-        { key: 'rightSide', label: 'Right Side' },
-        { key: 'front', label: 'Front' },
-        { key: 'back', label: 'Back' }
+        { key: 'leftSide', label: 'Left Side', icon: 'mdi:car-side' },
+        { key: 'rightSide', label: 'Right Side', icon: 'mdi:car-side' },
+        { key: 'front', label: 'Front', icon: 'mdi:car-front' },
+        { key: 'back', label: 'Back', icon: 'mdi:car-back' }
     ];
 
     const documentTypes = [
-        { key: 'stnk', label: 'STNK', description: 'Vehicle Registration' },
-        { key: 'sim', label: 'SIM', description: 'Driver License' },
-        { key: 'ktp', label: 'KTP', description: 'ID Card' }
+        { key: 'stnk', label: 'STNK', description: 'Vehicle Registration', icon: 'mdi:card-account-details' },
+        { key: 'sim', label: 'SIM', description: 'Driver License', icon: 'mdi:card-account-details-outline' },
+        { key: 'ktp', label: 'KTP', description: 'ID Card', icon: 'mdi:badge-account-horizontal' }
     ];
 
     return (
-        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
-            {/* Header */}
-            <Box sx={{ mb: 4 }}>
-                <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    mb: 2,
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    gap: { xs: 2, sm: 0 }
-                }}>
-                    <Box>
-                        <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
-                            Edit Customer
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                            Customer ID: {id}
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
-                        <Button
-                            variant="outlined"
-                            startIcon={<Icon icon="mdi:arrow-left" />}
-                            onClick={() => navigate(`/customers/${id}`)}
-                            fullWidth={isMobile}
+        <Box sx={{ 
+            bgcolor: '#F8FAFC', 
+            minHeight: '100vh',
+            pb: 6
+        }}>
+            <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 } }}>
+                {/* Header Section - Improved spacing and hierarchy */}
+                <Box sx={{ mb: 5 }}>
+                    <Stack 
+                        direction={{ xs: 'column', sm: 'row' }} 
+                        justifyContent="space-between" 
+                        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
+                        spacing={3}
+                        sx={{ mb: 4 }}
+                    >
+                        <Box>
+                            <Typography 
+                                variant="h4" 
+                                sx={{ 
+                                    fontWeight: 700,
+                                    color: '#1E293B',
+                                    mb: 1,
+                                    fontSize: { xs: '1.75rem', sm: '2.125rem' }
+                                }}
+                            >
+                                Edit Customer
+                            </Typography>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    color: '#64748B',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500
+                                }}
+                            >
+                                Customer ID: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
+                            </Typography>
+                        </Box>
+                        
+                        <Stack 
+                            direction={{ xs: 'column', sm: 'row' }} 
+                            spacing={2}
+                            sx={{ width: { xs: '100%', sm: 'auto' } }}
                         >
-                            View Details
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={handleSave}
-                            disabled={saving || compressing}
-                            startIcon={<Icon icon="mdi:content-save" />}
-                            fullWidth={isMobile}
+                            <Button
+                                variant="outlined"
+                                startIcon={<Icon icon="mdi:arrow-left" />}
+                                onClick={() => navigate(`/customers/${id}`)}
+                                sx={{
+                                    borderColor: '#E2E8F0',
+                                    color: '#475569',
+                                    fontWeight: 600,
+                                    px: 3,
+                                    py: 1.25,
+                                    textTransform: 'none',
+                                    fontSize: '0.9375rem',
+                                    borderRadius: 2,
+                                    '&:hover': {
+                                        borderColor: '#CBD5E1',
+                                        bgcolor: '#F8FAFC'
+                                    }
+                                }}
+                            >
+                                View Details
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleSave}
+                                disabled={saving || compressing}
+                                startIcon={<Icon icon="mdi:content-save" />}
+                                sx={{
+                                    bgcolor: '#1E40AF',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    px: 3,
+                                    py: 1.25,
+                                    textTransform: 'none',
+                                    fontSize: '0.9375rem',
+                                    borderRadius: 2,
+                                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+                                    '&:hover': {
+                                        bgcolor: '#1E3A8A',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
+                                    },
+                                    '&:disabled': {
+                                        bgcolor: '#94A3B8',
+                                        color: '#fff'
+                                    }
+                                }}
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </Stack>
+                    </Stack>
+
+                    {/* Improved Tabs */}
+                    <Paper 
+                        elevation={0}
+                        sx={{ 
+                            borderRadius: 3,
+                            border: '1px solid #E2E8F0',
+                            bgcolor: '#fff',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <Tabs 
+                            value={tabValue} 
+                            onChange={handleTabChange}
+                            variant={isMobile ? "scrollable" : "fullWidth"}
+                            scrollButtons="auto"
+                            sx={{
+                                '& .MuiTab-root': {
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.9375rem',
+                                    color: '#64748B',
+                                    py: 2.5,
+                                    minHeight: 64,
+                                    '&.Mui-selected': {
+                                        color: '#1E40AF'
+                                    }
+                                },
+                                '& .MuiTabs-indicator': {
+                                    height: 3,
+                                    bgcolor: '#1E40AF',
+                                    borderRadius: '3px 3px 0 0'
+                                }
+                            }}
                         >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                    </Box>
+                            <Tab label="Customer Info" />
+                            <Tab label="Car Details" />
+                            <Tab label="Documents" />
+                            <Tab label="Photos" />
+                        </Tabs>
+                    </Paper>
                 </Box>
 
-                <Tabs 
-                    value={tabValue} 
-                    onChange={handleTabChange} 
-                    sx={{ mb: 2 }}
-                    variant={isMobile ? "scrollable" : "standard"}
-                    scrollButtons="auto"
+                {/* Compression Alert */}
+                {compressing && (
+                    <Alert 
+                        severity="info" 
+                        sx={{ 
+                            mb: 3,
+                            borderRadius: 2,
+                            border: '1px solid #BFDBFE',
+                            bgcolor: '#EFF6FF'
+                        }}
+                    >
+                        Compressing files...
+                    </Alert>
+                )}
+
+                {/* Main Content Paper - Enhanced design */}
+                <Paper 
+                    elevation={0}
+                    sx={{ 
+                        p: { xs: 3, sm: 5 },
+                        borderRadius: 3,
+                        border: '1px solid #E2E8F0',
+                        bgcolor: '#fff',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)'
+                    }}
                 >
-                    <Tab label="Customer Info" />
-                    <Tab label="Car Details" />
-                    <Tab label="Documents" />
-                    <Tab label="Photos" />
-                </Tabs>
-            </Box>
+                    {/* Tab Panel 1: Customer Info */}
+                    <TabPanel value={tabValue} index={0}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Full Name"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    error={!!errors.name}
+                                    helperText={errors.name}
+                                    required
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Phone Number"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Address"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Additional Notes"
+                                    name="notes"
+                                    value={formData.notes}
+                                    onChange={handleChange}
+                                    multiline
+                                    rows={4}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                    </TabPanel>
 
-            {compressing && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                    Compressing files...
-                </Alert>
-            )}
+                    {/* Tab Panel 2: Car Details */}
+                    <TabPanel value={tabValue} index={1}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Car Owner Name"
+                                    name="carOwnerName"
+                                    value={formData.carOwnerName}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Car Brand"
+                                    name="carBrand"
+                                    value={formData.carBrand}
+                                    onChange={handleChange}
+                                    error={!!errors.carBrand}
+                                    helperText={errors.carBrand}
+                                    required
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Car Model"
+                                    name="carModel"
+                                    value={formData.carModel}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Plate Number"
+                                    name="plateNumber"
+                                    value={formData.plateNumber}
+                                    onChange={handleChange}
+                                    error={!!errors.plateNumber}
+                                    helperText={errors.plateNumber}
+                                    required
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Chassis Number"
+                                    name="chassisNumber"
+                                    value={formData.chassisNumber}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Engine Number"
+                                    name="engineNumber"
+                                    value={formData.engineNumber}
+                                    onChange={handleChange}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Car Price"
+                                    name="carPrice"
+                                    value={formatCurrency(formData.carPrice)}
+                                    onChange={handleCurrencyChange}
+                                    placeholder="150,000,000"
+                                    helperText="Vehicle price in Indonesian Rupiah"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <Typography 
+                                                sx={{ 
+                                                    mr: 1.5, 
+                                                    color: '#64748B',
+                                                    fontWeight: 600
+                                                }}
+                                            >
+                                                Rp
+                                            </Typography>
+                                        )
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Insurance Due Date"
+                                    name="dueDate"
+                                    type="date"
+                                    value={formData.dueDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{ shrink: true }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: '#F8FAFC',
+                                            '&:hover': {
+                                                bgcolor: '#F1F5F9'
+                                            },
+                                            '&.Mui-focused': {
+                                                bgcolor: '#fff'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            fontWeight: 500,
+                                            color: '#475569'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                    </TabPanel>
 
-            <Paper sx={{ p: { xs: 2, sm: 4 } }}>
-                <TabPanel value={tabValue} index={0}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Full Name *"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                                helperText={errors.name}
-                                required
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Phone Number"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Additional Notes"
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                                multiline
-                                rows={isMobile ? 4 : 3}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                    </Grid>
-                </TabPanel>
-
-                <TabPanel value={tabValue} index={1}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                                Vehicle Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Car Owner Name"
-                                name="carOwnerName"
-                                value={formData.carOwnerName}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Car Brand *"
-                                name="carBrand"
-                                value={formData.carBrand}
-                                onChange={handleChange}
-                                error={!!errors.carBrand}
-                                helperText={errors.carBrand}
-                                required
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Car Model"
-                                name="carModel"
-                                value={formData.carModel}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Plate Number *"
-                                name="plateNumber"
-                                value={formData.plateNumber}
-                                onChange={handleChange}
-                                error={!!errors.plateNumber}
-                                helperText={errors.plateNumber}
-                                required
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Chassis Number"
-                                name="chassisNumber"
-                                value={formData.chassisNumber}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Engine Number"
-                                name="engineNumber"
-                                value={formData.engineNumber}
-                                onChange={handleChange}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Car Price (IDR)"
-                                name="carPrice"
-                                value={formatCurrency(formData.carPrice)}
-                                onChange={handleCurrencyChange}
-                                placeholder="150,000,000"
-                                helperText="Vehicle price in Indonesian Rupiah"
-                                size={isMobile ? "medium" : "small"}
-                                InputProps={{
-                                    startAdornment: <Typography sx={{ mr: 1 }}>Rp</Typography>
+                    {/* Tab Panel 3: Documents */}
+                    <TabPanel value={tabValue} index={2}>
+                        <Box sx={{ mb: 3 }}>
+                            <Typography 
+                                variant="h6" 
+                                sx={{ 
+                                    fontWeight: 700,
+                                    color: '#1E293B',
+                                    mb: 2,
+                                    fontSize: '1.125rem'
                                 }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Insurance Due Date"
-                                name="dueDate"
-                                type="date"
-                                value={formData.dueDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                size={isMobile ? "medium" : "small"}
-                            />
-                        </Grid>
-                    </Grid>
-                </TabPanel>
-
-                <TabPanel value={tabValue} index={2}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle1" gutterBottom>
+                            >
                                 Vehicle Documents
                             </Typography>
-                            <Alert severity="info" sx={{ mb: 3 }}>
+                            <Alert 
+                                severity="info"
+                                icon={<Icon icon="mdi:information-outline" />}
+                                sx={{ 
+                                    borderRadius: 2,
+                                    border: '1px solid #BFDBFE',
+                                    bgcolor: '#EFF6FF',
+                                    '& .MuiAlert-message': {
+                                        color: '#1E40AF',
+                                        fontWeight: 500,
+                                        fontSize: '0.875rem'
+                                    }
+                                }}
+                            >
                                 Upload document files here. Documents are optional. Accepts images and PDF files up to 5MB each.
                             </Alert>
-                        </Grid>
+                        </Box>
                         
-                        {documentTypes.map(({ key, label, description }) => (
-                            <Grid item xs={12} sm={6} md={4} key={key}>
-                                <Card>
-                                    <CardContent sx={{ p: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            {label}
-                                        </Typography>
-                                        
-                                        {documentPreviewUrls[key] ? (
-                                            <Box sx={{ position: 'relative' }}>
-                                                <CardMedia
-                                                    component={documentPreviewUrls[key].includes('pdf') ? 'iframe' : 'img'}
-                                                    src={documentPreviewUrls[key]}
-                                                    alt={`${label} document`}
-                                                    sx={{
-                                                        height: isMobile ? 120 : 140,
-                                                        width: '100%',
-                                                        objectFit: documentPreviewUrls[key].includes('pdf') ? 'contain' : 'cover',
-                                                        borderRadius: 1,
-                                                        cursor: 'pointer',
-                                                        border: '1px solid #e0e0e0'
-                                                    }}
-                                                    onClick={() => viewDocument(key)}
-                                                />
-                                                <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeDocumentFile(key);
+                        <Grid container spacing={3}>
+                            {documentTypes.map(({ key, label, description, icon }) => (
+                                <Grid item xs={12} sm={6} md={4} key={key}>
+                                    <Card 
+                                        elevation={0}
+                                        sx={{ 
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: 3,
+                                            height: '100%',
+                                            transition: 'all 0.2s ease-in-out',
+                                            '&:hover': {
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+                                                borderColor: '#CBD5E1'
+                                            }
+                                        }}
+                                    >
+                                        <CardContent sx={{ p: 3 }}>
+                                            <Stack spacing={2}>
+                                                <Box>
+                                                    <Typography 
+                                                        variant="subtitle1" 
+                                                        sx={{ 
+                                                            fontWeight: 700,
+                                                            color: '#1E293B',
+                                                            mb: 0.5,
+                                                            textAlign: 'center'
                                                         }}
-                                                        sx={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
                                                     >
-                                                        <Icon icon="mdi:close" width={16} />
-                                                    </IconButton>
+                                                        {label}
+                                                    </Typography>
+                                                    <Typography 
+                                                        variant="caption" 
+                                                        sx={{ 
+                                                            color: '#64748B',
+                                                            fontSize: '0.8125rem',
+                                                            display: 'block',
+                                                            textAlign: 'center'
+                                                        }}
+                                                    >
+                                                        {description}
+                                                    </Typography>
                                                 </Box>
-                                                <Chip 
-                                                    label="Uploaded" 
-                                                    size="small" 
-                                                    color="success" 
-                                                    variant="filled"
-                                                    sx={{ position: 'absolute', top: 4, left: 4 }}
-                                                />
-                                            </Box>
-                                        ) : (
-                                            <Paper
-                                                variant="outlined"
-                                                sx={{
-                                                    height: isMobile ? 120 : 140,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: 'pointer',
-                                                    '&:hover': { borderColor: '#1976d2' }
-                                                }}
-                                                onClick={() => document.getElementById(`doc-${key}`).click()}
-                                            >
-                                                <input
-                                                    id={`doc-${key}`}
-                                                    type="file"
-                                                    accept="image/*,.pdf"
-                                                    style={{ display: 'none' }}
-                                                    onChange={(e) => handleDocumentUpload(key, e.target.files[0])}
-                                                />
-                                                <Icon icon="mdi:file-upload" width={isMobile ? 32 : 40} color="#9e9e9e" />
-                                            </Paper>
-                                        )}
-                                        
-                                        <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 1 }}>
-                                            {description}
-                                        </Typography>
-                                        
-                                        <Button
-                                            size="small"
-                                            fullWidth
-                                            sx={{ mt: 1 }}
-                                            onClick={() => document.getElementById(`doc-${key}`).click()}
-                                        >
-                                            {documentPreviewUrls[key] ? 'Replace File' : 'Upload File'}
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </TabPanel>
+                                                
+                                                {documentPreviewUrls[key] ? (
+                                                    <Box sx={{ position: 'relative' }}>
+                                                        <CardMedia
+                                                            component={documentPreviewUrls[key].includes('pdf') ? 'iframe' : 'img'}
+                                                            src={documentPreviewUrls[key]}
+                                                            alt={`${label} document`}
+                                                            sx={{
+                                                                height: 180,
+                                                                width: '100%',
+                                                                objectFit: documentPreviewUrls[key].includes('pdf') ? 'contain' : 'cover',
+                                                                borderRadius: 2,
+                                                                cursor: 'pointer',
+                                                                border: '2px solid #E2E8F0',
+                                                                transition: 'all 0.2s',
+                                                                '&:hover': {
+                                                                    borderColor: '#1E40AF',
+                                                                    transform: 'scale(1.02)'
+                                                                }
+                                                            }}
+                                                            onClick={() => viewDocument(key)}
+                                                        />
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeDocumentFile(key);
+                                                            }}
+                                                            sx={{ 
+                                                                position: 'absolute',
+                                                                top: 8,
+                                                                right: 8,
+                                                                bgcolor: 'rgba(255,255,255,0.95)',
+                                                                backdropFilter: 'blur(4px)',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                                '&:hover': {
+                                                                    bgcolor: '#FEE2E2',
+                                                                    color: '#DC2626'
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Icon icon="mdi:close" width={18} />
+                                                        </IconButton>
+                                                        <Chip 
+                                                            label="Uploaded" 
+                                                            size="small" 
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 8,
+                                                                left: 8,
+                                                                bgcolor: '#10B981',
+                                                                color: '#fff',
+                                                                fontWeight: 600,
+                                                                fontSize: '0.75rem'
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                ) : (
+                                                    <Paper
+                                                        variant="outlined"
+                                                        sx={{
+                                                            height: 180,
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            cursor: 'pointer',
+                                                            borderRadius: 2,
+                                                            borderWidth: 2,
+                                                            borderStyle: 'dashed',
+                                                            borderColor: '#CBD5E1',
+                                                            bgcolor: '#F8FAFC',
+                                                            transition: 'all 0.2s',
+                                                            '&:hover': {
+                                                                borderColor: '#1E40AF',
+                                                                bgcolor: '#EFF6FF'
+                                                            }
+                                                        }}
+                                                        onClick={() => document.getElementById(`doc-${key}`).click()}
+                                                    >
+                                                        <input
+                                                            id={`doc-${key}`}
+                                                            type="file"
+                                                            accept="image/*,.pdf"
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => handleDocumentUpload(key, e.target.files[0])}
+                                                        />
+                                                        <Icon icon={icon} width={48} height={48} color="#94A3B8" />
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            sx={{ 
+                                                                mt: 1.5,
+                                                                color: '#64748B',
+                                                                fontWeight: 500
+                                                            }}
+                                                        >
+                                                            Click to upload
+                                                        </Typography>
+                                                    </Paper>
+                                                )}
+                                                
+                                                <Button
+                                                    fullWidth
+                                                    variant={documentPreviewUrls[key] ? "outlined" : "contained"}
+                                                    startIcon={<Icon icon="mdi:upload" />}
+                                                    onClick={() => document.getElementById(`doc-${key}`).click()}
+                                                    sx={{
+                                                        textTransform: 'none',
+                                                        fontWeight: 600,
+                                                        borderRadius: 2,
+                                                        py: 1.25,
+                                                        ...(documentPreviewUrls[key] ? {
+                                                            borderColor: '#CBD5E1',
+                                                            color: '#475569',
+                                                            '&:hover': {
+                                                                borderColor: '#94A3B8',
+                                                                bgcolor: '#F8FAFC'
+                                                            }
+                                                        } : {
+                                                            bgcolor: '#1E40AF',
+                                                            '&:hover': {
+                                                                bgcolor: '#1E3A8A'
+                                                            }
+                                                        })
+                                                    }}
+                                                >
+                                                    {documentPreviewUrls[key] ? 'Replace File' : 'Upload File'}
+                                                </Button>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </TabPanel>
 
-                <TabPanel value={tabValue} index={3}>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle1" gutterBottom>
+                    {/* Tab Panel 4: Photos */}
+                    <TabPanel value={tabValue} index={3}>
+                        <Box sx={{ mb: 3 }}>
+                            <Typography 
+                                variant="h6" 
+                                sx={{ 
+                                    fontWeight: 700,
+                                    color: '#1E293B',
+                                    mb: 2,
+                                    fontSize: '1.125rem'
+                                }}
+                            >
                                 Car Photos
                             </Typography>
-                            <Alert severity="info" sx={{ mb: 3 }}>
+                            <Alert 
+                                severity="info"
+                                icon={<Icon icon="mdi:information-outline" />}
+                                sx={{ 
+                                    borderRadius: 2,
+                                    border: '1px solid #BFDBFE',
+                                    bgcolor: '#EFF6FF',
+                                    '& .MuiAlert-message': {
+                                        color: '#1E40AF',
+                                        fontWeight: 500,
+                                        fontSize: '0.875rem'
+                                    }
+                                }}
+                            >
                                 Upload or replace car photos here. Photos are optional. Images larger than 500KB will be automatically compressed.
                             </Alert>
-                        </Grid>
+                        </Box>
                         
-                        {carPhotoSides.map(({ key, label }) => (
-                            <Grid item xs={12} sm={6} md={3} key={key}>
-                                <Card>
-                                    <CardContent sx={{ p: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            {label}
-                                        </Typography>
-                                        
-                                        {previewUrls[key] ? (
-                                            <Box sx={{ position: 'relative' }}>
-                                                <CardMedia
-                                                    component="img"
-                                                    image={previewUrls[key]}
-                                                    alt={`Car ${label}`}
-                                                    sx={{
-                                                        height: isMobile ? 100 : 120,
-                                                        objectFit: 'cover',
-                                                        borderRadius: 1,
-                                                        cursor: 'pointer'
+                        <Grid container spacing={3}>
+                            {carPhotoSides.map(({ key, label, icon }) => (
+                                <Grid item xs={12} sm={6} md={3} key={key}>
+                                    <Card 
+                                        elevation={0}
+                                        sx={{ 
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: 3,
+                                            height: '100%',
+                                            transition: 'all 0.2s ease-in-out',
+                                            '&:hover': {
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+                                                borderColor: '#CBD5E1'
+                                            }
+                                        }}
+                                    >
+                                        <CardContent sx={{ p: 3 }}>
+                                            <Stack spacing={2}>
+                                                <Typography 
+                                                    variant="subtitle1" 
+                                                    sx={{ 
+                                                        fontWeight: 700,
+                                                        color: '#1E293B',
+                                                        textAlign: 'center'
                                                     }}
-                                                    onClick={() => viewPhoto(key)}
-                                                />
-                                                <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeFile(key);
+                                                >
+                                                    {label}
+                                                </Typography>
+                                                
+                                                {previewUrls[key] ? (
+                                                    <Box sx={{ position: 'relative' }}>
+                                                        <CardMedia
+                                                            component="img"
+                                                            image={previewUrls[key]}
+                                                            alt={`Car ${label}`}
+                                                            sx={{
+                                                                height: 160,
+                                                                objectFit: 'cover',
+                                                                borderRadius: 2,
+                                                                cursor: 'pointer',
+                                                                border: '2px solid #E2E8F0',
+                                                                transition: 'all 0.2s',
+                                                                '&:hover': {
+                                                                    borderColor: '#1E40AF',
+                                                                    transform: 'scale(1.02)'
+                                                                }
+                                                            }}
+                                                            onClick={() => viewPhoto(key)}
+                                                        />
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeFile(key);
+                                                            }}
+                                                            sx={{ 
+                                                                position: 'absolute',
+                                                                top: 8,
+                                                                right: 8,
+                                                                bgcolor: 'rgba(255,255,255,0.95)',
+                                                                backdropFilter: 'blur(4px)',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                                '&:hover': {
+                                                                    bgcolor: '#FEE2E2',
+                                                                    color: '#DC2626'
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Icon icon="mdi:close" width={18} />
+                                                        </IconButton>
+                                                        <Chip 
+                                                            label="Uploaded" 
+                                                            size="small"
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 8,
+                                                                left: 8,
+                                                                bgcolor: '#10B981',
+                                                                color: '#fff',
+                                                                fontWeight: 600,
+                                                                fontSize: '0.75rem'
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                ) : (
+                                                    <Paper
+                                                        variant="outlined"
+                                                        sx={{
+                                                            height: 160,
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            cursor: 'pointer',
+                                                            borderRadius: 2,
+                                                            borderWidth: 2,
+                                                            borderStyle: 'dashed',
+                                                            borderColor: '#CBD5E1',
+                                                            bgcolor: '#F8FAFC',
+                                                            transition: 'all 0.2s',
+                                                            '&:hover': {
+                                                                borderColor: '#1E40AF',
+                                                                bgcolor: '#EFF6FF'
+                                                            }
                                                         }}
-                                                        sx={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
+                                                        onClick={() => document.getElementById(`file-${key}`).click()}
                                                     >
-                                                        <Icon icon="mdi:close" width={16} />
-                                                    </IconButton>
-                                                </Box>
-                                                <Chip 
-                                                    label="Uploaded" 
-                                                    size="small" 
-                                                    color="success" 
-                                                    variant="filled"
-                                                    sx={{ position: 'absolute', top: 4, left: 4 }}
-                                                />
-                                            </Box>
-                                        ) : (
-                                            <Paper
-                                                variant="outlined"
-                                                sx={{
-                                                    height: isMobile ? 100 : 120,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: 'pointer',
-                                                    '&:hover': { borderColor: '#1976d2' }
-                                                }}
-                                                onClick={() => document.getElementById(`file-${key}`).click()}
-                                            >
-                                                <input
-                                                    id={`file-${key}`}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    style={{ display: 'none' }}
-                                                    onChange={(e) => handleFileUpload(key, e.target.files[0])}
-                                                />
-                                                <Icon icon="mdi:camera-plus" width={isMobile ? 32 : 40} color="#9e9e9e" />
-                                            </Paper>
-                                        )}
-                                        
-                                        <Button
-                                            size="small"
-                                            fullWidth
-                                            sx={{ mt: 1 }}
-                                            onClick={() => document.getElementById(`file-${key}`).click()}
-                                        >
-                                            {previewUrls[key] ? 'Replace Photo' : 'Upload Photo'}
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </TabPanel>
-            </Paper>
+                                                        <input
+                                                            id={`file-${key}`}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => handleFileUpload(key, e.target.files[0])}
+                                                        />
+                                                        <Icon icon="mdi:camera-plus" width={48} height={48} color="#94A3B8" />
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            sx={{ 
+                                                                mt: 1.5,
+                                                                color: '#64748B',
+                                                                fontWeight: 500
+                                                            }}
+                                                        >
+                                                            Click to upload
+                                                        </Typography>
+                                                    </Paper>
+                                                )}
+                                                
+                                                <Button
+                                                    fullWidth
+                                                    variant={previewUrls[key] ? "outlined" : "contained"}
+                                                    startIcon={<Icon icon="mdi:camera" />}
+                                                    onClick={() => document.getElementById(`file-${key}`).click()}
+                                                    sx={{
+                                                        textTransform: 'none',
+                                                        fontWeight: 600,
+                                                        borderRadius: 2,
+                                                        py: 1.25,
+                                                        ...(previewUrls[key] ? {
+                                                            borderColor: '#CBD5E1',
+                                                            color: '#475569',
+                                                            '&:hover': {
+                                                                borderColor: '#94A3B8',
+                                                                bgcolor: '#F8FAFC'
+                                                            }
+                                                        } : {
+                                                            bgcolor: '#1E40AF',
+                                                            '&:hover': {
+                                                                bgcolor: '#1E3A8A'
+                                                            }
+                                                        })
+                                                    }}
+                                                >
+                                                    {previewUrls[key] ? 'Replace Photo' : 'Upload Photo'}
+                                                </Button>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </TabPanel>
+                </Paper>
 
-            {/* Photo Preview Dialog */}
-            <Dialog 
-                open={showPhotoDialog} 
-                onClose={() => setShowPhotoDialog(false)}
-                maxWidth="md"
-                fullWidth
-                fullScreen={isMobile}
-            >
-                <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant={isMobile ? "h6" : "h5"}>Photo Preview</Typography>
-                        <IconButton onClick={() => setShowPhotoDialog(false)} size="small">
-                            <Icon icon="mdi:close" />
-                        </IconButton>
-                    </Box>
-                </DialogTitle>
-                <DialogContent sx={{ textAlign: 'center', p: { xs: 1, sm: 3 } }}>
-                    {photoToView && (
-                        <img
-                            src={photoToView}
-                            alt="Car Preview"
-                            style={{ 
-                                maxWidth: '100%', 
-                                maxHeight: isMobile ? '70vh' : '60vh', 
-                                objectFit: 'contain' 
-                            }}
-                        />
-                    )}
-                </DialogContent>
-                <DialogActions sx={{ 
-                    justifyContent: 'center', 
-                    pb: { xs: 2, sm: 3 },
-                    flexDirection: { xs: 'column', sm: 'row' }
-                }}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setShowPhotoDialog(false)}
-                        fullWidth={isMobile}
-                    >
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Document Preview Dialog */}
-            <Dialog 
-                open={showDocumentDialog} 
-                onClose={() => setShowDocumentDialog(false)}
-                maxWidth="md"
-                fullWidth
-                fullScreen={isMobile}
-            >
-                <DialogTitle sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant={isMobile ? "h6" : "h5"}>Document Preview</Typography>
-                        <IconButton onClick={() => setShowDocumentDialog(false)} size="small">
-                            <Icon icon="mdi:close" />
-                        </IconButton>
-                    </Box>
-                </DialogTitle>
-                <DialogContent sx={{ textAlign: 'center', p: { xs: 1, sm: 3 }, height: '70vh' }}>
-                    {documentToView && (
-                        documentToView.includes('pdf') ? (
-                            <iframe
-                                src={documentToView}
-                                title="Document Preview"
-                                style={{ 
-                                    width: '100%', 
-                                    height: '100%', 
-                                    border: 'none' 
+                {/* Photo Preview Dialog - Enhanced */}
+                <Dialog 
+                    open={showPhotoDialog} 
+                    onClose={() => setShowPhotoDialog(false)}
+                    maxWidth="md"
+                    fullWidth
+                    fullScreen={isMobile}
+                    PaperProps={{
+                        sx: {
+                            borderRadius: isMobile ? 0 : 3,
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{ 
+                        p: 3,
+                        borderBottom: '1px solid #E2E8F0'
+                    }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography 
+                                variant="h6" 
+                                sx={{ 
+                                    fontWeight: 700,
+                                    color: '#1E293B'
                                 }}
-                            />
-                        ) : (
+                            >
+                                Photo Preview
+                            </Typography>
+                            <IconButton 
+                                onClick={() => setShowPhotoDialog(false)}
+                                sx={{
+                                    color: '#64748B',
+                                    '&:hover': {
+                                        bgcolor: '#F1F5F9'
+                                    }
+                                }}
+                            >
+                                <Icon icon="mdi:close" />
+                            </IconButton>
+                        </Stack>
+                    </DialogTitle>
+                    <DialogContent sx={{ 
+                        textAlign: 'center', 
+                        p: 4,
+                        bgcolor: '#F8FAFC'
+                    }}>
+                        {photoToView && (
                             <img
-                                src={documentToView}
-                                alt="Document Preview"
+                                src={photoToView}
+                                alt="Car Preview"
                                 style={{ 
                                     maxWidth: '100%', 
-                                    maxHeight: '100%', 
-                                    objectFit: 'contain' 
+                                    maxHeight: isMobile ? '70vh' : '60vh', 
+                                    objectFit: 'contain',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                                 }}
                             />
-                        )
-                    )}
-                </DialogContent>
-                <DialogActions sx={{ 
-                    justifyContent: 'center', 
-                    pb: { xs: 2, sm: 3 },
-                    flexDirection: { xs: 'column', sm: 'row' }
-                }}>
-                    <Button
-                        variant="contained"
-                        onClick={() => setShowDocumentDialog(false)}
-                        fullWidth={isMobile}
-                    >
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Container>
+                        )}
+                    </DialogContent>
+                    <DialogActions sx={{ 
+                        p: 3,
+                        borderTop: '1px solid #E2E8F0',
+                        justifyContent: 'center'
+                    }}>
+                        <Button
+                            variant="contained"
+                            onClick={() => setShowPhotoDialog(false)}
+                            sx={{
+                                minWidth: 120,
+                                bgcolor: '#1E40AF',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                borderRadius: 2,
+                                py: 1.25,
+                                '&:hover': {
+                                    bgcolor: '#1E3A8A'
+                                }
+                            }}
+                        >
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Document Preview Dialog - Enhanced */}
+                <Dialog 
+                    open={showDocumentDialog} 
+                    onClose={() => setShowDocumentDialog(false)}
+                    maxWidth="md"
+                    fullWidth
+                    fullScreen={isMobile}
+                    PaperProps={{
+                        sx: {
+                            borderRadius: isMobile ? 0 : 3,
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{ 
+                        p: 3,
+                        borderBottom: '1px solid #E2E8F0'
+                    }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography 
+                                variant="h6"
+                                sx={{ 
+                                    fontWeight: 700,
+                                    color: '#1E293B'
+                                }}
+                            >
+                                Document Preview
+                            </Typography>
+                            <IconButton 
+                                onClick={() => setShowDocumentDialog(false)}
+                                sx={{
+                                    color: '#64748B',
+                                    '&:hover': {
+                                        bgcolor: '#F1F5F9'
+                                    }
+                                }}
+                            >
+                                <Icon icon="mdi:close" />
+                            </IconButton>
+                        </Stack>
+                    </DialogTitle>
+                    <DialogContent sx={{ 
+                        textAlign: 'center', 
+                        p: 4, 
+                        height: '70vh',
+                        bgcolor: '#F8FAFC'
+                    }}>
+                        {documentToView && (
+                            documentToView.includes('pdf') ? (
+                                <iframe
+                                    src={documentToView}
+                                    title="Document Preview"
+                                    style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        border: 'none',
+                                        borderRadius: '12px'
+                                    }}
+                                />
+                            ) : (
+                                <img
+                                    src={documentToView}
+                                    alt="Document Preview"
+                                    style={{ 
+                                        maxWidth: '100%', 
+                                        maxHeight: '100%', 
+                                        objectFit: 'contain',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                />
+                            )
+                        )}
+                    </DialogContent>
+                    <DialogActions sx={{ 
+                        p: 3,
+                        borderTop: '1px solid #E2E8F0',
+                        justifyContent: 'center'
+                    }}>
+                        <Button
+                            variant="contained"
+                            onClick={() => setShowDocumentDialog(false)}
+                            sx={{
+                                minWidth: 120,
+                                bgcolor: '#1E40AF',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                borderRadius: 2,
+                                py: 1.25,
+                                '&:hover': {
+                                    bgcolor: '#1E3A8A'
+                                }
+                            }}
+                        >
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </Container>
+        </Box>
     );
 }
