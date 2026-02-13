@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router';
 import Page404 from './pages/miscellaneous/Page404';
 import DashboardLayout from './reusables/layouts/DashboardLayout';
 import LoginPage from './pages/authentications/LoginPage';
+import SignUpPage from './pages/authentications/SignupPage';
 import AdminList from './pages/Admin/AdminList';
 import CreateAdmin from './pages/Admin/CreateAdmin';
 import AdminEdit from './pages/Admin/AdminEdit';
@@ -16,7 +17,9 @@ import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 export default function AppRoutes() {
     return (
         <Routes>
+            {/* Authentication Routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
             
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<PropertyListPage />} /> {/* Ubah default ke PropertyListPage */}

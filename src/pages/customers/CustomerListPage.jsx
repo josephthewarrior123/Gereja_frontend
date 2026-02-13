@@ -512,31 +512,35 @@ export default function CustomerListPage() {
 </form> 
                     
                     {/* Add Customer Button */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                        <Box
-                            onClick={() => {
-                                setIsCreateDialogOpen(true);
-                                setSelectedCustomer(null);
-                            }}
-                            sx={{
-                                width: '56px',
-                                height: '56px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: '#1976d2',
-                                borderRadius: '12px',
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
-                                transition: 'all 0.2s',
-                                '&:active': {
-                                    transform: 'scale(0.95)',
-                                },
-                            }}
-                        >
-                            <Icon icon="heroicons:plus" style={{ fontSize: '24px', color: '#fff' }} />
-                        </Box>
-                    </Box>
+                    {/* Add Customer Button */}
+<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+    <Button
+        onClick={() => {
+            setIsCreateDialogOpen(true);
+            setSelectedCustomer(null);
+        }}
+        variant="contained"
+        startIcon={<Icon icon="heroicons:plus" style={{ fontSize: '18px' }} />}
+        sx={{
+            backgroundColor: '#E3F2FD',
+            color: '#1976d2',
+            textTransform: 'none',
+            fontWeight: 500,
+            px: 2.5,
+            py: 1,
+            borderRadius: '8px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+            '&:hover': {
+                backgroundColor: '#BBDEFB',
+            },
+            '&:active': {
+                transform: 'scale(0.98)',
+            },
+        }}
+    >
+        New Customer
+    </Button>
+</Box>
                     
                     {/* Status Filter Chips */}
                     <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>

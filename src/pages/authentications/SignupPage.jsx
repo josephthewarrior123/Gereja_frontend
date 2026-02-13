@@ -8,7 +8,7 @@ import { useUser } from '../../hooks/UserProvider';
 import { useEffect } from 'react';
 import UserDAO from '../../daos/UserDAO';
 
-export default function LoginPage() {
+export default function SignUpPage() {
     const { user, login, isLoading } = useUser();
     const loading = useLoading();
     const message = useAlert();
@@ -23,35 +23,49 @@ export default function LoginPage() {
 
     // Form validation schema
     const validationSchema = Yup.object({
-        username: Yup.string().required('Username is required!'),
-        password: Yup.string().required('Password is required!'),
+        fullName: Yup.string()
+            .required('Full name is required!')
+            .min(2, 'Full name must be at least 2 characters'),
+        username: Yup.string()
+            .required('Username is required!')
+            .min(4, 'Username must be at least 4 characters')
+            .matches(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+        password: Yup.string()
+            .required('Password is required!')
+            .min(6, 'Password must be at least 6 characters'),
+        confirmPassword: Yup.string()
+            .required('Please confirm your password!')
+            .oneOf([Yup.ref('password'), null], 'Passwords must match'),
     });
 
     const handleSubmit = async (data) => {
         try {
             loading.start();
             
-            // Trim input untuk hindari whitespace
+            // Trim input to avoid whitespace
+            const fullName = data.fullName.trim();
             const username = data.username.trim();
             const password = data.password.trim();
             
-            // Call backend API melalui UserDAO
-            const result = await UserDAO.login({
+            // Call backend API through UserDAO
+            const result = await UserDAO.signUp({
+                fullName: fullName,
                 username: username,
-                password: password
+                password: password,
+                role: 'user' // Default role
             });
 
             // Check response
             if (!result.success) {
-                throw new Error(result.error || 'Login failed');
+                throw new Error(result.error || 'Sign up failed');
             }
 
-            // Simpan token ke localStorage
+            // Save token to localStorage
             if (result.token) {
                 localStorage.setItem('authToken', result.token);
             }
 
-            // Login dengan data user dari backend
+            // Login with user data from backend
             login({
                 id: result.user.id,
                 username: result.user.username,
@@ -59,12 +73,12 @@ export default function LoginPage() {
                 role: result.user.role || 'user'
             });
 
-            message('Welcome back! 👋', 'success');
+            message('Account created successfully! Welcome aboard! 🎉', 'success');
             navigate('/', { replace: true });
             
         } catch (error) {
-            console.error('Login error:', error);
-            message(error.message || 'Login failed. Please check your credentials.', 'error');
+            console.error('Sign up error:', error);
+            message(error.message || 'Sign up failed. Please try again.', 'error');
         } finally {
             loading.stop();
         }
@@ -72,8 +86,10 @@ export default function LoginPage() {
 
     const formik = useFormik({
         initialValues: {
+            fullName: '',
             username: '',
             password: '',
+            confirmPassword: '',
         },
         validationSchema,
         onSubmit: handleSubmit,
@@ -102,14 +118,31 @@ export default function LoginPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-                    <p className="text-gray-600">Sign in to your account to continue</p>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
+                    <p className="text-gray-600">Join us and protect what matters most</p>
                 </div>
 
                 {/* Form Card */}
                 <form onSubmit={formik.handleSubmit}>
                     <div className="bg-white rounded-2xl shadow-xl p-8">
                         <div className="space-y-5">
+                            {/* Full Name Input */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Full Name
+                                </label>
+                                <CustomTextInput
+                                    name="fullName"
+                                    fullWidth
+                                    placeholder="John Doe"
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    value={formik.values.fullName}
+                                    error={formik.touched.fullName && Boolean(formik.errors.fullName)}
+                                    helperText={formik.touched.fullName && formik.errors.fullName}
+                                />
+                            </div>
+
                             {/* Username Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -118,7 +151,7 @@ export default function LoginPage() {
                                 <CustomTextInput
                                     name="username"
                                     fullWidth
-                                    placeholder="Enter your username"
+                                    placeholder="johndoe123"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     value={formik.values.username}
@@ -135,7 +168,7 @@ export default function LoginPage() {
                                 <CustomTextInput
                                     name="password"
                                     fullWidth
-                                    placeholder="Enter your password"
+                                    placeholder="••••••••"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     value={formik.values.password}
@@ -145,15 +178,22 @@ export default function LoginPage() {
                                 />
                             </div>
 
-                            {/* Forgot Password Link */}
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    className="text-sm text-project-primary hover:underline font-medium"
-                                    onClick={() => message('Feature coming soon!', 'info')}
-                                >
-                                    Forgot password?
-                                </button>
+                            {/* Confirm Password Input */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Confirm Password
+                                </label>
+                                <CustomTextInput
+                                    name="confirmPassword"
+                                    fullWidth
+                                    placeholder="••••••••"
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    value={formik.values.confirmPassword}
+                                    error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
+                                    helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
+                                    type="password"
+                                />
                             </div>
                         </div>
 
@@ -171,62 +211,33 @@ export default function LoginPage() {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        Signing in...
+                                        Creating Account...
                                     </span>
                                 ) : (
-                                    'Sign In'
+                                    'Create Account'
                                 )}
                             </CustomButton>
                         </div>
+
+                        {/* Privacy Note */}
+                        <p className="text-xs text-gray-500 text-center mt-6">
+                            By creating an account, you agree to our Terms of Service and Privacy Policy
+                        </p>
                     </div>
                 </form>
 
-                {/* Sign Up Link */}
+                {/* Login Link */}
                 <div className="text-center mt-6">
                     <p className="text-gray-600">
-                        Don't have an account?{' '}
+                        Already have an account?{' '}
                         <button
                             type="button"
-                            onClick={() => navigate('/signup')}
+                            onClick={() => navigate('/login')}
                             className="text-project-primary font-semibold hover:underline transition-all"
                         >
-                            Create account
+                            Sign in
                         </button>
                     </p>
-                </div>
-
-                {/* Divider */}
-                <div className="relative my-8">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-500">
-                            Secure & Protected
-                        </span>
-                    </div>
-                </div>
-
-                {/* Security Icons */}
-                <div className="flex justify-center items-center gap-6 text-gray-400">
-                    <div className="text-center">
-                        <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <p className="text-xs">Encrypted</p>
-                    </div>
-                    <div className="text-center">
-                        <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        <p className="text-xs">Secure</p>
-                    </div>
-                    <div className="text-center">
-                        <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <p className="text-xs">Fast</p>
-                    </div>
                 </div>
             </div>
         </div>
