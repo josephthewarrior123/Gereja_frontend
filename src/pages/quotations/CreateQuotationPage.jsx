@@ -41,16 +41,16 @@ export default function CreateQuotationPage() {
   const message = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const logoInputRef = useRef(null);
+  // const logoInputRef = useRef(null); // COMMENTED: Logo functionality
 
   // ============ Company / Header ============
   const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
   const [companyCity, setCompanyCity] = useState('Jakarta');
-  const [companyLogo, setCompanyLogo] = useState(null);
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
+  // const [companyLogo, setCompanyLogo] = useState(null); // COMMENTED: Logo functionality
+  // const [logoFile, setLogoFile] = useState(null); // COMMENTED: Logo functionality
+  // const [logoPreview, setLogoPreview] = useState(null); // COMMENTED: Logo functionality
 
   // ============ Customer Selection ============
   const [customers, setCustomers] = useState([]);
@@ -147,7 +147,7 @@ export default function CreateQuotationPage() {
         setCompanyName(response.profile.companyName || 'PT. JAYAINDO ARTHA SUKSES');
         setCompanySubtitle(response.profile.companySubtitle || 'INSURANCE AGENCY');
         setCompanyCity(response.profile.companyCity || 'Jakarta');
-        setCompanyLogo(response.profile.companyLogo?.url || null);
+        // setCompanyLogo(response.profile.companyLogo?.url || null); // COMMENTED: Logo functionality
       }
     } catch (error) {
       console.error('Error fetching company profile:', error);
@@ -176,7 +176,8 @@ export default function CreateQuotationPage() {
     setQuotationNumber(`QUO-${year}${month}-${random}`);
   };
 
-  // ============ Logo Handlers ============
+  // ============ Logo Handlers - COMMENTED OUT ============
+  /*
   const handleLogoClick = () => {
     logoInputRef.current?.click();
   };
@@ -211,6 +212,7 @@ export default function CreateQuotationPage() {
       logoInputRef.current.value = '';
     }
   };
+  */
 
   const handleSaveCompanyProfile = async () => {
     try {
@@ -244,6 +246,8 @@ export default function CreateQuotationPage() {
         return;
       }
 
+      // COMMENTED: Logo upload functionality
+      /*
       if (logoFile) {
         const formData = new FormData();
         formData.append('logo', logoFile);
@@ -258,7 +262,9 @@ export default function CreateQuotationPage() {
       } else {
         message('Company profile saved successfully!', 'success');
       }
-
+      */
+      
+      message('Company profile saved successfully!', 'success');
       await fetchCompanyProfile();
       
     } catch (error) {
@@ -394,6 +400,8 @@ export default function CreateQuotationPage() {
 
     let currentY = 18;
 
+    // COMMENTED: Logo in PDF
+    /*
     const logoToUse = logoPreview || companyLogo;
     if (logoToUse) {
       try {
@@ -403,6 +411,7 @@ export default function CreateQuotationPage() {
         console.error('Error adding logo to PDF:', err);
       }
     }
+    */
 
     doc.setFont(undefined, 'bold');
     doc.setFontSize(16);
@@ -715,14 +724,13 @@ export default function CreateQuotationPage() {
                 </Box>
 
                 <Grid container spacing={2.5}>
-                  {/* Logo Upload */}
+                  {/* Logo Upload - COMMENTED OUT */}
                   <Grid item xs={12} md={4}>
                     <Typography fontSize={13} fontWeight={500} mb={1.5} sx={{ color: '#5a5a5a' }}>
-                      Company Logo
+                      Company Logo (Coming Soon)
                     </Typography>
                     
                     <Box
-                      onClick={handleLogoClick}
                       sx={{
                         width: '100%',
                         height: 160,
@@ -731,43 +739,24 @@ export default function CreateQuotationPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: 'pointer',
                         bgcolor: '#FAFAFA',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          borderColor: '#1976d2',
-                          bgcolor: alpha('#1976d2', 0.04)
-                        },
                         overflow: 'hidden',
                         mb: 1.5
                       }}
                     >
-                      {(logoPreview || companyLogo) ? (
-                        <img
-                          src={logoPreview || companyLogo}
-                          alt="Company Logo"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            padding: '12px'
-                          }}
-                        />
-                      ) : (
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Icon icon="mdi:image-plus" width={40} color="#C0C0C0" />
-                          <Typography fontSize={12} color="text.secondary" mt={1}>
-                            Click to upload
-                          </Typography>
-                        </Box>
-                      )}
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Icon icon="mdi:image-plus" width={40} color="#C0C0C0" />
+                        <Typography fontSize={12} color="text.secondary" mt={1}>
+                          Logo upload temporarily disabled
+                        </Typography>
+                      </Box>
                     </Box>
 
                     <Button
                       fullWidth
                       variant="outlined"
                       size="small"
-                      onClick={handleLogoClick}
+                      disabled
                       startIcon={<Icon icon="mdi:upload" width={16} />}
                       sx={{ 
                         borderRadius: 1.5,
@@ -777,37 +766,16 @@ export default function CreateQuotationPage() {
                         borderColor: '#D0D0D0',
                         color: '#5a5a5a',
                         mb: 1,
-                        '&:hover': {
-                          borderColor: '#1976d2',
-                          bgcolor: alpha('#1976d2', 0.04)
-                        }
                       }}
                     >
-                      {(logoPreview || companyLogo) ? 'Change Logo' : 'Upload Logo'}
+                      Upload Logo (Coming Soon)
                     </Button>
-                    
-                    {(logoPreview || companyLogo) && (
-                      <Button
-                        fullWidth
-                        variant="text"
-                        size="small"
-                        color="error"
-                        onClick={handleRemoveLogo}
-                        startIcon={<Icon icon="mdi:delete" width={16} />}
-                        sx={{ 
-                          textTransform: 'none',
-                          fontSize: 13,
-                          fontWeight: 500
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    )}
 
                     <Typography variant="caption" display="block" color="text.secondary" mt={1} sx={{ fontSize: 11 }}>
-                      Max 2MB, PNG/JPG recommended
+                      Logo feature temporarily disabled
                     </Typography>
 
+                    {/* COMMENTED: Hidden file input
                     <input
                       ref={logoInputRef}
                       type="file"
@@ -815,6 +783,7 @@ export default function CreateQuotationPage() {
                       onChange={handleLogoChange}
                       style={{ display: 'none' }}
                     />
+                    */}
                   </Grid>
 
                   {/* Company Details */}
@@ -1576,8 +1545,9 @@ export default function CreateQuotationPage() {
                 border: '1px solid #F0F0F0'
               }}
             >
-              {/* Preview Header dengan Logo */}
+              {/* Preview Header - Logo temporarily disabled */}
               <Box display="flex" gap={2} mb={3} alignItems="center">
+                {/*
                 {(logoPreview || companyLogo) && (
                   <Box
                     sx={{
@@ -1603,6 +1573,7 @@ export default function CreateQuotationPage() {
                     />
                   </Box>
                 )}
+                */}
                 
                 <Box flex={1}>
                   <Typography variant="h6" fontWeight={600} fontSize={16}>
@@ -1653,7 +1624,7 @@ export default function CreateQuotationPage() {
 
             <Box mt={2.5}>
               <Typography variant="caption" color="text.secondary" fontSize={12}>
-                📄 PDF will include company logo, header info, customer details, coverage breakdown, and premium calculation.
+                📄 PDF will include company info, customer details, coverage breakdown, and premium calculation. (Logo temporarily disabled)
               </Typography>
             </Box>
           </DialogContent>
