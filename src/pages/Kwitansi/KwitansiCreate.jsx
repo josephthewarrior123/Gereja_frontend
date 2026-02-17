@@ -451,21 +451,34 @@ export default function KwitansiCreate() {
       </Box>
 
       {/* Content Fields - CORRECT BILINGUAL FORMAT */}
+      {/* Content Fields - BILINGUAL FORMAT WITH ENGLISH UNDER INDONESIAN LABELS */}
       <Box sx={{ mb: 8 }}>
-        {/* Terima dari */}
+        {/* Terima dari / Received From */}
         <Box sx={{ mb: 2.5 }}>
           <Box sx={{ display: "flex" }}>
-            <Typography
-              sx={{
-                width: "130px",
-                fontWeight: "bold",
-                fontSize: "11px",
-                fontFamily: "Arial, Helvetica, sans-serif",
-                color: "#000000",
-              }}
-            >
-              Terima dari
-            </Typography>
+            <Box sx={{ width: "130px" }}>
+              <Typography
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  color: "#000000",
+                }}
+              >
+                Terima dari
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "10px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontStyle: "italic",
+                  color: "#666666",
+                  mt: 0.25,
+                }}
+              >
+                Received From
+              </Typography>
+            </Box>
             <Typography
               sx={{
                 mx: 2,
@@ -486,34 +499,34 @@ export default function KwitansiCreate() {
               {selectedCustomer ? selectedCustomer.name : "____________________"}
             </Typography>
           </Box>
-          <Typography
-            sx={{
-              ml: "130px",
-              fontSize: "10px",
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontStyle: "italic",
-              color: "#666666",
-              mt: 0.25,
-            }}
-          >
-            Received From
-          </Typography>
         </Box>
 
-        {/* Alamat */}
+        {/* Alamat / Address */}
         <Box sx={{ mb: 2.5 }}>
           <Box sx={{ display: "flex" }}>
-            <Typography
-              sx={{
-                width: "130px",
-                fontWeight: "bold",
-                fontSize: "11px",
-                fontFamily: "Arial, Helvetica, sans-serif",
-                color: "#000000",
-              }}
-            >
-              Alamat
-            </Typography>
+            <Box sx={{ width: "130px" }}>
+              <Typography
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  color: "#000000",
+                }}
+              >
+                Alamat
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "10px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontStyle: "italic",
+                  color: "#666666",
+                  mt: 0.25,
+                }}
+              >
+                Address
+              </Typography>
+            </Box>
             <Typography
               sx={{
                 mx: 2,
@@ -534,34 +547,34 @@ export default function KwitansiCreate() {
               {selectedCustomer ? selectedCustomer.address : "____________________"}
             </Typography>
           </Box>
-          <Typography
-            sx={{
-              ml: "130px",
-              fontSize: "10px",
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontStyle: "italic",
-              color: "#666666",
-              mt: 0.25,
-            }}
-          >
-            Address
-          </Typography>
         </Box>
 
-        {/* Jumlah uang sebesar */}
+        {/* Jumlah uang sebesar / The Sum of */}
         <Box sx={{ mb: 2.5 }}>
           <Box sx={{ display: "flex" }}>
-            <Typography
-              sx={{
-                width: "130px",
-                fontWeight: "bold",
-                fontSize: "11px",
-                fontFamily: "Arial, Helvetica, sans-serif",
-                color: "#000000",
-              }}
-            >
-              Jumlah uang sebesar
-            </Typography>
+            <Box sx={{ width: "130px" }}>
+              <Typography
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  color: "#000000",
+                }}
+              >
+                Jumlah uang sebesar
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "10px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontStyle: "italic",
+                  color: "#666666",
+                  mt: 0.25,
+                }}
+              >
+                The Sum of
+              </Typography>
+            </Box>
             <Typography
               sx={{
                 mx: 2,
@@ -596,34 +609,34 @@ export default function KwitansiCreate() {
               </Typography>
             </Box>
           </Box>
-          <Typography
-            sx={{
-              ml: "130px",
-              fontSize: "10px",
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontStyle: "italic",
-              color: "#666666",
-              mt: 0.25,
-            }}
-          >
-            The Sum of
-          </Typography>
         </Box>
 
-        {/* Untuk pembayaran */}
+        {/* Untuk pembayaran / Being payment of */}
         <Box sx={{ mb: 2.5 }}>
           <Box sx={{ display: "flex" }}>
-            <Typography
-              sx={{
-                width: "130px",
-                fontWeight: "bold",
-                fontSize: "11px",
-                fontFamily: "Arial, Helvetica, sans-serif",
-                color: "#000000",
-              }}
-            >
-              Untuk pembayaran
-            </Typography>
+            <Box sx={{ width: "130px" }}>
+              <Typography
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  color: "#000000",
+                }}
+              >
+                Untuk pembayaran
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "10px",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontStyle: "italic",
+                  color: "#666666",
+                  mt: 0.25,
+                }}
+              >
+                Being payment of
+              </Typography>
+            </Box>
             <Typography
               sx={{
                 mx: 2,
@@ -645,18 +658,6 @@ export default function KwitansiCreate() {
               {formData.pembayaran || "________________________________________________"}
             </Typography>
           </Box>
-          <Typography
-            sx={{
-              ml: "130px",
-              fontSize: "10px",
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontStyle: "italic",
-              color: "#666666",
-              mt: 0.25,
-            }}
-          >
-            Being payment of
-          </Typography>
         </Box>
       </Box>
 

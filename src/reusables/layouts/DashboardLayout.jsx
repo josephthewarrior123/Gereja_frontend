@@ -41,8 +41,9 @@ export default function DashboardLayout() {
       url: '/properties',
       title: 'Property Management',
     },
-   
+
     { icon: 'heroicons:calendar', label: 'Quotation', url: '/quotations/create', title: 'Create Quotation' },
+    { icon: 'heroicons:document-currency-dollar', label: 'Invoice', url: '/invoices/create', title: 'Create Invoice' },
     {
       icon: 'heroicons:shield-check',
       label: 'Admin Management',

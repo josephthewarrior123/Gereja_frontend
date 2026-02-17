@@ -12,6 +12,7 @@ import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
 import PropertyListPage from './pages/Property/PropertyList';
 import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
+import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
 
 
 export default function AppRoutes() {
@@ -20,35 +21,40 @@ export default function AppRoutes() {
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
-            
+
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<PropertyListPage />} /> {/* Ubah default ke PropertyListPage */}
-                
+
                 {/* Customers Routes */}
                 <Route path="customers">
                     <Route index element={<CustomerListPage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
-                    
+
                 </Route>
-                
+
                 {/* Properties Routes */}
                 <Route path="properties">
                     <Route index element={<PropertyListPage />} />
                 </Route>
 
-                  {/* Quotations Routes */}
-                  <Route path="quotations">
+                {/* Quotations Routes */}
+                <Route path="quotations">
                     <Route path="create" element={<CreateQuotationPage />} />
                 </Route>
-                
+
+                {/* Invoices Routes */}
+                <Route path="invoices">
+                    <Route path="create" element={<CreateInvoicePage />} />
+                </Route>
+
                 {/* Other Routes */}
-               
-                <Route path="admin-management" element={<AdminList/>} />
+
+                <Route path="admin-management" element={<AdminList />} />
                 <Route path="create-admin" element={<CreateAdmin />} />
                 <Route path="edit-admin/:id" element={<AdminEdit />} />
                 <Route path="assign-admin/:id" element={<AdminAssignPage />} />
-                <Route path="kwitansi" element={<Kwitansi />} /> 
-            
+                <Route path="kwitansi" element={<Kwitansi />} />
+
             </Route>
 
             <Route path="*" element={<Page404 />} />
