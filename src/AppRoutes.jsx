@@ -10,6 +10,7 @@ import AdminAssignPage from './pages/Admin/AdminAssignPage';
 import Kwitansi from './pages/Kwitansi/KwitansiCreate';
 import CustomerListPage from './pages/customers/CustomerListPage';
 import CustomerEditPage from './pages/customers/CustomerEditPage';
+import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import PropertyListPage from './pages/Property/PropertyList';
 import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
@@ -28,6 +29,7 @@ export default function AppRoutes() {
                 {/* Customers Routes */}
                 <Route path="customers">
                     <Route index element={<CustomerListPage />} />
+                    <Route path=":id" element={<CustomerDetailPage />} />
                     <Route path="edit/:id" element={<CustomerEditPage />} />
 
                 </Route>

@@ -470,7 +470,7 @@ export default function CustomerListPage() {
                 <Stack direction={'row'} spacing={1}>
                     <IconButton
                         size={'small'}
-                        onClick={() => openViewDialog(row)}
+                        onClick={() => navigate(`/customers/${row.id}`)}
                         sx={{ borderRadius: 0.8 }}
                     >
                         <Icon icon={'mdi:eye-outline'} />
@@ -690,7 +690,7 @@ export default function CustomerListPage() {
                                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                                         <IconButton
                                             size="small"
-                                            onClick={() => openViewDialog(customer)}
+                                            onClick={() => navigate(`/customers/${customer.id}`)}
                                             sx={{ color: '#1976d2' }}
                                         >
                                             <Icon icon="mdi:eye-outline" />

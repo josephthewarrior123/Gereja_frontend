@@ -8,6 +8,8 @@ import {
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
+import FormInput from '../../reusables/form/FormInput';
+import FormFileUpload from '../../reusables/form/FormFileUpload';
 
 // Helper function untuk delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -101,57 +103,7 @@ const uploadDocumentsWithRetry = async (customerId, documentFiles, maxRetries = 
 };
 
 // --- UI COMPONENTS ---
-
-const InputField = ({ label, name, type = "text", placeholder, icon, required, value, onChange, multiline, rows, error }) => (
-    <div className="w-full">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-            {label} {required && <span className="text-red-500">*</span>}
-        </label>
-        <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Icon icon={icon} width="18" height="18" />
-            </div>
-            {multiline ? (
-                <textarea
-                    name={name}
-                    rows={rows || 3}
-                    className={`block w-full pl-10 pr-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm resize-none`}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={onChange}
-                />
-            ) : (
-                <input
-                    type={type}
-                    name={name}
-                    className={`block w-full pl-10 pr-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={onChange}
-                />
-            )}
-        </div>
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-);
-
-const FileUploadBox = ({ label, file, onClick, icon }) => (
-    <div
-        onClick={onClick}
-        className={`cursor-pointer border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center transition-colors h-32
-            ${file ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}`}
-    >
-        <Icon
-            icon={file ? "mdi:check-circle" : icon || "mdi:cloud-upload"}
-            className={`mb-2 ${file ? 'text-blue-600' : 'text-gray-400'}`}
-            width="28"
-        />
-        <span className={`text-xs font-medium ${file ? 'text-blue-700' : 'text-gray-600'}`}>
-            {label}
-        </span>
-        {file && <span className="text-[10px] text-gray-500 mt-1 truncate max-w-full px-2">{file.name}</span>}
-    </div>
-);
+// Components moved to src/reusables/form/
 
 export default function CreateCustomerDialog({ open, onClose }) {
     const [activeStep, setActiveStep] = useState(0);
@@ -361,7 +313,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
             <div className="p-8 min-h-[400px]">
                 {activeStep === 0 && (
                     <div className="space-y-5 animate-fadeIn">
-                        <InputField
+                        <FormInput
                             label="Customer Name"
                             name="name"
                             placeholder="John Doe"
@@ -373,7 +325,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                         />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <InputField
+                            <FormInput
                                 label="Email (Optional)"
                                 name="email"
                                 type="email"
@@ -383,7 +335,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 onChange={handleChange}
                                 error={errors.email}
                             />
-                            <InputField
+                            <FormInput
                                 label="Phone Number"
                                 name="phone"
                                 placeholder="+62 812 3456 7890"
@@ -394,7 +346,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             />
                         </div>
 
-                        <InputField
+                        <FormInput
                             label="Address"
                             name="address"
                             placeholder="1234 Main St, Springfield, IL"
@@ -404,7 +356,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                             error={errors.address}
                         />
 
-                        <InputField
+                        <FormInput
                             label="Notes"
                             name="notes"
                             placeholder="Add any additional details regarding the customer..."
@@ -420,14 +372,14 @@ export default function CreateCustomerDialog({ open, onClose }) {
                 {activeStep === 1 && (
                     <div className="space-y-5 animate-fadeIn">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <InputField label="Car Owner Name" name="carOwnerName" placeholder="Owner Name" icon="lucide:user" value={formData.carOwnerName} onChange={handleChange} error={errors.carOwnerName} />
-                            <InputField label="Car Brand" name="carBrand" placeholder="Toyota" icon="lucide:car" value={formData.carBrand} onChange={handleChange} error={errors.carBrand} />
-                            <InputField label="Car Model" name="carModel" placeholder="Avanza" icon="lucide:car" value={formData.carModel} onChange={handleChange} error={errors.carModel} />
-                            <InputField label="Plate Number" name="plateNumber" placeholder="B 1234 ABC" icon="lucide:hash" value={formData.plateNumber} onChange={handleChange} error={errors.plateNumber} />
-                            <InputField label="Chassis Number" name="chassisNumber" placeholder="MH..." icon="lucide:barcode" value={formData.chassisNumber} onChange={handleChange} error={errors.chassisNumber} />
-                            <InputField label="Engine Number" name="engineNumber" placeholder="ENG..." icon="lucide:settings" value={formData.engineNumber} onChange={handleChange} error={errors.engineNumber} />
-                            <InputField label="Insurance Due Date" name="dueDate" type="date" icon="lucide:calendar" value={formData.dueDate} onChange={handleChange} error={errors.dueDate} />
-                            <InputField label="Car Price" name="carPrice" type="number" placeholder="0" icon="lucide:dollar-sign" value={formData.carPrice} onChange={handleChange} error={errors.carPrice} />
+                            <FormInput label="Car Owner Name" name="carOwnerName" placeholder="Owner Name" icon="lucide:user" value={formData.carOwnerName} onChange={handleChange} error={errors.carOwnerName} />
+                            <FormInput label="Car Brand" name="carBrand" placeholder="Toyota" icon="lucide:car" value={formData.carBrand} onChange={handleChange} error={errors.carBrand} />
+                            <FormInput label="Car Model" name="carModel" placeholder="Avanza" icon="lucide:car" value={formData.carModel} onChange={handleChange} error={errors.carModel} />
+                            <FormInput label="Plate Number" name="plateNumber" placeholder="B 1234 ABC" icon="lucide:hash" value={formData.plateNumber} onChange={handleChange} error={errors.plateNumber} />
+                            <FormInput label="Chassis Number" name="chassisNumber" placeholder="MH..." icon="lucide:barcode" value={formData.chassisNumber} onChange={handleChange} error={errors.chassisNumber} />
+                            <FormInput label="Engine Number" name="engineNumber" placeholder="ENG..." icon="lucide:settings" value={formData.engineNumber} onChange={handleChange} error={errors.engineNumber} />
+                            <FormInput label="Insurance Due Date" name="dueDate" type="date" icon="lucide:calendar" value={formData.dueDate} onChange={handleChange} error={errors.dueDate} />
+                            <FormInput label="Car Price" name="carPrice" type="number" placeholder="0" icon="lucide:dollar-sign" value={formData.carPrice} onChange={handleChange} error={errors.carPrice} />
                         </div>
                     </div>
                 )}
@@ -435,19 +387,19 @@ export default function CreateCustomerDialog({ open, onClose }) {
                 {activeStep === 2 && (
                     <div className="animate-fadeIn">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FileUploadBox
+                            <FormFileUpload
                                 label="Upload STNK"
                                 file={documentFiles.stnk}
                                 onClick={() => document.getElementById('doc-stnk').click()}
                                 icon="lucide:file-text"
                             />
-                            <FileUploadBox
+                            <FormFileUpload
                                 label="Upload SIM"
                                 file={documentFiles.sim}
                                 onClick={() => document.getElementById('doc-sim').click()}
                                 icon="lucide:credit-card"
                             />
-                            <FileUploadBox
+                            <FormFileUpload
                                 label="Upload KTP"
                                 file={documentFiles.ktp}
                                 onClick={() => document.getElementById('doc-ktp').click()}
@@ -464,10 +416,10 @@ export default function CreateCustomerDialog({ open, onClose }) {
                 {activeStep === 3 && (
                     <div className="animate-fadeIn">
                         <div className="grid grid-cols-2 gap-4">
-                            <FileUploadBox label="Left Side" file={uploadedFiles.leftSide} onClick={() => document.getElementById('photo-left').click()} icon="lucide:camera" />
-                            <FileUploadBox label="Right Side" file={uploadedFiles.rightSide} onClick={() => document.getElementById('photo-right').click()} icon="lucide:camera" />
-                            <FileUploadBox label="Front" file={uploadedFiles.front} onClick={() => document.getElementById('photo-front').click()} icon="lucide:camera" />
-                            <FileUploadBox label="Back" file={uploadedFiles.back} onClick={() => document.getElementById('photo-back').click()} icon="lucide:camera" />
+                            <FormFileUpload label="Left Side" file={uploadedFiles.leftSide} onClick={() => document.getElementById('photo-left').click()} icon="lucide:camera" />
+                            <FormFileUpload label="Right Side" file={uploadedFiles.rightSide} onClick={() => document.getElementById('photo-right').click()} icon="lucide:camera" />
+                            <FormFileUpload label="Front" file={uploadedFiles.front} onClick={() => document.getElementById('photo-front').click()} icon="lucide:camera" />
+                            <FormFileUpload label="Back" file={uploadedFiles.back} onClick={() => document.getElementById('photo-back').click()} icon="lucide:camera" />
                         </div>
                         {/* Hidden Inputs */}
                         <input id="photo-left" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload('leftSide', e.target.files[0])} />

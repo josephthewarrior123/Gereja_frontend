@@ -30,6 +30,8 @@ import { useNavigate, useParams } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
+import FormInput from '../../reusables/form/FormInput';
+import FormFileUpload from '../../reusables/form/FormFileUpload';
 
 function TabPanel({ children, value, index }) {
     return (
@@ -116,7 +118,7 @@ export default function CustomerEditPage() {
     const [photoToView, setPhotoToView] = useState(null);
     const [documentToView, setDocumentToView] = useState(null);
     const [compressing, setCompressing] = useState(false);
-    
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
@@ -146,7 +148,7 @@ export default function CustomerEditPage() {
         try {
             loadingProvider.start();
             const response = await CustomerDAO.getCustomerById(id);
-            
+
             if (response.success) {
                 setCustomer(response.customer);
                 setFormData({
@@ -163,14 +165,14 @@ export default function CustomerEditPage() {
                     dueDate: response.customer.carData?.dueDate || '',
                     carPrice: response.customer.carData?.carPrice?.toString() || ''
                 });
-                
+
                 // Set existing photo URLs as previews
                 const existingPreviews = {};
                 Object.entries(response.customer.carPhotos || {}).forEach(([side, url]) => {
                     if (url) existingPreviews[side] = url;
                 });
                 setPreviewUrls(existingPreviews);
-                
+
                 // Set existing document URLs as previews
                 const existingDocPreviews = {};
                 Object.entries(response.customer.documentPhotos || {}).forEach(([type, url]) => {
@@ -197,7 +199,7 @@ export default function CustomerEditPage() {
             ...prev,
             [name]: value
         }));
-        
+
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -216,18 +218,18 @@ export default function CustomerEditPage() {
         if (file) {
             try {
                 setCompressing(true);
-                
+
                 let processedFile = file;
                 if (file.type.startsWith('image/') && file.size > 500 * 1024) {
                     console.log(`🔧 Compressing ${file.name}...`);
                     processedFile = await compressImage(file);
                 }
-                
+
                 setUploadedFiles(prev => ({
                     ...prev,
                     [side]: processedFile
                 }));
-                
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     setPreviewUrls(prev => ({
@@ -249,18 +251,18 @@ export default function CustomerEditPage() {
         if (file) {
             try {
                 setCompressing(true);
-                
+
                 let processedFile = file;
                 if (file.type.startsWith('image/') && file.size > 500 * 1024) {
                     console.log(`🔧 Compressing document ${file.name}...`);
                     processedFile = await compressImage(file);
                 }
-                
+
                 setDocumentFiles(prev => ({
                     ...prev,
                     [type]: processedFile
                 }));
-                
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     setDocumentPreviewUrls(prev => ({
@@ -306,22 +308,22 @@ export default function CustomerEditPage() {
 
     const validateForm = () => {
         const newErrors = {};
-        
+
         if (!formData.name.trim()) newErrors.name = 'Name is required';
         if (!formData.plateNumber.trim()) newErrors.plateNumber = 'Plate number is required';
         if (!formData.carBrand.trim()) newErrors.carBrand = 'Car brand is required';
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSave = async () => {
         if (!validateForm()) return;
-        
+
         try {
             setSaving(true);
             loadingProvider.start();
-            
+
             // Update customer data
             const updateData = {
                 name: formData.name,
@@ -339,17 +341,17 @@ export default function CustomerEditPage() {
                     carPrice: formData.carPrice ? parseFloat(formData.carPrice) : 0
                 }
             };
-            
+
             console.log('📝 Updating customer with data:', updateData);
-            
+
             const response = await CustomerDAO.updateCustomer(id, updateData);
-            
+
             if (!response.success) {
                 throw new Error(response.error || 'Failed to update customer');
             }
-            
+
             console.log('✅ Customer data updated successfully');
-            
+
             // Upload new documents if any
             const hasNewDocuments = Object.keys(documentFiles).length > 0;
             if (hasNewDocuments) {
@@ -360,7 +362,7 @@ export default function CustomerEditPage() {
                         formDataObj.append(type, file);
                     }
                 });
-                
+
                 try {
                     await CustomerDAO.uploadDocuments(id, formDataObj);
                     console.log('✅ Documents uploaded successfully');
@@ -369,7 +371,7 @@ export default function CustomerEditPage() {
                     message('Customer updated but failed to upload some documents. You can try again later.', 'warning');
                 }
             }
-            
+
             // Upload new photos if any
             const hasNewPhotos = Object.keys(uploadedFiles).length > 0;
             if (hasNewPhotos) {
@@ -380,7 +382,7 @@ export default function CustomerEditPage() {
                         formDataObj.append(side, file);
                     }
                 });
-                
+
                 try {
                     await CustomerDAO.uploadCarPhotos(id, formDataObj);
                     console.log('✅ Photos uploaded successfully');
@@ -389,10 +391,10 @@ export default function CustomerEditPage() {
                     message('Customer updated but failed to upload some photos. You can try again later.', 'warning');
                 }
             }
-            
+
             message('Customer updated successfully!', 'success');
             navigate(`/customers/${id}`);
-            
+
         } catch (error) {
             console.error('❌ Error updating customer:', error);
             message(error.error || 'Failed to update customer', 'error');
@@ -442,25 +444,25 @@ export default function CustomerEditPage() {
     ];
 
     return (
-        <Box sx={{ 
-            bgcolor: '#F8FAFC', 
+        <Box sx={{
+            bgcolor: '#F8FAFC',
             minHeight: '100vh',
             pb: 6
         }}>
             <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 } }}>
                 {/* Header Section - Improved spacing and hierarchy */}
                 <Box sx={{ mb: 5 }}>
-                    <Stack 
-                        direction={{ xs: 'column', sm: 'row' }} 
-                        justifyContent="space-between" 
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        justifyContent="space-between"
                         alignItems={{ xs: 'stretch', sm: 'flex-start' }}
                         spacing={3}
                         sx={{ mb: 4 }}
                     >
                         <Box>
-                            <Typography 
-                                variant="h4" 
-                                sx={{ 
+                            <Typography
+                                variant="h4"
+                                sx={{
                                     fontWeight: 700,
                                     color: '#1E293B',
                                     mb: 1,
@@ -469,9 +471,9 @@ export default function CustomerEditPage() {
                             >
                                 Edit Customer
                             </Typography>
-                            <Typography 
-                                variant="body2" 
-                                sx={{ 
+                            <Typography
+                                variant="body2"
+                                sx={{
                                     color: '#64748B',
                                     fontSize: '0.875rem',
                                     fontWeight: 500
@@ -480,9 +482,9 @@ export default function CustomerEditPage() {
                                 Customer ID: <Box component="span" sx={{ color: '#475569' }}>{id}</Box>
                             </Typography>
                         </Box>
-                        
-                        <Stack 
-                            direction={{ xs: 'column', sm: 'row' }} 
+
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
                             spacing={2}
                             sx={{ width: { xs: '100%', sm: 'auto' } }}
                         >
@@ -538,17 +540,17 @@ export default function CustomerEditPage() {
                     </Stack>
 
                     {/* Improved Tabs */}
-                    <Paper 
+                    <Paper
                         elevation={0}
-                        sx={{ 
+                        sx={{
                             borderRadius: 3,
                             border: '1px solid #E2E8F0',
                             bgcolor: '#fff',
                             overflow: 'hidden'
                         }}
                     >
-                        <Tabs 
-                            value={tabValue} 
+                        <Tabs
+                            value={tabValue}
                             onChange={handleTabChange}
                             variant={isMobile ? "scrollable" : "fullWidth"}
                             scrollButtons="auto"
@@ -581,9 +583,9 @@ export default function CustomerEditPage() {
 
                 {/* Compression Alert */}
                 {compressing && (
-                    <Alert 
-                        severity="info" 
-                        sx={{ 
+                    <Alert
+                        severity="info"
+                        sx={{
                             mb: 3,
                             borderRadius: 2,
                             border: '1px solid #BFDBFE',
@@ -595,9 +597,9 @@ export default function CustomerEditPage() {
                 )}
 
                 {/* Main Content Paper - Enhanced design */}
-                <Paper 
+                <Paper
                     elevation={0}
-                    sx={{ 
+                    sx={{
                         p: { xs: 3, sm: 5 },
                         borderRadius: 3,
                         border: '1px solid #E2E8F0',
@@ -609,108 +611,47 @@ export default function CustomerEditPage() {
                     <TabPanel value={tabValue} index={0}>
                         <Grid container spacing={3}>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Full Name"
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    error={!!errors.name}
-                                    helperText={errors.name}
+                                    error={errors.name}
                                     required
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:user"
+                                    placeholder="John Doe"
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Phone Number"
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:phone"
+                                    placeholder="+62 812 3456 7890"
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Address"
                                     name="address"
                                     value={formData.address}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:map-pin"
+                                    placeholder="1234 Main St"
                                 />
                             </Grid>
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Additional Notes"
                                     name="notes"
                                     value={formData.notes}
                                     onChange={handleChange}
                                     multiline
                                     rows={4}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:file-text"
+                                    placeholder="Add any additional details..."
                                 />
                             </Grid>
                         </Grid>
@@ -720,226 +661,90 @@ export default function CustomerEditPage() {
                     <TabPanel value={tabValue} index={1}>
                         <Grid container spacing={3}>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Car Owner Name"
                                     name="carOwnerName"
                                     value={formData.carOwnerName}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:user"
+                                    placeholder="Owner Name"
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Car Brand"
                                     name="carBrand"
                                     value={formData.carBrand}
                                     onChange={handleChange}
-                                    error={!!errors.carBrand}
-                                    helperText={errors.carBrand}
+                                    error={errors.carBrand}
                                     required
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:car"
+                                    placeholder="Toyota"
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Car Model"
                                     name="carModel"
                                     value={formData.carModel}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:car"
+                                    placeholder="Avanza"
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Plate Number"
                                     name="plateNumber"
                                     value={formData.plateNumber}
                                     onChange={handleChange}
-                                    error={!!errors.plateNumber}
-                                    helperText={errors.plateNumber}
+                                    error={errors.plateNumber}
                                     required
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:hash"
+                                    placeholder="B 1234 ABC"
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Chassis Number"
                                     name="chassisNumber"
                                     value={formData.chassisNumber}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:barcode"
+                                    placeholder="MH..."
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Engine Number"
                                     name="engineNumber"
                                     value={formData.engineNumber}
                                     onChange={handleChange}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:settings"
+                                    placeholder="ENG..."
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Car Price"
                                     name="carPrice"
                                     value={formatCurrency(formData.carPrice)}
                                     onChange={handleCurrencyChange}
+                                    icon="lucide:dollar-sign"
                                     placeholder="150,000,000"
-                                    helperText="Vehicle price in Indonesian Rupiah"
-                                    InputProps={{
-                                        startAdornment: (
-                                            <Typography 
-                                                sx={{ 
-                                                    mr: 1.5, 
-                                                    color: '#64748B',
-                                                    fontWeight: 600
-                                                }}
-                                            >
-                                                Rp
-                                            </Typography>
-                                        )
-                                    }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
                                 />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                    Vehicle price in Indonesian Rupiah
+                                </Typography>
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
+                                <FormInput
                                     label="Insurance Due Date"
                                     name="dueDate"
                                     type="date"
                                     value={formData.dueDate}
                                     onChange={handleChange}
-                                    InputLabelProps={{ shrink: true }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: 2,
-                                            bgcolor: '#F8FAFC',
-                                            '&:hover': {
-                                                bgcolor: '#F1F5F9'
-                                            },
-                                            '&.Mui-focused': {
-                                                bgcolor: '#fff'
-                                            }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            fontWeight: 500,
-                                            color: '#475569'
-                                        }
-                                    }}
+                                    icon="lucide:calendar"
                                 />
                             </Grid>
                         </Grid>
@@ -948,9 +753,9 @@ export default function CustomerEditPage() {
                     {/* Tab Panel 3: Documents */}
                     <TabPanel value={tabValue} index={2}>
                         <Box sx={{ mb: 3 }}>
-                            <Typography 
-                                variant="h6" 
-                                sx={{ 
+                            <Typography
+                                variant="h6"
+                                sx={{
                                     fontWeight: 700,
                                     color: '#1E293B',
                                     mb: 2,
@@ -959,10 +764,10 @@ export default function CustomerEditPage() {
                             >
                                 Vehicle Documents
                             </Typography>
-                            <Alert 
+                            <Alert
                                 severity="info"
                                 icon={<Icon icon="mdi:information-outline" />}
-                                sx={{ 
+                                sx={{
                                     borderRadius: 2,
                                     border: '1px solid #BFDBFE',
                                     bgcolor: '#EFF6FF',
@@ -976,13 +781,13 @@ export default function CustomerEditPage() {
                                 Upload document files here. Documents are optional. Accepts images and PDF files up to 5MB each.
                             </Alert>
                         </Box>
-                        
+
                         <Grid container spacing={3}>
                             {documentTypes.map(({ key, label, description, icon }) => (
                                 <Grid item xs={12} sm={6} md={4} key={key}>
-                                    <Card 
+                                    <Card
                                         elevation={0}
-                                        sx={{ 
+                                        sx={{
                                             border: '1px solid #E2E8F0',
                                             borderRadius: 3,
                                             height: '100%',
@@ -996,9 +801,9 @@ export default function CustomerEditPage() {
                                         <CardContent sx={{ p: 3 }}>
                                             <Stack spacing={2}>
                                                 <Box>
-                                                    <Typography 
-                                                        variant="subtitle1" 
-                                                        sx={{ 
+                                                    <Typography
+                                                        variant="subtitle1"
+                                                        sx={{
                                                             fontWeight: 700,
                                                             color: '#1E293B',
                                                             mb: 0.5,
@@ -1007,9 +812,9 @@ export default function CustomerEditPage() {
                                                     >
                                                         {label}
                                                     </Typography>
-                                                    <Typography 
-                                                        variant="caption" 
-                                                        sx={{ 
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
                                                             color: '#64748B',
                                                             fontSize: '0.8125rem',
                                                             display: 'block',
@@ -1019,134 +824,70 @@ export default function CustomerEditPage() {
                                                         {description}
                                                     </Typography>
                                                 </Box>
-                                                
-                                                {documentPreviewUrls[key] ? (
-                                                    <Box sx={{ position: 'relative' }}>
-                                                        <CardMedia
-                                                            component={documentPreviewUrls[key].includes('pdf') ? 'iframe' : 'img'}
-                                                            src={documentPreviewUrls[key]}
-                                                            alt={`${label} document`}
-                                                            sx={{
-                                                                height: 180,
-                                                                width: '100%',
-                                                                objectFit: documentPreviewUrls[key].includes('pdf') ? 'contain' : 'cover',
-                                                                borderRadius: 2,
-                                                                cursor: 'pointer',
-                                                                border: '2px solid #E2E8F0',
-                                                                transition: 'all 0.2s',
-                                                                '&:hover': {
-                                                                    borderColor: '#1E40AF',
-                                                                    transform: 'scale(1.02)'
-                                                                }
-                                                            }}
-                                                            onClick={() => viewDocument(key)}
+
+                                                <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                    {documentPreviewUrls[key] ? (
+                                                        <Stack spacing={2}>
+                                                            <Box sx={{ position: 'relative' }}>
+                                                                <CardMedia
+                                                                    component={documentPreviewUrls[key].includes('pdf') ? 'iframe' : 'img'}
+                                                                    src={documentPreviewUrls[key]}
+                                                                    alt={`${label} document`}
+                                                                    sx={{
+                                                                        height: 128,
+                                                                        width: '100%',
+                                                                        objectFit: documentPreviewUrls[key].includes('pdf') ? 'contain' : 'cover',
+                                                                        borderRadius: 2,
+                                                                        cursor: 'pointer',
+                                                                        border: '2px solid #E2E8F0',
+                                                                        '&:hover': { borderColor: '#1E40AF' }
+                                                                    }}
+                                                                    onClick={() => viewDocument(key)}
+                                                                />
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeDocumentFile(key);
+                                                                    }}
+                                                                    sx={{
+                                                                        position: 'absolute',
+                                                                        top: 8,
+                                                                        right: 8,
+                                                                        bgcolor: 'rgba(255,255,255,0.9)',
+                                                                        '&:hover': { bgcolor: '#FEE2E2', color: '#DC2626' }
+                                                                    }}
+                                                                >
+                                                                    <Icon icon="mdi:close" width={18} />
+                                                                </IconButton>
+                                                            </Box>
+                                                            <Button
+                                                                fullWidth
+                                                                variant="outlined"
+                                                                startIcon={<Icon icon="mdi:upload" />}
+                                                                onClick={() => document.getElementById(`doc-${key}`).click()}
+                                                                sx={{ textTransform: 'none', borderRadius: 2 }}
+                                                            >
+                                                                Replace File
+                                                            </Button>
+                                                        </Stack>
+                                                    ) : (
+                                                        <FormFileUpload
+                                                            label={`Upload ${label}`}
+                                                            icon={icon}
+                                                            onClick={() => document.getElementById(`doc-${key}`).click()}
+                                                            file={null}
                                                         />
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                removeDocumentFile(key);
-                                                            }}
-                                                            sx={{ 
-                                                                position: 'absolute',
-                                                                top: 8,
-                                                                right: 8,
-                                                                bgcolor: 'rgba(255,255,255,0.95)',
-                                                                backdropFilter: 'blur(4px)',
-                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                                '&:hover': {
-                                                                    bgcolor: '#FEE2E2',
-                                                                    color: '#DC2626'
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Icon icon="mdi:close" width={18} />
-                                                        </IconButton>
-                                                        <Chip 
-                                                            label="Uploaded" 
-                                                            size="small" 
-                                                            sx={{
-                                                                position: 'absolute',
-                                                                top: 8,
-                                                                left: 8,
-                                                                bgcolor: '#10B981',
-                                                                color: '#fff',
-                                                                fontWeight: 600,
-                                                                fontSize: '0.75rem'
-                                                            }}
-                                                        />
-                                                    </Box>
-                                                ) : (
-                                                    <Paper
-                                                        variant="outlined"
-                                                        sx={{
-                                                            height: 180,
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            cursor: 'pointer',
-                                                            borderRadius: 2,
-                                                            borderWidth: 2,
-                                                            borderStyle: 'dashed',
-                                                            borderColor: '#CBD5E1',
-                                                            bgcolor: '#F8FAFC',
-                                                            transition: 'all 0.2s',
-                                                            '&:hover': {
-                                                                borderColor: '#1E40AF',
-                                                                bgcolor: '#EFF6FF'
-                                                            }
-                                                        }}
-                                                        onClick={() => document.getElementById(`doc-${key}`).click()}
-                                                    >
-                                                        <input
-                                                            id={`doc-${key}`}
-                                                            type="file"
-                                                            accept="image/*,.pdf"
-                                                            style={{ display: 'none' }}
-                                                            onChange={(e) => handleDocumentUpload(key, e.target.files[0])}
-                                                        />
-                                                        <Icon icon={icon} width={48} height={48} color="#94A3B8" />
-                                                        <Typography 
-                                                            variant="caption" 
-                                                            sx={{ 
-                                                                mt: 1.5,
-                                                                color: '#64748B',
-                                                                fontWeight: 500
-                                                            }}
-                                                        >
-                                                            Click to upload
-                                                        </Typography>
-                                                    </Paper>
-                                                )}
-                                                
-                                                <Button
-                                                    fullWidth
-                                                    variant={documentPreviewUrls[key] ? "outlined" : "contained"}
-                                                    startIcon={<Icon icon="mdi:upload" />}
-                                                    onClick={() => document.getElementById(`doc-${key}`).click()}
-                                                    sx={{
-                                                        textTransform: 'none',
-                                                        fontWeight: 600,
-                                                        borderRadius: 2,
-                                                        py: 1.25,
-                                                        ...(documentPreviewUrls[key] ? {
-                                                            borderColor: '#CBD5E1',
-                                                            color: '#475569',
-                                                            '&:hover': {
-                                                                borderColor: '#94A3B8',
-                                                                bgcolor: '#F8FAFC'
-                                                            }
-                                                        } : {
-                                                            bgcolor: '#1E40AF',
-                                                            '&:hover': {
-                                                                bgcolor: '#1E3A8A'
-                                                            }
-                                                        })
-                                                    }}
-                                                >
-                                                    {documentPreviewUrls[key] ? 'Replace File' : 'Upload File'}
-                                                </Button>
+                                                    )}
+
+                                                    <input
+                                                        id={`doc-${key}`}
+                                                        type="file"
+                                                        accept="image/*,.pdf"
+                                                        style={{ display: 'none' }}
+                                                        onChange={(e) => handleDocumentUpload(key, e.target.files[0])}
+                                                    />
+                                                </Box>
                                             </Stack>
                                         </CardContent>
                                     </Card>
@@ -1158,9 +899,9 @@ export default function CustomerEditPage() {
                     {/* Tab Panel 4: Photos */}
                     <TabPanel value={tabValue} index={3}>
                         <Box sx={{ mb: 3 }}>
-                            <Typography 
-                                variant="h6" 
-                                sx={{ 
+                            <Typography
+                                variant="h6"
+                                sx={{
                                     fontWeight: 700,
                                     color: '#1E293B',
                                     mb: 2,
@@ -1169,10 +910,10 @@ export default function CustomerEditPage() {
                             >
                                 Car Photos
                             </Typography>
-                            <Alert 
+                            <Alert
                                 severity="info"
                                 icon={<Icon icon="mdi:information-outline" />}
-                                sx={{ 
+                                sx={{
                                     borderRadius: 2,
                                     border: '1px solid #BFDBFE',
                                     bgcolor: '#EFF6FF',
@@ -1186,163 +927,87 @@ export default function CustomerEditPage() {
                                 Upload or replace car photos here. Photos are optional. Images larger than 500KB will be automatically compressed.
                             </Alert>
                         </Box>
-                        
+
                         <Grid container spacing={3}>
                             {carPhotoSides.map(({ key, label, icon }) => (
                                 <Grid item xs={12} sm={6} md={3} key={key}>
-                                    <Card 
+                                    <Card
                                         elevation={0}
-                                        sx={{ 
+                                        sx={{
                                             border: '1px solid #E2E8F0',
                                             borderRadius: 3,
                                             height: '100%',
-                                            transition: 'all 0.2s ease-in-out',
-                                            '&:hover': {
-                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-                                                borderColor: '#CBD5E1'
-                                            }
+                                            display: 'flex',
+                                            flexDirection: 'column'
                                         }}
                                     >
-                                        <CardContent sx={{ p: 3 }}>
-                                            <Stack spacing={2}>
-                                                <Typography 
-                                                    variant="subtitle1" 
-                                                    sx={{ 
-                                                        fontWeight: 700,
-                                                        color: '#1E293B',
-                                                        textAlign: 'center'
-                                                    }}
-                                                >
-                                                    {label}
-                                                </Typography>
-                                                
+                                        <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <Typography variant="subtitle1" fontWeight={700} color="#1E293B" textAlign="center" mb={2}>
+                                                {label}
+                                            </Typography>
+
+                                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                                 {previewUrls[key] ? (
-                                                    <Box sx={{ position: 'relative' }}>
-                                                        <CardMedia
-                                                            component="img"
-                                                            image={previewUrls[key]}
-                                                            alt={`Car ${label}`}
-                                                            sx={{
-                                                                height: 160,
-                                                                objectFit: 'cover',
-                                                                borderRadius: 2,
-                                                                cursor: 'pointer',
-                                                                border: '2px solid #E2E8F0',
-                                                                transition: 'all 0.2s',
-                                                                '&:hover': {
-                                                                    borderColor: '#1E40AF',
-                                                                    transform: 'scale(1.02)'
-                                                                }
-                                                            }}
-                                                            onClick={() => viewPhoto(key)}
-                                                        />
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                removeFile(key);
-                                                            }}
-                                                            sx={{ 
-                                                                position: 'absolute',
-                                                                top: 8,
-                                                                right: 8,
-                                                                bgcolor: 'rgba(255,255,255,0.95)',
-                                                                backdropFilter: 'blur(4px)',
-                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                                '&:hover': {
-                                                                    bgcolor: '#FEE2E2',
-                                                                    color: '#DC2626'
-                                                                }
-                                                            }}
+                                                    <Stack spacing={2}>
+                                                        <Box sx={{ position: 'relative' }}>
+                                                            <CardMedia
+                                                                component="img"
+                                                                image={previewUrls[key]}
+                                                                alt={`Car ${label}`}
+                                                                sx={{
+                                                                    height: 128,
+                                                                    objectFit: 'cover',
+                                                                    borderRadius: 2,
+                                                                    cursor: 'pointer',
+                                                                    border: '2px solid #E2E8F0',
+                                                                    '&:hover': { borderColor: '#1E40AF' }
+                                                                }}
+                                                                onClick={() => viewPhoto(key)}
+                                                            />
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeFile(key);
+                                                                }}
+                                                                sx={{
+                                                                    position: 'absolute',
+                                                                    top: 8,
+                                                                    right: 8,
+                                                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                                                    '&:hover': { bgcolor: '#FEE2E2', color: '#DC2626' }
+                                                                }}
+                                                            >
+                                                                <Icon icon="mdi:close" width={18} />
+                                                            </IconButton>
+                                                        </Box>
+                                                        <Button
+                                                            fullWidth
+                                                            variant="outlined"
+                                                            startIcon={<Icon icon="mdi:camera" />}
+                                                            onClick={() => document.getElementById(`file-${key}`).click()}
+                                                            sx={{ textTransform: 'none', borderRadius: 2 }}
                                                         >
-                                                            <Icon icon="mdi:close" width={18} />
-                                                        </IconButton>
-                                                        <Chip 
-                                                            label="Uploaded" 
-                                                            size="small"
-                                                            sx={{
-                                                                position: 'absolute',
-                                                                top: 8,
-                                                                left: 8,
-                                                                bgcolor: '#10B981',
-                                                                color: '#fff',
-                                                                fontWeight: 600,
-                                                                fontSize: '0.75rem'
-                                                            }}
-                                                        />
-                                                    </Box>
+                                                            Replace Photo
+                                                        </Button>
+                                                    </Stack>
                                                 ) : (
-                                                    <Paper
-                                                        variant="outlined"
-                                                        sx={{
-                                                            height: 160,
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            cursor: 'pointer',
-                                                            borderRadius: 2,
-                                                            borderWidth: 2,
-                                                            borderStyle: 'dashed',
-                                                            borderColor: '#CBD5E1',
-                                                            bgcolor: '#F8FAFC',
-                                                            transition: 'all 0.2s',
-                                                            '&:hover': {
-                                                                borderColor: '#1E40AF',
-                                                                bgcolor: '#EFF6FF'
-                                                            }
-                                                        }}
+                                                    <FormFileUpload
+                                                        label={`Upload ${label}`}
+                                                        icon="mdi:camera-plus"
                                                         onClick={() => document.getElementById(`file-${key}`).click()}
-                                                    >
-                                                        <input
-                                                            id={`file-${key}`}
-                                                            type="file"
-                                                            accept="image/*"
-                                                            style={{ display: 'none' }}
-                                                            onChange={(e) => handleFileUpload(key, e.target.files[0])}
-                                                        />
-                                                        <Icon icon="mdi:camera-plus" width={48} height={48} color="#94A3B8" />
-                                                        <Typography 
-                                                            variant="caption" 
-                                                            sx={{ 
-                                                                mt: 1.5,
-                                                                color: '#64748B',
-                                                                fontWeight: 500
-                                                            }}
-                                                        >
-                                                            Click to upload
-                                                        </Typography>
-                                                    </Paper>
+                                                        file={null}
+                                                    />
                                                 )}
-                                                
-                                                <Button
-                                                    fullWidth
-                                                    variant={previewUrls[key] ? "outlined" : "contained"}
-                                                    startIcon={<Icon icon="mdi:camera" />}
-                                                    onClick={() => document.getElementById(`file-${key}`).click()}
-                                                    sx={{
-                                                        textTransform: 'none',
-                                                        fontWeight: 600,
-                                                        borderRadius: 2,
-                                                        py: 1.25,
-                                                        ...(previewUrls[key] ? {
-                                                            borderColor: '#CBD5E1',
-                                                            color: '#475569',
-                                                            '&:hover': {
-                                                                borderColor: '#94A3B8',
-                                                                bgcolor: '#F8FAFC'
-                                                            }
-                                                        } : {
-                                                            bgcolor: '#1E40AF',
-                                                            '&:hover': {
-                                                                bgcolor: '#1E3A8A'
-                                                            }
-                                                        })
-                                                    }}
-                                                >
-                                                    {previewUrls[key] ? 'Replace Photo' : 'Upload Photo'}
-                                                </Button>
-                                            </Stack>
+
+                                                <input
+                                                    id={`file-${key}`}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    style={{ display: 'none' }}
+                                                    onChange={(e) => handleFileUpload(key, e.target.files[0])}
+                                                />
+                                            </Box>
                                         </CardContent>
                                     </Card>
                                 </Grid>
@@ -1352,8 +1017,8 @@ export default function CustomerEditPage() {
                 </Paper>
 
                 {/* Photo Preview Dialog - Enhanced */}
-                <Dialog 
-                    open={showPhotoDialog} 
+                <Dialog
+                    open={showPhotoDialog}
                     onClose={() => setShowPhotoDialog(false)}
                     maxWidth="md"
                     fullWidth
@@ -1365,21 +1030,21 @@ export default function CustomerEditPage() {
                         }
                     }}
                 >
-                    <DialogTitle sx={{ 
+                    <DialogTitle sx={{
                         p: 3,
                         borderBottom: '1px solid #E2E8F0'
                     }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography 
-                                variant="h6" 
-                                sx={{ 
+                            <Typography
+                                variant="h6"
+                                sx={{
                                     fontWeight: 700,
                                     color: '#1E293B'
                                 }}
                             >
                                 Photo Preview
                             </Typography>
-                            <IconButton 
+                            <IconButton
                                 onClick={() => setShowPhotoDialog(false)}
                                 sx={{
                                     color: '#64748B',
@@ -1392,8 +1057,8 @@ export default function CustomerEditPage() {
                             </IconButton>
                         </Stack>
                     </DialogTitle>
-                    <DialogContent sx={{ 
-                        textAlign: 'center', 
+                    <DialogContent sx={{
+                        textAlign: 'center',
                         p: 4,
                         bgcolor: '#F8FAFC'
                     }}>
@@ -1401,9 +1066,9 @@ export default function CustomerEditPage() {
                             <img
                                 src={photoToView}
                                 alt="Car Preview"
-                                style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: isMobile ? '70vh' : '60vh', 
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: isMobile ? '70vh' : '60vh',
                                     objectFit: 'contain',
                                     borderRadius: '12px',
                                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
@@ -1411,7 +1076,7 @@ export default function CustomerEditPage() {
                             />
                         )}
                     </DialogContent>
-                    <DialogActions sx={{ 
+                    <DialogActions sx={{
                         p: 3,
                         borderTop: '1px solid #E2E8F0',
                         justifyContent: 'center'
@@ -1437,8 +1102,8 @@ export default function CustomerEditPage() {
                 </Dialog>
 
                 {/* Document Preview Dialog - Enhanced */}
-                <Dialog 
-                    open={showDocumentDialog} 
+                <Dialog
+                    open={showDocumentDialog}
                     onClose={() => setShowDocumentDialog(false)}
                     maxWidth="md"
                     fullWidth
@@ -1450,21 +1115,21 @@ export default function CustomerEditPage() {
                         }
                     }}
                 >
-                    <DialogTitle sx={{ 
+                    <DialogTitle sx={{
                         p: 3,
                         borderBottom: '1px solid #E2E8F0'
                     }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography 
+                            <Typography
                                 variant="h6"
-                                sx={{ 
+                                sx={{
                                     fontWeight: 700,
                                     color: '#1E293B'
                                 }}
                             >
                                 Document Preview
                             </Typography>
-                            <IconButton 
+                            <IconButton
                                 onClick={() => setShowDocumentDialog(false)}
                                 sx={{
                                     color: '#64748B',
@@ -1477,9 +1142,9 @@ export default function CustomerEditPage() {
                             </IconButton>
                         </Stack>
                     </DialogTitle>
-                    <DialogContent sx={{ 
-                        textAlign: 'center', 
-                        p: 4, 
+                    <DialogContent sx={{
+                        textAlign: 'center',
+                        p: 4,
                         height: '70vh',
                         bgcolor: '#F8FAFC'
                     }}>
@@ -1488,9 +1153,9 @@ export default function CustomerEditPage() {
                                 <iframe
                                     src={documentToView}
                                     title="Document Preview"
-                                    style={{ 
-                                        width: '100%', 
-                                        height: '100%', 
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
                                         border: 'none',
                                         borderRadius: '12px'
                                     }}
@@ -1499,9 +1164,9 @@ export default function CustomerEditPage() {
                                 <img
                                     src={documentToView}
                                     alt="Document Preview"
-                                    style={{ 
-                                        maxWidth: '100%', 
-                                        maxHeight: '100%', 
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '100%',
                                         objectFit: 'contain',
                                         borderRadius: '12px',
                                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
@@ -1510,7 +1175,7 @@ export default function CustomerEditPage() {
                             )
                         )}
                     </DialogContent>
-                    <DialogActions sx={{ 
+                    <DialogActions sx={{
                         p: 3,
                         borderTop: '1px solid #E2E8F0',
                         justifyContent: 'center'
