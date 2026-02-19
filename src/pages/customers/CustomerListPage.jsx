@@ -25,7 +25,11 @@ import {
     Paper,
     Divider,
     MenuItem,
-    Stack
+    Stack,
+    Menu,
+    ListItemIcon,
+    ListItemText,
+    CircularProgress
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -64,10 +68,15 @@ export default function CustomerListPage() {
     });
     const [summaries, setSummaries] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState("ALL");
-    
+
+    // Status Menu State
+    const [statusMenuAnchor, setStatusMenuAnchor] = useState(null);
+    const [statusCustomer, setStatusCustomer] = useState(null);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+
     // TAMBAHAN: State buat mobile search input
     const [mobileSearchInput, setMobileSearchInput] = useState('');
-    
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const message = useAlert();
@@ -83,9 +92,9 @@ export default function CustomerListPage() {
     const fetchCustomers = async () => {
         try {
             loading.start();
-            
+
             const response = await CustomerDAO.getAllCustomers();
-            
+
             if (response.success) {
                 const customers = response.customers.map(customer => ({
                     id: customer.id,
@@ -100,16 +109,17 @@ export default function CustomerListPage() {
                     plateNumber: customer.carData?.plateNumber || 'No Plate',
                     dueDate: customer.carData?.dueDate || null,
                     hasPhotos: customer.carPhotos?.front && customer.carPhotos?.back,
-                    status: customer.carData?.dueDate ? 
-                        (new Date(customer.carData.dueDate) > new Date() ? 'Active' : 'Expired') : 
-                        'Unknown'
+                    status: customer.status === 'Cancelled' ? 'Cancelled' :
+                        (customer.carData?.dueDate ?
+                            (new Date(customer.carData.dueDate) > new Date() ? 'Active' : 'Expired') :
+                            'Unknown')
                 }));
-                
+
                 setAllCustomers(customers);
 
                 // Filter by status
                 let filteredData = [...customers];
-                
+
                 if (selectedStatus !== "ALL") {
                     filteredData = filteredData.filter(customer => customer.status === selectedStatus);
                 }
@@ -117,7 +127,7 @@ export default function CustomerListPage() {
                 // Filter by keyword
                 if (dataSourceOptions.keyword) {
                     const keyword = dataSourceOptions.keyword.toLowerCase();
-                    filteredData = filteredData.filter(customer => 
+                    filteredData = filteredData.filter(customer =>
                         customer.name.toLowerCase().includes(keyword) ||
                         customer.phone.toLowerCase().includes(keyword) ||
                         customer.carBrand.toLowerCase().includes(keyword) ||
@@ -130,7 +140,7 @@ export default function CustomerListPage() {
                     filteredData.sort((a, b) => {
                         let aVal = a[dataSourceOptions.sortColumn] || '';
                         let bVal = b[dataSourceOptions.sortColumn] || '';
-                        
+
                         if (dataSourceOptions.sortDirection === 'asc') {
                             return aVal > bVal ? 1 : -1;
                         } else {
@@ -168,7 +178,6 @@ export default function CustomerListPage() {
                 const stats = response.stats;
                 const activeCount = allCustomers.filter(c => c.status === 'Active').length;
                 const expiredCount = allCustomers.filter(c => c.status === 'Expired').length;
-                const unknownCount = allCustomers.filter(c => c.status === 'Unknown').length;
 
                 const summaryData = [
                     {
@@ -184,8 +193,8 @@ export default function CustomerListPage() {
                         total: expiredCount,
                     },
                     {
-                        status: "Unknown",
-                        total: unknownCount,
+                        status: "Cancelled",
+                        total: allCustomers.filter(c => c.status === 'Cancelled').length,
                     },
                 ];
 
@@ -200,14 +209,14 @@ export default function CustomerListPage() {
         "ALL": 0,
         "Active": 1,
         "Expired": 2,
-        "Unknown": 3
+        "Cancelled": 3
     };
-    
+
     const statusLabels = {
         "ALL": "All",
         "Active": "Active",
         "Expired": "Expired",
-        "Unknown": "Unknown"
+        "Cancelled": "Cancelled"
     };
 
     const sortedSummaries = [...summaries].sort((a, b) => {
@@ -250,7 +259,7 @@ export default function CustomerListPage() {
         try {
             loading.start();
             const response = await CustomerDAO.deleteCustomer(selectedCustomer.id);
-            
+
             if (response.success) {
                 message('Customer deleted successfully', 'success');
                 fetchCustomers();
@@ -308,11 +317,50 @@ export default function CustomerListPage() {
         });
     };
 
+    // Status Menu Handlers
+    const handleStatusClick = (event, customer) => {
+        event.stopPropagation();
+        setStatusMenuAnchor(event.currentTarget);
+        setStatusCustomer(customer);
+    };
+
+    const handleStatusClose = () => {
+        setStatusMenuAnchor(null);
+        setStatusCustomer(null);
+    };
+
+    const handleStatusUpdate = async (newStatus) => {
+        if (!statusCustomer) return;
+        try {
+            setUpdatingStatus(true);
+            loading.start();
+
+            const response = await CustomerDAO.updateCustomer(statusCustomer.id, {
+                status: newStatus === 'Reset' ? null : newStatus
+            });
+
+            if (response.success) {
+                message('Status updated successfully', 'success');
+                fetchCustomers();
+                getStats();
+            } else {
+                throw new Error(response.error || 'Failed to update status');
+            }
+        } catch (error) {
+            message(error.message || 'Failed to update status', 'error');
+        } finally {
+            loading.stop();
+            setUpdatingStatus(false);
+            handleStatusClose();
+        }
+    };
+
     // Get status color
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active': return '#2E7D32';
             case 'Expired': return '#D32F2F';
+            case 'Cancelled': return '#616161'; // Grey for cancelled
             default: return '#9E9E9E';
         }
     };
@@ -374,10 +422,10 @@ export default function CustomerListPage() {
             key: 'plateNumber',
             sortable: false,
             render: (value) => (
-                <Chip 
-                    label={value} 
-                    size="small" 
-                    color="primary" 
+                <Chip
+                    label={value}
+                    size="small"
+                    color="primary"
                     variant="outlined"
                 />
             )
@@ -394,15 +442,21 @@ export default function CustomerListPage() {
             dataIndex: 'status',
             key: 'status',
             sortable: true,
-            render: (value) => (
+            render: (value, row) => (
                 <Chip
                     label={value || '-'}
                     size="small"
+                    onClick={(e) => handleStatusClick(e, row)}
                     sx={{
                         fontWeight: 'bold',
                         fontSize: '12px',
                         backgroundColor: getStatusColor(value),
                         color: '#FFFFFF',
+                        cursor: 'pointer',
+                        '&:hover': {
+                            opacity: 0.9,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }
                     }}
                 />
             )
@@ -446,10 +500,10 @@ export default function CustomerListPage() {
         const mobileLimit = 5;
         const startIndex = dataSourceOptions.page * mobileLimit;
         const endIndex = startIndex + mobileLimit;
-        
+
         // Filter by status
         let filteredData = [...allCustomers];
-        
+
         if (selectedStatus !== "ALL") {
             filteredData = filteredData.filter(customer => customer.status === selectedStatus);
         }
@@ -457,7 +511,7 @@ export default function CustomerListPage() {
         // Filter by keyword
         if (dataSourceOptions.keyword) {
             const keyword = dataSourceOptions.keyword.toLowerCase();
-            filteredData = filteredData.filter(customer => 
+            filteredData = filteredData.filter(customer =>
                 customer.name.toLowerCase().includes(keyword) ||
                 customer.phone.toLowerCase().includes(keyword) ||
                 customer.carBrand.toLowerCase().includes(keyword) ||
@@ -470,7 +524,7 @@ export default function CustomerListPage() {
             filteredData.sort((a, b) => {
                 let aVal = a[dataSourceOptions.sortColumn] || '';
                 let bVal = b[dataSourceOptions.sortColumn] || '';
-                
+
                 if (dataSourceOptions.sortDirection === 'asc') {
                     return aVal > bVal ? 1 : -1;
                 } else {
@@ -487,61 +541,61 @@ export default function CustomerListPage() {
             <Box sx={{ p: 2 }}>
                 {/* Search and Filter Section */}
                 <Box sx={{ mb: 3 }}>
-                <form 
-    onSubmit={(e) => {
-        e.preventDefault();
-        handleFilterChange('keyword', mobileSearchInput);
-    }}
-    style={{ width: '100%' }}
->
-    <TextField
-        type="search"
-        fullWidth
-        placeholder="Search customers..."
-        value={mobileSearchInput}
-        onChange={(e) => setMobileSearchInput(e.target.value)}
-        sx={{ mb: 2 }}
-        InputProps={{
-            startAdornment: (
-                <InputAdornment position="start">
-                    <Icon icon="mdi:magnify" />
-                </InputAdornment>
-            ),
-        }}
-    />
-</form> 
-                    
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleFilterChange('keyword', mobileSearchInput);
+                        }}
+                        style={{ width: '100%' }}
+                    >
+                        <TextField
+                            type="search"
+                            fullWidth
+                            placeholder="Search customers..."
+                            value={mobileSearchInput}
+                            onChange={(e) => setMobileSearchInput(e.target.value)}
+                            sx={{ mb: 2 }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Icon icon="mdi:magnify" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                    </form>
+
                     {/* Add Customer Button */}
                     {/* Add Customer Button */}
-<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-    <Button
-        onClick={() => {
-            setIsCreateDialogOpen(true);
-            setSelectedCustomer(null);
-        }}
-        variant="contained"
-        startIcon={<Icon icon="heroicons:plus" style={{ fontSize: '18px' }} />}
-        sx={{
-            backgroundColor: '#E3F2FD',
-            color: '#1976d2',
-            textTransform: 'none',
-            fontWeight: 500,
-            px: 2.5,
-            py: 1,
-            borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-            '&:hover': {
-                backgroundColor: '#BBDEFB',
-            },
-            '&:active': {
-                transform: 'scale(0.98)',
-            },
-        }}
-    >
-        New Customer
-    </Button>
-</Box>
-                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                        <Button
+                            onClick={() => {
+                                setIsCreateDialogOpen(true);
+                                setSelectedCustomer(null);
+                            }}
+                            variant="contained"
+                            startIcon={<Icon icon="heroicons:plus" style={{ fontSize: '18px' }} />}
+                            sx={{
+                                backgroundColor: '#E3F2FD',
+                                color: '#1976d2',
+                                textTransform: 'none',
+                                fontWeight: 500,
+                                px: 2.5,
+                                py: 1,
+                                borderRadius: '8px',
+                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+                                '&:hover': {
+                                    backgroundColor: '#BBDEFB',
+                                },
+                                '&:active': {
+                                    transform: 'scale(0.98)',
+                                },
+                            }}
+                        >
+                            New Customer
+                        </Button>
+                    </Box>
+
                     {/* Status Filter Chips */}
                     <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
                         {sortedSummaries.map((summary) => (
@@ -576,10 +630,10 @@ export default function CustomerListPage() {
                 ) : (
                     <Box>
                         {paginatedData.map((customer) => (
-                            <Card 
-                                key={customer.id} 
-                                sx={{ 
-                                    mb: 2, 
+                            <Card
+                                key={customer.id}
+                                sx={{
+                                    mb: 2,
                                     borderRadius: 2,
                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                 }}
@@ -609,10 +663,12 @@ export default function CustomerListPage() {
                                         <Chip
                                             label={customer.status}
                                             size="small"
+                                            onClick={(e) => handleStatusClick(e, customer)}
                                             sx={{
                                                 fontWeight: 'bold',
                                                 backgroundColor: getStatusColor(customer.status),
                                                 color: '#fff',
+                                                cursor: 'pointer'
                                             }}
                                         />
                                     </Box>
@@ -662,10 +718,10 @@ export default function CustomerListPage() {
 
                 {/* Pagination - Show 5 per page */}
                 {totalRecords > 0 && (
-                    <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                         mt: 3,
                         pt: 2,
                         borderTop: '1px solid #e0e0e0',
@@ -679,7 +735,7 @@ export default function CustomerListPage() {
                                 Page {dataSourceOptions.page + 1} of {Math.ceil(totalRecords / mobileLimit)}
                             </Typography>
                         </Typography>
-                        
+
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
                                 size="small"
@@ -744,11 +800,10 @@ export default function CustomerListPage() {
                         <div
                             key={summary.status}
                             onClick={() => handleStatusChange(summary.status)}
-                            className={`cursor-pointer rounded-lg transition-all duration-200 ${
-                                selectedStatus === summary.status
-                                    ? "border-2 border-blue-500"
-                                    : "border border-transparent"
-                            }`}
+                            className={`cursor-pointer rounded-lg transition-all duration-200 ${selectedStatus === summary.status
+                                ? "border-2 border-blue-500"
+                                : "border border-transparent"
+                                }`}
                             style={{
                                 width: "100%",
                                 height: "100%",
@@ -803,23 +858,53 @@ export default function CustomerListPage() {
                 onClose={closeViewDialog}
                 onEdit={() => {
                     closeViewDialog();
-                    if (selectedCustomer) {
-                        navigate(`/customers/edit/${selectedCustomer.id}`);
-                    }
+                    navigate(`/customers/edit/${selectedCustomer.id}`);
                 }}
                 onDelete={() => {
                     closeViewDialog();
-                    if (selectedCustomer) {
-                        openDeleteDialog(selectedCustomer);
-                    }
+                    openDeleteDialog(selectedCustomer);
                 }}
             />
 
+
+
+            {/* Status Change Menu */}
+            <Menu
+                anchorEl={statusMenuAnchor}
+                open={Boolean(statusMenuAnchor)}
+                onClose={handleStatusClose}
+                PaperProps={{
+                    sx: {
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        minWidth: 150
+                    }
+                }}
+            >
+                <MenuItem
+                    onClick={() => handleStatusUpdate('Reset')}
+                    disabled={updatingStatus}
+                >
+                    <ListItemIcon>
+                        <Icon icon="mdi:check-circle" color="#2E7D32" width={20} />
+                    </ListItemIcon>
+                    <ListItemText primary="Set Active / Reset" secondary="Uses Due Date" secondaryTypographyProps={{ fontSize: 10 }} />
+                </MenuItem>
+                <MenuItem
+                    onClick={() => handleStatusUpdate('Cancelled')}
+                    disabled={updatingStatus}
+                >
+                    <ListItemIcon>
+                        <Icon icon="mdi:cancel" color="#616161" width={20} />
+                    </ListItemIcon>
+                    <ListItemText primary="Set Cancelled" />
+                </MenuItem>
+            </Menu>
+
             {/* Delete Confirmation Dialog */}
-            <Dialog 
-                open={isDeleteDialogOpen} 
-                onClose={closeDeleteDialog} 
-                maxWidth="xs" 
+            <Dialog
+                open={isDeleteDialogOpen}
+                onClose={closeDeleteDialog}
+                maxWidth="xs"
                 fullWidth
                 fullScreen={isMobile}
             >
@@ -839,14 +924,14 @@ export default function CustomerListPage() {
                         <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
                             This action cannot be undone. All customer data including car photos will be permanently deleted.
                         </Typography>
-                        <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'flex-end', 
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
                             gap: 1,
                             flexDirection: { xs: 'column', sm: 'row' }
                         }}>
-                            <Button 
-                                variant="outlined" 
+                            <Button
+                                variant="outlined"
                                 onClick={closeDeleteDialog}
                                 fullWidth={isMobile}
                             >
