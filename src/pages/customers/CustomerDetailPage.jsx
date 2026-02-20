@@ -29,7 +29,45 @@ function TabPanel({ children, value, index }) {
 }
 
 /* ---------------- IMAGE PREVIEW DIALOG ---------------- */
-function ImagePreviewDialog({ open, image, onClose }) {
+function ImagePreviewDialog({ open, images, currentIndex, onIndexChange, onClose }) {
+    if (!images || images.length === 0) return null;
+
+    const currentImage = images[currentIndex];
+
+    const handlePrevious = (e) => {
+        e.stopPropagation();
+        onIndexChange((currentIndex - 1 + images.length) % images.length);
+    };
+
+    const handleNext = (e) => {
+        e.stopPropagation();
+        onIndexChange((currentIndex + 1) % images.length);
+    };
+
+    const handleDownload = async (e) => {
+        e.stopPropagation();
+        try {
+            const response = await fetch(currentImage);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Try to extract filename or use a default
+            const filename = currentImage.split('/').pop().split('?')[0] || 'download.jpg';
+            link.setAttribute('download', filename);
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: open in new tab if blob download fails (CORS)
+            window.open(currentImage, '_blank');
+        }
+    };
+
     return (
         <Dialog
             open={open}
@@ -37,27 +75,106 @@ function ImagePreviewDialog({ open, image, onClose }) {
             fullScreen
             TransitionComponent={Fade}
             PaperProps={{
-                sx: { bgcolor: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)' }
+                sx: { bgcolor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(20px)' }
             }}
         >
-            <IconButton
+            {/* Header Controls */}
+            <Box sx={{
+                position: 'fixed', top: 0, left: 0, right: 0,
+                p: 2, display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', zIndex: 10,
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%)'
+            }}>
+                <Typography sx={{ color: '#fff', fontWeight: 600, ml: 2 }}>
+                    {currentIndex + 1} / {images.length}
+                </Typography>
+
+                <Stack direction="row" spacing={1.5}>
+                    <IconButton
+                        onClick={handleDownload}
+                        sx={{
+                            color: '#fff', bgcolor: 'rgba(255,255,255,0.1)',
+                            backdropFilter: 'blur(10px)',
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                        }}
+                        title="Download"
+                    >
+                        <Icon icon="mdi:download" width={24} />
+                    </IconButton>
+                    <IconButton
+                        onClick={onClose}
+                        sx={{
+                            color: '#fff', bgcolor: 'rgba(255,255,255,0.1)',
+                            backdropFilter: 'blur(10px)',
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                        }}
+                    >
+                        <Icon icon="mdi:close" width={24} />
+                    </IconButton>
+                </Stack>
+            </Box>
+
+            {/* Navigation Buttons */}
+            {images.length > 1 && (
+                <>
+                    <IconButton
+                        onClick={handlePrevious}
+                        sx={{
+                            position: 'absolute', left: 24, top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#fff', bgcolor: 'rgba(255,255,255,0.1)',
+                            backdropFilter: 'blur(10px)', zIndex: 10,
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                            display: { xs: 'none', md: 'flex' }
+                        }}
+                    >
+                        <Icon icon="mdi:chevron-left" width={40} />
+                    </IconButton>
+                    <IconButton
+                        onClick={handleNext}
+                        sx={{
+                            position: 'absolute', right: 24, top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#fff', bgcolor: 'rgba(255,255,255,0.1)',
+                            backdropFilter: 'blur(10px)', zIndex: 10,
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                            display: { xs: 'none', md: 'flex' }
+                        }}
+                    >
+                        <Icon icon="mdi:chevron-right" width={40} />
+                    </IconButton>
+                </>
+            )}
+
+            {/* Image Container */}
+            <Box
                 onClick={onClose}
                 sx={{
-                    position: 'absolute', top: 24, right: 24,
-                    color: '#fff', bgcolor: 'rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(10px)', zIndex: 10,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                    height: '100vh', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', position: 'relative', p: { xs: 2, md: 8 }
                 }}
             >
-                <Icon icon="mdi:close" width={24} />
-            </IconButton>
-            <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
                 <Box
                     component="img"
-                    src={image}
+                    src={currentImage}
                     alt="Preview"
-                    sx={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 3, objectFit: 'contain', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                        maxWidth: '100%', maxHeight: '100%', borderRadius: 2,
+                        objectFit: 'contain', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                        transition: 'transform 0.3s ease-out'
+                    }}
                 />
+
+                {/* Mobile Navigation Area (Tap left/right) */}
+                <Box sx={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: '30%',
+                    zIndex: 5, cursor: 'pointer', display: { xs: 'block', md: 'none' }
+                }} onClick={handlePrevious} />
+                <Box sx={{
+                    position: 'absolute', top: 0, right: 0, bottom: 0, width: '30%',
+                    zIndex: 5, cursor: 'pointer', display: { xs: 'block', md: 'none' }
+                }} onClick={handleNext} />
             </Box>
         </Dialog>
     );
@@ -116,7 +233,7 @@ export default function CustomerDetailPage() {
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [tabValue, setTabValue] = useState(0);
-    const [previewImage, setPreviewImage] = useState(null);
+    const [previewState, setPreviewState] = useState({ open: false, images: [], index: 0 });
 
     useEffect(() => {
         fetchCustomer();
@@ -397,7 +514,17 @@ export default function CustomerDetailPage() {
                                                     </Typography>
                                                 </Stack>
                                             </Box>
-                                            <Box component="img" src={url} alt={key} sx={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} />
+                                            <Box
+                                                component="img"
+                                                src={url}
+                                                alt={key}
+                                                onClick={(e) => {
+                                                    const allPhotos = Object.values(customer.carPhotos || {}).filter(u => typeof u === 'string' && u.trim() !== '');
+                                                    const idx = allPhotos.indexOf(url);
+                                                    setPreviewState({ open: true, images: allPhotos, index: idx });
+                                                }}
+                                                sx={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+                                            />
                                         </Paper>
                                     </Grid>
                                 ))}
@@ -421,7 +548,6 @@ export default function CustomerDetailPage() {
                                     <Grid item xs={12} sm={6} md={4} key={key}>
                                         <Paper
                                             elevation={0}
-                                            onClick={() => setPreviewImage(url.includes('pdf') ? null : url)}
                                             sx={{
                                                 borderRadius: 3, border: '1px solid #E2E8F0',
                                                 overflow: 'hidden',
@@ -462,7 +588,18 @@ export default function CustomerDetailPage() {
                                                     </Button>
                                                 </Box>
                                             ) : (
-                                                <Box component="img" src={url} alt={key} sx={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+                                                <Box
+                                                    component="img"
+                                                    src={url}
+                                                    alt={key}
+                                                    onClick={() => {
+                                                        const allDocs = Object.values(customer.documentPhotos || {})
+                                                            .filter(u => typeof u === 'string' && u.trim() !== '' && !u.includes('pdf'));
+                                                        const idx = allDocs.indexOf(url);
+                                                        setPreviewState({ open: true, images: allDocs, index: idx });
+                                                    }}
+                                                    sx={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
+                                                />
                                             )}
                                         </Paper>
                                     </Grid>
@@ -481,9 +618,11 @@ export default function CustomerDetailPage() {
 
             {/* Image fullscreen preview */}
             <ImagePreviewDialog
-                open={Boolean(previewImage)}
-                image={previewImage}
-                onClose={() => setPreviewImage(null)}
+                open={previewState.open}
+                images={previewState.images}
+                currentIndex={previewState.index}
+                onIndexChange={(newIndex) => setPreviewState(prev => ({ ...prev, index: newIndex }))}
+                onClose={() => setPreviewState({ open: false, images: [], index: 0 })}
             />
         </Box>
     );

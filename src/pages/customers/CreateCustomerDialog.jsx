@@ -267,20 +267,21 @@ export default function CreateCustomerDialog({ open, onClose }) {
             onClose={handleClose}
             maxWidth="md"
             fullWidth
+            fullScreen={isMobile}
             PaperProps={{
-                style: { borderRadius: '12px', overflow: 'hidden' }
+                style: { borderRadius: isMobile ? '0px' : '12px', overflow: 'hidden' }
             }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 className="text-xl font-bold text-gray-800">Create New Customer</h2>
+            <div className={`flex items-center justify-between ${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-100`}>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-gray-800`}>Create New Customer</h2>
                 <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
                     <Icon icon="mdi:close" width="24" />
                 </button>
             </div>
 
             {/* Stepper */}
-            <div className="bg-gray-50 px-6 py-6 border-b border-gray-100">
+            <div className={`bg-gray-50 ${isMobile ? 'px-4 py-4' : 'px-6 py-6'} border-b border-gray-100`}>
                 <div className="flex items-center justify-between relative">
                     {/* Connecting Line */}
                     <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gray-200 -z-0 -translate-y-[10px]" />
@@ -290,7 +291,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
                         const isCompleted = index < activeStep;
 
                         return (
-                            <div key={label} className="flex flex-col items-center relative z-10 bg-gray-50 px-2">
+                            <div key={label} className="flex flex-col items-center relative z-10 bg-gray-50 px-1">
                                 <div
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold mb-2 transition-colors
                                         ${isActive || isCompleted
@@ -300,7 +301,10 @@ export default function CreateCustomerDialog({ open, onClose }) {
                                 >
                                     {isCompleted ? <Icon icon="mdi:check" width="16" /> : index + 1}
                                 </div>
-                                <span className={`text-[10px] font-bold tracking-wider uppercase ${isActive ? 'text-[#002D5B]' : 'text-gray-400'}`}>
+                                <span className={`text-[10px] font-bold tracking-wider uppercase text-center
+                                    ${isActive ? 'text-[#002D5B]' : 'text-gray-400'}
+                                    ${isMobile && !isActive ? 'hidden' : 'block'}
+                                `}>
                                     {label}
                                 </span>
                             </div>
@@ -310,7 +314,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
             </div>
 
             {/* Content Body */}
-            <div className="p-8 min-h-[400px]">
+            <div className={`${isMobile ? 'p-4' : 'p-8'} min-h-[400px] overflow-y-auto`}>
                 {activeStep === 0 && (
                     <div className="space-y-5 animate-fadeIn">
                         <FormInput
@@ -431,7 +435,7 @@ export default function CreateCustomerDialog({ open, onClose }) {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-100 p-6 flex justify-between items-center bg-gray-50">
+            <div className={`border-t border-gray-100 ${isMobile ? 'p-4' : 'p-6'} flex justify-between items-center bg-gray-50`}>
                 <button
                     onClick={handleBack}
                     disabled={activeStep === 0}

@@ -1,6 +1,19 @@
 // PropertyList.jsx
 import { Icon } from '@iconify/react';
-import { Stack, Box, Typography, Chip, Card, CardContent } from '@mui/material';
+import {
+    Stack,
+    Box,
+    Typography,
+    Chip,
+    Card,
+    CardContent,
+    Button,
+    TextField,
+    InputAdornment,
+    Avatar,
+    Divider,
+    Grid
+} from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import dayjs from 'dayjs';
@@ -44,7 +57,7 @@ export default function PropertyListPage() {
         sortDirection: 'asc',
         propertyType: null,
     });
-    
+
     const [summaries, setSummaries] = useState([]);
     const loading = useLoading();
     const user = useUser();
@@ -74,9 +87,9 @@ export default function PropertyListPage() {
     const fetchProperties = async () => {
         try {
             loading.start();
-            
+
             console.log('🔍 Fetching properties with status:', selectedStatus);
-            
+
             let result;
             if (selectedStatus === "ALL") {
                 result = await PropertyDAO.getAllProperties();
@@ -93,11 +106,11 @@ export default function PropertyListPage() {
             setAllData(properties);
 
             let filteredData = [...properties];
-            
+
             if (dataSourceOptions.keyword) {
                 const keyword = dataSourceOptions.keyword.toLowerCase();
                 console.log('🔎 Filtering with keyword:', keyword);
-                
+
                 filteredData = filteredData.filter(property => {
                     const matchOwnerName = property.ownerName?.toLowerCase().includes(keyword);
                     const matchOwnerPhone = property.ownerPhone?.includes(keyword);
@@ -105,15 +118,15 @@ export default function PropertyListPage() {
                     const matchAddress = property.propertyData?.address?.toLowerCase().includes(keyword);
                     const matchCity = property.propertyData?.city?.toLowerCase().includes(keyword);
                     const matchPolicyNumber = property.insuranceData?.policyNumber?.toLowerCase().includes(keyword);
-                    
-                    return matchOwnerName || matchOwnerPhone || matchOwnerEmail || 
-                           matchAddress || matchCity || matchPolicyNumber;
+
+                    return matchOwnerName || matchOwnerPhone || matchOwnerEmail ||
+                        matchAddress || matchCity || matchPolicyNumber;
                 });
             }
 
             if (dataSourceOptions.propertyType) {
                 console.log('🏠 Filtering by property type:', dataSourceOptions.propertyType);
-                filteredData = filteredData.filter(property => 
+                filteredData = filteredData.filter(property =>
                     property.propertyData?.propertyType === dataSourceOptions.propertyType
                 );
             }
@@ -125,12 +138,12 @@ export default function PropertyListPage() {
                 filteredData.sort((a, b) => {
                     let aVal = a[dataSourceOptions.sortColumn] || '';
                     let bVal = b[dataSourceOptions.sortColumn] || '';
-                    
+
                     if (dataSourceOptions.sortColumn === 'ownerName') {
                         aVal = a.ownerName || '';
                         bVal = b.ownerName || '';
                     }
-                    
+
                     if (dataSourceOptions.sortDirection === 'asc') {
                         return aVal > bVal ? 1 : -1;
                     } else {
@@ -199,7 +212,7 @@ export default function PropertyListPage() {
         "Expired": 2,
         "Cancelled": 3
     };
-    
+
     const statusLabels = {
         "ALL": "All",
         "Active": "Active",
@@ -407,7 +420,7 @@ export default function PropertyListPage() {
         console.log('👤 User data:', user?.data);
         console.log('📊 Selected status:', selectedStatus);
         console.log('📄 Page options:', dataSourceOptions);
-        
+
         fetchProperties();
     }, [
         dataSourceOptions.page,
@@ -437,226 +450,172 @@ export default function PropertyListPage() {
     }, []);
 
     const renderMobileView = () => {
+        const mobileLimit = 10;
+        const startIndex = dataSourceOptions.page * mobileLimit;
+        const endIndex = startIndex + mobileLimit;
+
         return (
-            <Box sx={{ p: 2 }}>
-                {/* Search and Filter Section */}
-                <Box sx={{ mb: 3 }}>
-                    <CustomTextInput
+            <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
+                {/* Search Bar */}
+                <Box sx={{ mb: 2 }}>
+                    <TextField
                         fullWidth
                         placeholder="Search properties..."
                         value={dataSourceOptions.keyword}
                         onChange={(e) => handleFilterChange('keyword', e.target.value)}
-                        sx={{ mb: 2 }}
-                    />
-                    
-                    <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-                        <CustomSelect
-                            fullWidth
-                            value={dataSourceOptions.propertyType || 'ALL_TYPES'}
-                            onChange={(e) =>
-                                setDataSourceOptions({
-                                    ...dataSourceOptions,
-                                    propertyType: e.target.value === 'ALL_TYPES' ? null : e.target.value,
-                                    page: 0,
-                                })
-                            }
-                            sx={{ flex: 1 }}
-                        >
-                            <MenuItem value="ALL_TYPES">All Types</MenuItem>
-                            {Object.keys(PROPERTY_TYPES).map((type, index) => (
-                                <MenuItem value={PROPERTY_TYPES[type]} key={index}>
-                                    {PROPERTY_TYPES[type]}
-                                </MenuItem>
-                            ))}
-                        </CustomSelect>
-                        
-                        <Box
-                            onClick={() => {
-                                setOpenCreateDialog(true);
-                                setSelectedDetail(null);
-                            }}
-                            sx={{
-                                minWidth: '56px',
-                                height: '56px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: '#1976d2',
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Icon icon="mdi:magnify" color="#94A3B8" />
+                                </InputAdornment>
+                            ),
+                            sx: {
                                 borderRadius: '12px',
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
-                                transition: 'all 0.2s',
-                                '&:active': {
-                                    transform: 'scale(0.95)',
-                                    boxShadow: '0 1px 4px rgba(25, 118, 210, 0.3)',
-                                },
-                            }}
-                        >
-                            <Icon icon="heroicons:plus" style={{ fontSize: '24px', color: '#fff' }} />
-                        </Box>
-                    </Box>
-                    
-                    {/* Status Filter Chips */}
-                    <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
-                        {sortedSummaries.map((summary) => (
-                            <Chip
-                                key={summary.status}
-                                label={`${statusLabels[summary.status]} (${summary.total})`}
-                                onClick={() => handleStatusChange(summary.status)}
-                                sx={{
-                                    backgroundColor: selectedStatus === summary.status ? '#1976d2' : '#f5f5f5',
-                                    color: selectedStatus === summary.status ? '#fff' : '#666',
-                                    fontWeight: selectedStatus === summary.status ? 'bold' : 'normal',
-                                    transition: 'all 0.2s',
-                                    '&:active': {
-                                        transform: 'scale(0.95)',
-                                    },
-                                }}
-                            />
-                        ))}
-                    </Box>
+                                bgcolor: '#fff',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#CBD5E1' }
+                            }
+                        }}
+                    />
                 </Box>
 
-                {/* Property List */}
+                {/* Add Property Button */}
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => { setOpenCreateDialog(true); setSelectedDetail(null); }}
+                    startIcon={<Icon icon="heroicons:plus" />}
+                    sx={{
+                        bgcolor: '#1E3A8A',
+                        color: '#fff',
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        py: 1.5,
+                        borderRadius: '16px',
+                        mb: 3,
+                        boxShadow: '0 10px 15px -3px rgba(30, 58, 138, 0.3)',
+                        '&:hover': { bgcolor: '#1e40af' }
+                    }}
+                >
+                    Add Property
+                </Button>
+
+                {/* Status Filters */}
+                <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
+                    {sortedSummaries.map((summary) => (
+                        <Chip
+                            key={summary.status}
+                            label={`${statusLabels[summary.status]} (${summary.total})`}
+                            onClick={() => handleStatusChange(summary.status)}
+                            sx={{
+                                border: '1px solid',
+                                borderColor: selectedStatus === summary.status ? '#1E3A8A' : '#E2E8F0',
+                                backgroundColor: selectedStatus === summary.status ? '#1E3A8A' : '#fff',
+                                color: selectedStatus === summary.status ? '#fff' : '#64748B',
+                                fontWeight: 600,
+                                px: 1,
+                                height: 38,
+                                borderRadius: '20px',
+                                '&:active': { transform: 'scale(0.95)' }
+                            }}
+                        />
+                    ))}
+                </Box>
+
+                {/* List Content */}
                 {dataSource.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography variant="body1" color="text.secondary">
-                            No properties found
-                        </Typography>
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                        <Icon icon="mdi:home-off-outline" width={64} color="#CBD5E1" />
+                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>No properties found</Typography>
                     </Box>
                 ) : (
-                    <Box>
+                    <Stack spacing={2}>
                         {dataSource.map((property) => (
-                            <Card 
-                                key={property.id} 
-                                sx={{ 
-                                    mb: 2, 
-                                    borderRadius: 2,
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                }}
-                            >
-                                <CardContent>
-                                    {/* Header */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                        <Box>
-                                            <Typography variant="h6" fontWeight="bold">
-                                                {property.ownerName || '-'}
+                            <Card key={property.id} sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+                                <CardContent sx={{ p: '20px !important' }}>
+                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5 }}>
+                                        <Avatar sx={{ width: 48, height: 48, bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 700 }}>
+                                            {property.ownerName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'P'}
+                                        </Avatar>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 0.25 }}>
+                                                {property.ownerName}
                                             </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {property.ownerPhone || '-'}
+                                            <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <Icon icon="mdi:phone" width={14} /> {property.ownerPhone}
                                             </Typography>
                                         </Box>
                                         <Chip
-                                            label={property.status || '-'}
+                                            label={(property.status || 'Active').toUpperCase()}
                                             size="small"
                                             sx={{
-                                                fontWeight: 'bold',
-                                                backgroundColor: property.status === 'Active' 
-                                                    ? '#2E7D32' 
-                                                    : property.status === 'Expired'
-                                                    ? '#D32F2F'
-                                                    : '#9E9E9E',
-                                                color: '#fff',
+                                                bgcolor: property.status === 'Active' ? '#D1FAE5' : property.status === 'Expired' ? '#FEE2E2' : '#F1F5F9',
+                                                color: property.status === 'Active' ? '#065F46' : property.status === 'Expired' ? '#991B1B' : '#475569',
+                                                fontWeight: 800, fontSize: '0.65rem', borderRadius: '8px'
                                             }}
                                         />
-                                    </Box>
+                                    </Stack>
 
-                                    {/* Property Details */}
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Property Details
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Type:</strong> {property.propertyData?.propertyType || '-'}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Address:</strong> {property.propertyData?.address || '-'}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>City:</strong> {property.propertyData?.city || '-'}
-                                        </Typography>
-                                    </Box>
+                                    <Divider sx={{ mb: 2.5, borderStyle: 'dashed' }} />
 
-                                    {/* Insurance Details */}
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                            Insurance Details
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Company:</strong> {property.insuranceData?.insuranceCompany || '-'}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Policy:</strong> {property.insuranceData?.policyNumber || '-'}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>End Date:</strong> {property.insuranceData?.endDate
-                                                ? dayjs(property.insuranceData.endDate).format('DD MMM YYYY')
-                                                : '-'}
-                                        </Typography>
-                                    </Box>
+                                    <Grid container spacing={2} sx={{ mb: 2.5 }}>
+                                        <Grid item xs={6}>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>PROPERTY</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{property.propertyData?.propertyType || '-'}</Typography>
+                                            <Typography variant="caption" sx={{ color: '#64748B', fontSize: '0.7rem' }}>{property.propertyData?.address?.substring(0, 20)}...</Typography>
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>DUE DATE</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>
+                                                {property.insuranceData?.endDate ? dayjs(property.insuranceData.endDate).format('DD MMM YYYY') : '-'}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: property.status === 'Active' ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+                                                {property.status === 'Active' ? 'Policy Active' : property.status === 'Expired' ? 'Expired' : 'Status Pending'}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
 
-                                    {/* Action Buttons */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => {
-                                                setSelectedDetail(property);
-                                                setOpenCreateDialog(true);
-                                            }}
-                                            sx={{ color: '#1976d2' }}
-                                        >
-                                            <Icon icon="mdi:pencil-outline" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => {
-                                                if (window.confirm('Are you sure you want to delete this property?')) {
-                                                    handleDelete(property.id);
-                                                }
-                                            }}
-                                            sx={{ color: '#d32f2f' }}
-                                        >
-                                            <Icon icon="mdi:trash-can-outline" />
-                                        </IconButton>
-                                    </Box>
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
+                                        <IconButton size="small" onClick={() => { setSelectedDetail(property); setOpenCreateDialog(true); }} sx={{ color: '#64748B' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
+                                        <IconButton size="small" onClick={() => { if (window.confirm('Delete this property?')) handleDelete(property.id); }} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
+                                    </Stack>
                                 </CardContent>
                             </Card>
                         ))}
-                    </Box>
+                    </Stack>
                 )}
 
                 {/* Pagination */}
                 {dataSourceOptions.total > 0 && (
-                    <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        mt: 3,
-                        pt: 2,
-                        borderTop: '1px solid #e0e0e0'
-                    }}>
-                        <Typography variant="body2" color="text.secondary">
-                            Showing {Math.min(dataSourceOptions.page * dataSourceOptions.limit + 1, dataSourceOptions.total)} 
-                            - {Math.min((dataSourceOptions.page + 1) * dataSourceOptions.limit, dataSourceOptions.total)} 
-                            of {dataSourceOptions.total}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                            <CustomButton
-                                size="small"
+                    <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E2E8F0', pb: 4 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                Showing <b>{startIndex + 1}-{Math.min(endIndex, dataSourceOptions.total)}</b> of <b>{dataSourceOptions.total}</b>
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                Page <b>{dataSourceOptions.page + 1}</b> of <b>{Math.ceil(dataSourceOptions.total / mobileLimit)}</b>
+                            </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={2}>
+                            <Button
+                                fullWidth
+                                variant="outlined"
                                 disabled={dataSourceOptions.page === 0}
                                 onClick={() => handlePageChange(dataSourceOptions.page - 1)}
+                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#E2E8F0', color: '#64748B' }}
                             >
                                 Prev
-                            </CustomButton>
-                            <CustomButton
-                                size="small"
-                                disabled={(dataSourceOptions.page + 1) * dataSourceOptions.limit >= dataSourceOptions.total}
+                            </Button>
+                            <Button
+                                fullWidth
+                                variant="outlined"
+                                disabled={(dataSourceOptions.page + 1) * mobileLimit >= dataSourceOptions.total}
                                 onClick={() => handlePageChange(dataSourceOptions.page + 1)}
+                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1E3A8A', color: '#1E3A8A' }}
                             >
                                 Next
-                            </CustomButton>
-                        </Box>
+                            </Button>
+                        </Stack>
                     </Box>
                 )}
             </Box>
@@ -677,29 +636,11 @@ export default function PropertyListPage() {
                         searchIcon={true}
                     />
                     <CustomRow className={'justify-center gap-x-4'}>
-                        <CustomSelect
-                            value={dataSourceOptions.propertyType ?? 'ALL_TYPES'}
-                            onChange={(e) =>
-                                setDataSourceOptions({
-                                    ...dataSourceOptions,
-                                    propertyType: e.target.value === 'ALL_TYPES' ? null : e.target.value,
-                                    page: 0,
-                                })
-                            }
-                        >
-                            <MenuItem value="ALL_TYPES">All Types</MenuItem>
-                            {Object.keys(PROPERTY_TYPES).map((type, index) => (
-                                <MenuItem value={PROPERTY_TYPES[type]} key={index}>
-                                    {PROPERTY_TYPES[type]}
-                                </MenuItem>
-                            ))}
-                        </CustomSelect>
-
                         <CustomButton
                             startIcon={
                                 <CustomIcon
                                     icon={'heroicons:plus'}
-                                    sx={{ py: 6 }}
+                                    sx={{ py: 0 }}
                                 />
                             }
                             onClick={() => {
@@ -707,6 +648,15 @@ export default function PropertyListPage() {
                                 setSelectedDetail(null);
                             }}
                             color="secondary"
+                            sx={{
+                                height: 50,
+                                minWidth: 160,
+                                whiteSpace: 'nowrap',
+                                px: 3,
+                                borderRadius: 1.5,
+                                fontSize: '0.9375rem',
+                                fontWeight: 600
+                            }}
                         >
                             Add Property
                         </CustomButton>
@@ -718,11 +668,10 @@ export default function PropertyListPage() {
                         <div
                             key={summary.status}
                             onClick={() => handleStatusChange(summary.status)}
-                            className={`cursor-pointer rounded-lg transition-all duration-200 ${
-                                selectedStatus === summary.status
-                                    ? "border-2 border-blue-500"
-                                    : "border border-transparent"
-                            }`}
+                            className={`cursor-pointer rounded-lg transition-all duration-200 ${selectedStatus === summary.status
+                                ? "border-2 border-blue-500"
+                                : "border border-transparent"
+                                }`}
                             style={{
                                 width: "100%",
                                 height: "100%",

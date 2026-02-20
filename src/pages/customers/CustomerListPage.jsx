@@ -496,19 +496,14 @@ export default function CustomerListPage() {
 
     // Mobile View
     const renderMobileView = () => {
-        // Gunakan limit 5 khusus untuk mobile
         const mobileLimit = 5;
         const startIndex = dataSourceOptions.page * mobileLimit;
         const endIndex = startIndex + mobileLimit;
 
-        // Filter by status
         let filteredData = [...allCustomers];
-
         if (selectedStatus !== "ALL") {
             filteredData = filteredData.filter(customer => customer.status === selectedStatus);
         }
-
-        // Filter by keyword
         if (dataSourceOptions.keyword) {
             const keyword = dataSourceOptions.keyword.toLowerCase();
             filteredData = filteredData.filter(customer =>
@@ -519,243 +514,173 @@ export default function CustomerListPage() {
             );
         }
 
-        // Sorting
-        if (dataSourceOptions.sortColumn) {
-            filteredData.sort((a, b) => {
-                let aVal = a[dataSourceOptions.sortColumn] || '';
-                let bVal = b[dataSourceOptions.sortColumn] || '';
-
-                if (dataSourceOptions.sortDirection === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
-            });
-        }
-
-        // Pagination dengan limit 5
         const paginatedData = filteredData.slice(startIndex, endIndex);
         const totalRecords = filteredData.length;
 
         return (
-            <Box sx={{ p: 2 }}>
-                {/* Search and Filter Section */}
-                <Box sx={{ mb: 3 }}>
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleFilterChange('keyword', mobileSearchInput);
+            <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%' }}>
+                {/* Search Bar */}
+                <Box sx={{ mb: 2 }}>
+                    <TextField
+                        fullWidth
+                        placeholder="Search customers..."
+                        value={mobileSearchInput}
+                        onChange={(e) => setMobileSearchInput(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput);
                         }}
-                        style={{ width: '100%' }}
-                    >
-                        <TextField
-                            type="search"
-                            fullWidth
-                            placeholder="Search customers..."
-                            value={mobileSearchInput}
-                            onChange={(e) => setMobileSearchInput(e.target.value)}
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Icon icon="mdi:magnify" />
-                                    </InputAdornment>
-                                ),
-                            }}
-                        />
-                    </form>
-
-                    {/* Add Customer Button */}
-                    {/* Add Customer Button */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                        <Button
-                            onClick={() => {
-                                setIsCreateDialogOpen(true);
-                                setSelectedCustomer(null);
-                            }}
-                            variant="contained"
-                            startIcon={<Icon icon="heroicons:plus" style={{ fontSize: '18px' }} />}
-                            sx={{
-                                backgroundColor: '#E3F2FD',
-                                color: '#1976d2',
-                                textTransform: 'none',
-                                fontWeight: 500,
-                                px: 2.5,
-                                py: 1,
-                                borderRadius: '8px',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-                                '&:hover': {
-                                    backgroundColor: '#BBDEFB',
-                                },
-                                '&:active': {
-                                    transform: 'scale(0.98)',
-                                },
-                            }}
-                        >
-                            New Customer
-                        </Button>
-                    </Box>
-
-                    {/* Status Filter Chips */}
-                    <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
-                        {sortedSummaries.map((summary) => (
-                            <Chip
-                                key={summary.status}
-                                label={`${statusLabels[summary.status]} (${summary.total})`}
-                                onClick={() => handleStatusChange(summary.status)}
-                                sx={{
-                                    backgroundColor: selectedStatus === summary.status ? '#1976d2' : '#f5f5f5',
-                                    color: selectedStatus === summary.status ? '#fff' : '#666',
-                                    fontWeight: selectedStatus === summary.status ? 'bold' : 'normal',
-                                    transition: 'all 0.2s',
-                                }}
-                            />
-                        ))}
-                    </Box>
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Icon icon="mdi:magnify" color="#94A3B8" />
+                                </InputAdornment>
+                            ),
+                            sx: {
+                                borderRadius: '12px',
+                                bgcolor: '#fff',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#CBD5E1' }
+                            }
+                        }}
+                    />
                 </Box>
 
-                {/* Customer List */}
+                {/* New Customer Button */}
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => { setIsCreateDialogOpen(true); setSelectedCustomer(null); }}
+                    startIcon={<Icon icon="heroicons:plus" />}
+                    sx={{
+                        bgcolor: '#1E3A8A',
+                        color: '#fff',
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        py: 1.5,
+                        borderRadius: '16px',
+                        mb: 3,
+                        boxShadow: '0 10px 15px -3px rgba(30, 58, 138, 0.3)',
+                        '&:hover': { bgcolor: '#1e40af' }
+                    }}
+                >
+                    New Customer
+                </Button>
+
+                {/* Status Filters */}
+                <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
+                    {sortedSummaries.map((summary) => (
+                        <Chip
+                            key={summary.status}
+                            label={`${statusLabels[summary.status]} (${summary.total})`}
+                            onClick={() => handleStatusChange(summary.status)}
+                            sx={{
+                                border: '1px solid',
+                                borderColor: selectedStatus === summary.status ? '#1E3A8A' : '#E2E8F0',
+                                backgroundColor: selectedStatus === summary.status ? '#1E3A8A' : '#fff',
+                                color: selectedStatus === summary.status ? '#fff' : '#64748B',
+                                fontWeight: 600,
+                                px: 1,
+                                height: 38,
+                                borderRadius: '20px',
+                                '&:active': { transform: 'scale(0.95)' }
+                            }}
+                        />
+                    ))}
+                </Box>
+
+                {/* List Content */}
                 {paginatedData.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Icon icon="mdi:account-search" width={60} color="#9e9e9e" />
-                        <Typography variant="h6" color="textSecondary" sx={{ mt: 2 }}>
-                            No customers found
-                        </Typography>
-                        {filteredData.length > 0 && (
-                            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                                Try going to the next page
-                            </Typography>
-                        )}
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                        <Icon icon="mdi:account-off-outline" width={64} color="#CBD5E1" />
+                        <Typography variant="body1" sx={{ mt: 2, color: '#94A3B8', fontWeight: 500 }}>No customers found</Typography>
                     </Box>
                 ) : (
-                    <Box>
+                    <Stack spacing={2}>
                         {paginatedData.map((customer) => (
-                            <Card
-                                key={customer.id}
-                                sx={{
-                                    mb: 2,
-                                    borderRadius: 2,
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                }}
-                            >
-                                <CardContent>
-                                    {/* Header */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                                            <Avatar
-                                                sx={{
-                                                    width: 44,
-                                                    height: 44,
-                                                    bgcolor: '#1976d2',
-                                                }}
-                                            >
-                                                {customer.name?.charAt(0)?.toUpperCase() || 'C'}
-                                            </Avatar>
-                                            <Box>
-                                                <Typography fontWeight={600}>
-                                                    {customer.name}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {customer.phone}
-                                                </Typography>
-                                            </Box>
+                            <Card key={customer.id} sx={{ borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+                                <CardContent sx={{ p: '20px !important' }}>
+                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5 }}>
+                                        <Avatar sx={{ width: 48, height: 48, bgcolor: '#EFF6FF', color: '#1E40AF', fontWeight: 700 }}>
+                                            {customer.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                        </Avatar>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1E293B', mb: 0.25 }}>
+                                                {customer.name}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <Icon icon="mdi:phone" width={14} /> {customer.phone}
+                                            </Typography>
                                         </Box>
                                         <Chip
-                                            label={customer.status}
+                                            label={customer.status.toUpperCase()}
                                             size="small"
-                                            onClick={(e) => handleStatusClick(e, customer)}
                                             sx={{
-                                                fontWeight: 'bold',
-                                                backgroundColor: getStatusColor(customer.status),
-                                                color: '#fff',
-                                                cursor: 'pointer'
+                                                bgcolor: customer.status === 'Active' ? '#D1FAE5' : customer.status === 'Expired' ? '#FEE2E2' : '#F1F5F9',
+                                                color: customer.status === 'Active' ? '#065F46' : customer.status === 'Expired' ? '#991B1B' : '#475569',
+                                                fontWeight: 800, fontSize: '0.65rem', borderRadius: '8px'
                                             }}
                                         />
-                                    </Box>
+                                    </Stack>
 
-                                    {/* Details */}
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="body2">
-                                            <strong>Brand:</strong> {customer.carBrand}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Plate:</strong> {customer.plateNumber}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Due Date:</strong> {formatDate(customer.dueDate)}
-                                        </Typography>
-                                    </Box>
+                                    <Divider sx={{ mb: 2.5, borderStyle: 'dashed' }} />
 
-                                    {/* Action Buttons */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => navigate(`/customers/${customer.id}`)}
-                                            sx={{ color: '#1976d2' }}
-                                        >
-                                            <Icon icon="mdi:eye-outline" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => navigate(`/customers/edit/${customer.id}`)}
-                                            sx={{ color: '#ed6c02' }}
-                                        >
-                                            <Icon icon="mdi:pencil-outline" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => openDeleteDialog(customer)}
-                                            sx={{ color: '#d32f2f' }}
-                                        >
-                                            <Icon icon="mdi:trash-can-outline" />
-                                        </IconButton>
-                                    </Box>
+                                    <Grid container spacing={2} sx={{ mb: 2.5 }}>
+                                        <Grid item xs={6}>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>VEHICLE</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{customer.carBrand}</Typography>
+                                            <Typography variant="caption" sx={{ color: '#64748B' }}>{customer.plateNumber}</Typography>
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>DUE DATE</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', mt: 0.5 }}>{formatDate(customer.dueDate)}</Typography>
+                                            <Typography variant="caption" sx={{ color: customer.status === 'Active' ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+                                                {customer.status === 'Active' ? 'Insurance Active' : customer.status === 'Expired' ? 'Expired' : 'Terminated'}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1, borderTop: '1px solid #F8FAFC' }}>
+                                        <IconButton size="small" onClick={() => navigate(`/customers/${customer.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:eye-outline" width={22} /></IconButton>
+                                        <IconButton size="small" onClick={() => navigate(`/customers/edit/${customer.id}`)} sx={{ color: '#64748B' }}><Icon icon="mdi:pencil-outline" width={22} /></IconButton>
+                                        <IconButton size="small" onClick={() => openDeleteDialog(customer)} sx={{ color: '#64748B' }}><Icon icon="mdi:trash-can-outline" width={22} /></IconButton>
+                                    </Stack>
                                 </CardContent>
                             </Card>
                         ))}
-                    </Box>
+                    </Stack>
                 )}
 
-                {/* Pagination - Show 5 per page */}
+                {/* Pagination */}
                 {totalRecords > 0 && (
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mt: 3,
-                        pt: 2,
-                        borderTop: '1px solid #e0e0e0',
-                        flexWrap: 'wrap',
-                        gap: 2
-                    }}>
-                        <Typography variant="body2" color="text.secondary">
-                            Showing {startIndex + 1} - {Math.min(endIndex, totalRecords)} of {totalRecords}
-                            <br />
-                            <Typography variant="caption" color="text.secondary">
-                                Page {dataSourceOptions.page + 1} of {Math.ceil(totalRecords / mobileLimit)}
+                    <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E2E8F0', pb: 4 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                Showing <b>{startIndex + 1}-{Math.min(endIndex, totalRecords)}</b> of <b>{totalRecords}</b>
                             </Typography>
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#64748B' }}>
+                                Page <b>{dataSourceOptions.page + 1}</b> of <b>{Math.ceil(totalRecords / mobileLimit)}</b>
+                            </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={2}>
                             <Button
-                                size="small"
+                                fullWidth
+                                variant="outlined"
                                 disabled={dataSourceOptions.page === 0}
                                 onClick={() => setDataSourceOptions(prev => ({ ...prev, page: prev.page - 1 }))}
-                                variant="outlined"
-                                startIcon={<Icon icon="mdi:chevron-left" />}
+                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#E2E8F0', color: '#64748B' }}
                             >
                                 Prev
                             </Button>
                             <Button
-                                size="small"
+                                fullWidth
+                                variant="outlined"
                                 disabled={endIndex >= totalRecords}
                                 onClick={() => setDataSourceOptions(prev => ({ ...prev, page: prev.page + 1 }))}
-                                variant="contained"
-                                endIcon={<Icon icon="mdi:chevron-right" />}
+                                sx={{ borderRadius: '12px', py: 1.25, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1E3A8A', color: '#1E3A8A' }}
                             >
                                 Next
                             </Button>
-                        </Box>
+                        </Stack>
                     </Box>
                 )}
             </Box>
