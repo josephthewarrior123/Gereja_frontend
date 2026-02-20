@@ -23,17 +23,115 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  alpha
+  alpha,
+  Collapse,
+  Fade,
 } from '@mui/material';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useAlert } from '../../hooks/SnackbarProvider';
 import CustomerDAO from '../../daos/CustomerDao';
 import CompanyDAO from '../../daos/CompanyDao';
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+const C = {
+  bg: '#F4F5F7',
+  white: '#FFFFFF',
+  border: '#E4E6EA',
+  borderFocus: '#1971C2',
+  primary: '#1971C2',
+  primaryLight: '#EBF4FF',
+  text: '#1C1E21',
+  textSub: '#606770',
+  textMuted: '#9EA8B3',
+  error: '#D92B2B',
+  success: '#1E8840',
+  successLight: '#EBF8EF',
+  stepIdle: '#C8CDD4',
+};
+
+const inputStyle = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '8px',
+    fontSize: 14,
+    bgcolor: '#FFFFFF',
+    '& fieldset': { borderColor: '#E4E6EA' },
+    '&:hover fieldset': { borderColor: '#B0B5BC' },
+    '&.Mui-focused fieldset': { borderColor: '#1971C2', borderWidth: '1.5px' },
+  },
+};
+
+const STEPS = [
+  { label: 'Details',  icon: '1' },
+  { label: 'Coverage', icon: '2' },
+  { label: 'Review',   icon: '3' },
+];
+
+function WizardStepper({ active }) {
+  return (
+    <Box display="flex" alignItems="flex-start" justifyContent="center" mb={4}>
+      {STEPS.map((step, i) => {
+        const done = i < active;
+        const current = i === active;
+        return (
+          <Box key={i} display="flex" alignItems="flex-start">
+            <Box display="flex" flexDirection="column" alignItems="center" sx={{ minWidth: 72 }}>
+              <Box
+                sx={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: done || current ? '#1971C2' : '#FFFFFF',
+                  border: `2px solid ${done || current ? '#1971C2' : '#C8CDD4'}`,
+                  boxShadow: current ? `0 0 0 4px ${alpha('#1971C2', 0.15)}` : 'none',
+                  transition: 'all 0.25s',
+                }}
+              >
+                {done
+                  ? <Icon icon="mdi:check" width={16} color="#fff" />
+                  : <Typography fontSize={13} fontWeight={700} sx={{ color: current ? '#fff' : '#C8CDD4' }}>{step.icon}</Typography>
+                }
+              </Box>
+              <Typography fontSize={12} fontWeight={current ? 700 : 500} mt={0.75}
+                sx={{ color: current ? '#1971C2' : done ? '#606770' : '#C8CDD4' }}>
+                {step.label}
+              </Typography>
+            </Box>
+            {i < STEPS.length - 1 && (
+              <Box sx={{ width: 64, height: 2, bgcolor: i < active ? '#1971C2' : '#C8CDD4', mt: '17px', transition: 'background-color 0.3s', flexShrink: 0 }} />
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
+function Section({ title, action, children }) {
+  return (
+    <Box mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography fontSize={15} fontWeight={700} sx={{ color: '#1C1E21' }}>{title}</Typography>
+        {action}
+      </Box>
+      {children}
+    </Box>
+  );
+}
+
+function Field({ label, required, hint, children }) {
+  return (
+    <Box mb={2.5}>
+      <Box display="flex" alignItems="baseline" gap={0.4} mb={0.75}>
+        <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{label}</Typography>
+        {required && <Typography fontSize={13} sx={{ color: '#D92B2B' }}>*</Typography>}
+      </Box>
+      {hint && <Typography fontSize={12} sx={{ color: '#606770', mb: 0.75 }}>{hint}</Typography>}
+      {children}
+    </Box>
+  );
+}
 
 export default function CreateQuotationPage() {
   const navigate = useNavigate();
@@ -41,356 +139,152 @@ export default function CreateQuotationPage() {
   const message = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  // const logoInputRef = useRef(null); // COMMENTED: Logo functionality
 
-  // ============ Company / Header ============
+  const [activeStep, setActiveStep] = useState(0);
   const [companyProfile, setCompanyProfile] = useState(null);
   const [companyName, setCompanyName] = useState('PT. JAYAINDO ARTHA SUKSES');
   const [companySubtitle, setCompanySubtitle] = useState('INSURANCE AGENCY');
   const [companyCity, setCompanyCity] = useState('Jakarta');
-  // const [companyLogo, setCompanyLogo] = useState(null); // COMMENTED: Logo functionality
-  // const [logoFile, setLogoFile] = useState(null); // COMMENTED: Logo functionality
-  // const [logoPreview, setLogoPreview] = useState(null); // COMMENTED: Logo functionality
-
-  // ============ Customer Selection ============
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
-
-  // ============ Quotation Data ============
   const [quotationNumber, setQuotationNumber] = useState('');
   const [tsi, setTsi] = useState('');
-
-  // ============ Preview Dialog ============
   const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
 
   const [coverages, setCoverages] = useState({
-    comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
-    flood: { enabled: false, percentage: 0.1, freeInclude: false },
-    earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
-    typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
-    landslide: { enabled: false, percentage: 0.05, freeInclude: false },
-    waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
-    thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
-    authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true }
+    comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
+    flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
+    earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
+    typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
+    landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
+    waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
+    thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
+    authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
   });
 
-  const coverageLabels = useMemo(
-    () => ({
-      comprehensive: 'Comprehensive',
-      flood: 'Banjir',
-      earthquake: 'Gempa Bumi',
-      typhoonAndStorm: 'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
-      landslide: 'Tanah Longsor',
-      waterHammer: 'Water Hammer',
-      thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
-      authorizedWorkshop: 'Authorized Workshop'
-    }),
-    []
-  );
+  const coverageLabels = useMemo(() => ({
+    comprehensive:       'Comprehensive',
+    flood:               'Banjir',
+    earthquake:          'Gempa Bumi',
+    typhoonAndStorm:     'Angin Topan, Badai, Taifun, Hujan Es, Tornado',
+    landslide:           'Tanah Longsor',
+    waterHammer:         'Water Hammer',
+    thirdPartyLiability: 'Tanggung Jawab Hukum Pihak III',
+    authorizedWorkshop:  'Authorized Workshop',
+  }), []);
 
   const [calculations, setCalculations] = useState({
-    itemAmounts: {},
-    subtotal: 0,
-    adminFee: 50000,
-    stampDuty: 10000,
-    totalPremium: 0
+    itemAmounts: {}, subtotal: 0, adminFee: 50000, stampDuty: 10000, totalPremium: 0,
   });
 
-  // ============ Effects ============
-  useEffect(() => {
-    fetchCompanyProfile();
-    fetchCustomers();
-    generateQuotationNumber();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { fetchCompanyProfile(); fetchCustomers(); generateQuotationNumber(); }, []); // eslint-disable-line
+  useEffect(() => { calculateTotals(); }, [tsi, coverages]); // eslint-disable-line
 
-  useEffect(() => {
-    calculateTotals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tsi, coverages, calculations.adminFee, calculations.stampDuty]);
-
-  // ============ Helpers ============
   const roundIDR = (n) => Math.round(Number(n) || 0);
+  const fmt = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(v) || 0);
+  const fmtNum = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(Number(v) || 0);
+  const fmtShort = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v) || 0);
 
-  const formatCurrencyShort = (value) => {
-    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
-      Number(value) || 0
-    );
-  };
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(Number(value) || 0);
-  };
-
-  const formatCurrencyIDR = (value) => {
-    return new Intl.NumberFormat('id-ID', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
-      Number(value) || 0
-    );
-  };
-
-  // ============ Fetch Company Profile ============
   const fetchCompanyProfile = async () => {
     try {
-      const response = await CompanyDAO.getCompanyProfile();
-      
-      console.log('🔍 GET Response:', response);
-      
-      if (response.success && response.profile) {
-        setCompanyProfile(response.profile);
-        setCompanyName(response.profile.companyName || 'PT. JAYAINDO ARTHA SUKSES');
-        setCompanySubtitle(response.profile.companySubtitle || 'INSURANCE AGENCY');
-        setCompanyCity(response.profile.companyCity || 'Jakarta');
-        // setCompanyLogo(response.profile.companyLogo?.url || null); // COMMENTED: Logo functionality
+      const r = await CompanyDAO.getCompanyProfile();
+      if (r.success && r.profile) {
+        setCompanyProfile(r.profile);
+        setCompanyName(r.profile.companyName || 'PT. JAYAINDO ARTHA SUKSES');
+        setCompanySubtitle(r.profile.companySubtitle || 'INSURANCE AGENCY');
+        setCompanyCity(r.profile.companyCity || 'Jakarta');
       }
-    } catch (error) {
-      console.error('Error fetching company profile:', error);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const fetchCustomers = async () => {
     try {
       loading.start();
-      const response = await CustomerDAO.getAllCustomers();
-      if (response.success) setCustomers(response.customers || []);
+      const r = await CustomerDAO.getAllCustomers();
+      if (r.success) setCustomers(r.customers || []);
       else message('Failed to load customers', 'error');
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      message('Failed to load customers', 'error');
-    } finally {
-      loading.stop();
-    }
+    } catch (e) { console.error(e); message('Failed to load customers', 'error'); }
+    finally { loading.stop(); }
   };
 
   const generateQuotationNumber = () => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const d = new Date();
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    setQuotationNumber(`QUO-${year}${month}-${random}`);
+    setQuotationNumber(`QUO-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${random}`);
   };
-
-  // ============ Logo Handlers - COMMENTED OUT ============
-  /*
-  const handleLogoClick = () => {
-    logoInputRef.current?.click();
-  };
-
-  const handleLogoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      message('Please select an image file', 'error');
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      message('Image size must be less than 2MB', 'error');
-      return;
-    }
-
-    setLogoFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setLogoPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveLogo = () => {
-    setLogoFile(null);
-    setLogoPreview(null);
-    if (logoInputRef.current) {
-      logoInputRef.current.value = '';
-    }
-  };
-  */
 
   const handleSaveCompanyProfile = async () => {
+    if (!companyName?.trim()) { message('Company name is required', 'error'); return; }
     try {
-      if (!companyName || companyName.trim() === '') {
-        message('Company name is required', 'error');
-        return;
-      }
-
       loading.start();
-
-      const profileData = {
-        companyName: companyName.trim(),
-        companySubtitle: companySubtitle?.trim() || '',
-        companyCity: companyCity?.trim() || ''
-      };
-
-      console.log('🔍 Profile data being sent:', profileData);
-
-      let profileResponse;
-      
-      if (companyProfile && companyProfile.createdAt) {
-        console.log('📝 Updating existing profile...');
-        profileResponse = await CompanyDAO.updateCompanyProfile(profileData);
-      } else {
-        console.log('✨ Creating new profile...');
-        profileResponse = await CompanyDAO.createCompanyProfile(profileData);
-      }
-
-      if (!profileResponse.success) {
-        message(profileResponse.error || 'Failed to save company profile', 'error');
-        return;
-      }
-
-      // COMMENTED: Logo upload functionality
-      /*
-      if (logoFile) {
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-
-        const logoResponse = await CompanyDAO.uploadCompanyLogo(formData);
-        if (logoResponse.success) {
-          setCompanyLogo(logoResponse.logo.url);
-          message('Company profile and logo saved successfully!', 'success');
-        } else {
-          message('Profile saved but logo upload failed', 'warning');
-        }
-      } else {
-        message('Company profile saved successfully!', 'success');
-      }
-      */
-      
-      message('Company profile saved successfully!', 'success');
+      const data = { companyName: companyName.trim(), companySubtitle: companySubtitle?.trim() || '', companyCity: companyCity?.trim() || '' };
+      const r = companyProfile?.createdAt ? await CompanyDAO.updateCompanyProfile(data) : await CompanyDAO.createCompanyProfile(data);
+      if (!r.success) { message(r.error || 'Failed to save', 'error'); return; }
+      message('Company profile saved!', 'success');
       await fetchCompanyProfile();
-      
-    } catch (error) {
-      console.error('Error saving company profile:', error);
-      message('Failed to save company profile', 'error');
-    } finally {
-      loading.stop();
-    }
+    } catch (e) { console.error(e); message('Failed to save', 'error'); }
+    finally { loading.stop(); }
   };
 
-  const handleCoverageToggle = (coverageKey) => {
-    setCoverages((prev) => ({
-      ...prev,
-      [coverageKey]: { ...prev[coverageKey], enabled: !prev[coverageKey].enabled }
-    }));
-  };
-
-  const handleFreeIncludeToggle = (coverageKey) => {
-    setCoverages((prev) => ({
-      ...prev,
-      [coverageKey]: { ...prev[coverageKey], freeInclude: !prev[coverageKey].freeInclude }
-    }));
-  };
-
-  const handlePercentageChange = (coverageKey, value) => {
-    const num = parseFloat(value);
-    const safe = Number.isFinite(num) ? num : 0;
-    setCoverages((prev) => ({
-      ...prev,
-      [coverageKey]: { ...prev[coverageKey], percentage: safe }
-    }));
+  const toggleCoverage = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], enabled: !p[key].enabled } }));
+  const toggleFree = (key) => setCoverages(p => ({ ...p, [key]: { ...p[key], freeInclude: !p[key].freeInclude } }));
+  const setPct = (key, val) => {
+    const n = parseFloat(val);
+    setCoverages(p => ({ ...p, [key]: { ...p[key], percentage: Number.isFinite(n) ? n : 0 } }));
   };
 
   const calculateTotals = () => {
-    const tsiValue = Number(tsi) || 0;
-
+    const tv = Number(tsi) || 0;
     const itemAmounts = {};
     let subtotal = 0;
-
-    Object.keys(coverages).forEach((key) => {
-      const c = coverages[key];
-      if (!c.enabled) {
-        itemAmounts[key] = 0;
-        return;
-      }
-
-      if (c.freeInclude) {
-        itemAmounts[key] = 0;
-        return;
-      }
-
-      const pct = Number(c.percentage) || 0;
-      const amount = roundIDR((tsiValue * pct) / 100);
-      itemAmounts[key] = amount;
-      subtotal += amount;
+    Object.keys(coverages).forEach((k) => {
+      const c = coverages[k];
+      if (!c.enabled || c.freeInclude) { itemAmounts[k] = 0; return; }
+      const amt = roundIDR((tv * (Number(c.percentage) || 0)) / 100);
+      itemAmounts[k] = amt;
+      subtotal += amt;
     });
-
-    const adminFee = calculations.adminFee ?? 50000;
-    const stampDuty = calculations.stampDuty ?? 10000;
-
-    setCalculations((prev) => ({
-      ...prev,
-      itemAmounts,
-      subtotal,
-      totalPremium: subtotal + adminFee + stampDuty
-    }));
+    const adminFee = 50000, stampDuty = 10000;
+    setCalculations(p => ({ ...p, itemAmounts, subtotal, totalPremium: subtotal + adminFee + stampDuty }));
   };
 
-  const handleSubmit = async () => {
-    if (!selectedCustomer) {
-      message('Please select a customer', 'error');
-      return;
+  const handleNext = () => {
+    if (activeStep === 0) {
+      if (!selectedCustomer) { message('Please select a customer', 'error'); return; }
+      if (!tsi || Number(tsi) <= 0) { message('Please enter a valid TSI amount', 'error'); return; }
     }
-    if (!tsi || Number(tsi) <= 0) {
-      message('Please enter valid TSI amount', 'error');
-      return;
-    }
+    setActiveStep(s => s + 1);
+  };
+  const handleBack = () => setActiveStep(s => s - 1);
 
+  const handleReset = () => {
+    setSelectedCustomer(null); setTsi(''); setActiveStep(0);
+    setCoverages({
+      comprehensive:       { enabled: true,  percentage: 1.32, freeInclude: false },
+      flood:               { enabled: false, percentage: 0.1,  freeInclude: false },
+      earthquake:          { enabled: false, percentage: 0.12, freeInclude: false },
+      typhoonAndStorm:     { enabled: false, percentage: 0.05, freeInclude: false },
+      landslide:           { enabled: false, percentage: 0.05, freeInclude: false },
+      waterHammer:         { enabled: false, percentage: 0.05, freeInclude: true  },
+      thirdPartyLiability: { enabled: false, percentage: 0.5,  freeInclude: false },
+      authorizedWorkshop:  { enabled: false, percentage: 0.05, freeInclude: true  },
+    });
+    generateQuotationNumber();
+  };
+
+  const handleDownload = () => {
+    if (!selectedCustomer || !tsi || Number(tsi) <= 0) { message('Please complete the form first', 'error'); return; }
     setOpenPreviewDialog(true);
   };
 
   const handleConfirmDownload = () => {
-    try {
-      loading.start();
-      generatePDF();
-      message('Quotation PDF generated successfully!', 'success');
-      setOpenPreviewDialog(false);
-    } catch (error) {
-      console.error('Error creating quotation:', error);
-      message('Failed to generate quotation', 'error');
-    } finally {
-      loading.stop();
-    }
+    try { loading.start(); generatePDF(); message('PDF generated!', 'success'); setOpenPreviewDialog(false); }
+    catch (e) { console.error(e); message('Failed to generate PDF', 'error'); }
+    finally { loading.stop(); }
   };
 
-  const handlePrint = () => {
-    if (!selectedCustomer || !tsi) {
-      message('Please complete the form first', 'error');
-      return;
-    }
-    window.print();
-  };
-
-  const handleReset = () => {
-    setSelectedCustomer(null);
-    setTsi('');
-    setCoverages({
-      comprehensive: { enabled: true, percentage: 1.32, freeInclude: false },
-      flood: { enabled: false, percentage: 0.1, freeInclude: false },
-      earthquake: { enabled: false, percentage: 0.12, freeInclude: false },
-      typhoonAndStorm: { enabled: false, percentage: 0.05, freeInclude: false },
-      landslide: { enabled: false, percentage: 0.05, freeInclude: false },
-      waterHammer: { enabled: false, percentage: 0.05, freeInclude: true },
-      thirdPartyLiability: { enabled: false, percentage: 0.5, freeInclude: false },
-      authorizedWorkshop: { enabled: false, percentage: 0.05, freeInclude: true }
-    });
-    setCalculations((prev) => ({
-      ...prev,
-      itemAmounts: {},
-      subtotal: 0,
-      totalPremium: (prev.adminFee ?? 50000) + (prev.stampDuty ?? 10000)
-    }));
-    generateQuotationNumber();
-  };
-
-  // ============ PDF ============
   const generatePDF = () => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -399,19 +293,6 @@ export default function CreateQuotationPage() {
     const rightX = pageWidth - marginX;
 
     let currentY = 18;
-
-    // COMMENTED: Logo in PDF
-    /*
-    const logoToUse = logoPreview || companyLogo;
-    if (logoToUse) {
-      try {
-        doc.addImage(logoToUse, 'PNG', marginX, currentY, 25, 25);
-        currentY += 28;
-      } catch (err) {
-        console.error('Error adding logo to PDF:', err);
-      }
-    }
-    */
 
     doc.setFont(undefined, 'bold');
     doc.setFontSize(16);
@@ -461,7 +342,7 @@ export default function CreateQuotationPage() {
     currentY += 7;
     row(currentY, 'No Polisi', selectedCustomer.carData?.plateNumber || 'TBA');
     currentY += 7;
-    row(currentY, 'Harga TSI', `${formatCurrencyIDR(Number(tsi) || 0)} (IDR)`);
+    row(currentY, 'Harga TSI', `${fmtNum(Number(tsi) || 0)} (IDR)`);
     currentY += 12;
 
     const coverageBody = Object.keys(coverages)
@@ -477,31 +358,30 @@ export default function CreateQuotationPage() {
       head: [['Coverage', 'Rate']],
       body: coverageBody,
       theme: 'plain',
-      styles: { 
-        fontSize: 9.5, 
+      styles: {
+        fontSize: 9.5,
         cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
         overflow: 'linebreak'
       },
-      headStyles: { 
-        fontStyle: 'bold', 
+      headStyles: {
+        fontStyle: 'bold',
         textColor: [0, 0, 0]
       },
       columnStyles: {
         0: { cellWidth: 120, halign: 'left' },
         1: { cellWidth: 35, halign: 'right' }
       },
-      didParseCell: function(data) {
+      didParseCell: function (data) {
         if (data.section === 'head') {
           if (data.column.index === 0) {
             data.cell.styles.halign = 'left';
           }
-          
           if (data.column.index === 1) {
             data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 1.6, 
+            data.cell.styles.cellPadding = {
+              top: 1.6,
               right: 5,
-              bottom: 1.6, 
+              bottom: 1.6,
               left: 2
             };
           }
@@ -523,13 +403,13 @@ export default function CreateQuotationPage() {
       const pct = Number(c.percentage) || 0;
       const amount = roundIDR((tsiValue * pct) / 100);
 
-      const formattedBase = `Rp ${formatCurrencyShort(tsiValue)}`;
-      
+      const formattedBase = `Rp ${fmtShort(tsiValue)}`;
+
       calcBody.push([
         coverageLabels[key],
         formattedBase,
         `x ${pct} %`,
-        formatCurrency(amount)
+        fmt(amount)
       ]);
     });
 
@@ -538,7 +418,7 @@ export default function CreateQuotationPage() {
         'Admin Fee',
         'Rp 50.000',
         '',
-        formatCurrency(calculations.adminFee)
+        fmt(calculations.adminFee)
       ]);
     }
     if ((calculations.stampDuty ?? 0) > 0) {
@@ -546,7 +426,7 @@ export default function CreateQuotationPage() {
         'Stamp Duty',
         'Rp 10.000',
         '',
-        formatCurrency(calculations.stampDuty)
+        fmt(calculations.stampDuty)
       ]);
     }
 
@@ -554,7 +434,7 @@ export default function CreateQuotationPage() {
       { content: 'Total Premi', styles: { fontStyle: 'bold' } },
       { content: '', styles: { fontStyle: 'bold' } },
       { content: '', styles: { fontStyle: 'bold' } },
-      { content: formatCurrency(calculations.totalPremium), styles: { fontStyle: 'bold' } }
+      { content: fmt(calculations.totalPremium), styles: { fontStyle: 'bold' } }
     ]);
 
     autoTable(doc, {
@@ -562,14 +442,14 @@ export default function CreateQuotationPage() {
       head: [['Item', 'Base', 'Rate', 'Amount']],
       body: calcBody,
       theme: 'striped',
-      styles: { 
-        fontSize: 9, 
+      styles: {
+        fontSize: 9,
         cellPadding: 2.6,
         overflow: 'linebreak'
       },
-      headStyles: { 
-        fillColor: [235, 235, 235], 
-        textColor: [0, 0, 0], 
+      headStyles: {
+        fillColor: [235, 235, 235],
+        textColor: [0, 0, 0],
         fontStyle: 'bold'
       },
       columnStyles: {
@@ -578,83 +458,68 @@ export default function CreateQuotationPage() {
         2: { cellWidth: 25, halign: 'right' },
         3: { cellWidth: 'auto', halign: 'right' }
       },
-      didParseCell: function(data) {
+      didParseCell: function (data) {
         if (data.section === 'head') {
           if (data.column.index === 0) {
             data.cell.styles.halign = 'left';
           }
-          
           if (data.column.index === 1) {
             data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 2.6, 
+            data.cell.styles.cellPadding = {
+              top: 2.6,
               right: 20,
-              bottom: 2.6, 
+              bottom: 2.6,
               left: 2
             };
           }
-          
           if (data.column.index === 2) {
             data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 2.6, 
+            data.cell.styles.cellPadding = {
+              top: 2.6,
               right: 10,
-              bottom: 2.6, 
+              bottom: 2.6,
               left: 2
             };
           }
-          
           if (data.column.index === 3) {
             data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 2.6, 
+            data.cell.styles.cellPadding = {
+              top: 2.6,
               right: 5,
-              bottom: 2.6, 
+              bottom: 2.6,
               left: 2
             };
           }
         }
-        
+
         if (data.section === 'body') {
           if (data.column.index === 0) {
             data.cell.styles.halign = 'left';
           }
-          
           if (data.column.index === 1) {
             data.cell.styles.halign = 'right';
-            if (data.cell.text[0] === 'Rp 50.000' || data.cell.text[0] === 'Rp 10.000') {
-              data.cell.styles.cellPadding = { 
-                top: 2.6, 
-                right: 12,
-                bottom: 2.6, 
-                left: 2
-              };
-            } else {
-              data.cell.styles.cellPadding = { 
-                top: 2.6, 
-                right: 12,
-                bottom: 2.6, 
-                left: 2
-              };
-            }
-          }
-          
-          if (data.column.index === 2) {
-            data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 2.6, 
-              right: 5,
-              bottom: 2.6, 
+            data.cell.styles.cellPadding = {
+              top: 2.6,
+              right: 12,
+              bottom: 2.6,
               left: 2
             };
           }
-          
+          if (data.column.index === 2) {
+            data.cell.styles.halign = 'right';
+            data.cell.styles.cellPadding = {
+              top: 2.6,
+              right: 5,
+              bottom: 2.6,
+              left: 2
+            };
+          }
           if (data.column.index === 3) {
             data.cell.styles.halign = 'right';
-            data.cell.styles.cellPadding = { 
-              top: 2.6, 
+            data.cell.styles.cellPadding = {
+              top: 2.6,
               right: 3,
-              bottom: 2.6, 
+              bottom: 2.6,
               left: 2
             };
           }
@@ -666,1006 +531,458 @@ export default function CreateQuotationPage() {
     doc.save(`Quotation_${quotationNumber}.pdf`);
   };
 
-  // ============ UI helpers ============
   const filteredCustomers = useMemo(() => {
-    const search = customerSearch.toLowerCase();
-    return customers.filter((c) => {
-      return (
-        c.name?.toLowerCase().includes(search) ||
-        c.phone?.toLowerCase().includes(search) ||
-        c.carData?.carBrand?.toLowerCase().includes(search) ||
-        c.carData?.plateNumber?.toLowerCase().includes(search)
-      );
-    });
+    const s = customerSearch.toLowerCase();
+    return customers.filter(c =>
+      c.name?.toLowerCase().includes(s) ||
+      c.phone?.toLowerCase().includes(s) ||
+      c.carData?.carBrand?.toLowerCase().includes(s) ||
+      c.carData?.plateNumber?.toLowerCase().includes(s)
+    );
   }, [customers, customerSearch]);
 
-  const chipLabelFor = (key) => {
-    const c = coverages[key];
-    if (!c.enabled) return '';
-    if (c.freeInclude) return 'FREE INCLUDE';
-    return formatCurrency(calculations.itemAmounts?.[key] ?? 0);
-  };
-
-  const rightTextForCalc = (key) => {
-    const c = coverages[key];
-    if (!c.enabled) return null;
-    if (c.freeInclude) return 'FREE INCLUDE';
-    return formatCurrency(calculations.itemAmounts?.[key] ?? 0);
-  };
+  const enabledKeys = Object.keys(coverages).filter(k => coverages[k].enabled);
 
   return (
-    <Box sx={{ bgcolor: '#F8F9FA', minHeight: '100vh' }}>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography variant="h5" fontWeight={600} sx={{ color: '#1a1a1a' }}>
-            Create Quotation
+    <Box sx={{ bgcolor: '#F4F5F7', minHeight: '100vh', py: 4 }}>
+      <Container maxWidth="sm">
+
+        {/* Title */}
+        <Box mb={3}>
+          <Button
+            startIcon={<Icon icon="mdi:arrow-left" width={16} />}
+            onClick={() => navigate(-1)}
+            sx={{ textTransform: 'none', fontSize: 13, fontWeight: 500, color: '#606770', mb: 1.5, pl: 0, '&:hover': { bgcolor: 'transparent', color: '#1C1E21' } }}
+          >
+            Back
+          </Button>
+          <Typography variant="h5" fontWeight={700} align="center" sx={{ color: '#1C1E21' }}>
+            New Quotation
+          </Typography>
+          <Typography fontSize={13} align="center" sx={{ color: '#606770', mt: 0.5 }}>
+            Generate an insurance quotation PDF for your customer
           </Typography>
         </Box>
 
-        <Grid container spacing={3}>
-          {/* LEFT COLUMN */}
-          <Grid item xs={12} md={7}>
-            {/* Company Header Section */}
-            <Card 
-              sx={{ 
-                mb: 3, 
-                borderRadius: 2,
-                border: '1px solid #E8E8E8',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Icon icon="mdi:office-building" width={20} color="#1976d2" />
-                  <Typography fontSize={15} fontWeight={600} sx={{ color: '#1a1a1a' }}>
-                    Company Header (PDF)
-                  </Typography>
-                </Box>
+        <WizardStepper active={activeStep} />
 
-                <Grid container spacing={2.5}>
-                  {/* Logo Upload - COMMENTED OUT */}
-                  <Grid item xs={12} md={4}>
-                    <Typography fontSize={13} fontWeight={500} mb={1.5} sx={{ color: '#5a5a5a' }}>
-                      Company Logo (Coming Soon)
-                    </Typography>
-                    
+        {/* ── STEP 1 ── */}
+        {activeStep === 0 && (
+          <Fade in key="s1">
+            <Box>
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section
+                  title="Company Header"
+                  action={
+                    <Button size="small" onClick={handleSaveCompanyProfile}
+                      sx={{ textTransform: 'none', fontSize: 12, fontWeight: 600, color: '#1971C2', minWidth: 0 }}>
+                      Save
+                    </Button>
+                  }
+                >
+                  <Field label="Company Name" required>
+                    <TextField fullWidth size="small" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="e.g., PT. Maju Jaya Abadi" error={!companyName?.trim()} sx={inputStyle} />
+                  </Field>
+                  <Field label="Subtitle">
+                    <TextField fullWidth size="small" value={companySubtitle} onChange={(e) => setCompanySubtitle(e.target.value)}
+                      placeholder="e.g., INSURANCE AGENCY" sx={inputStyle} />
+                  </Field>
+                  <Field label="City">
+                    <TextField fullWidth size="small" value={companyCity} onChange={(e) => setCompanyCity(e.target.value)}
+                      placeholder="Jakarta" sx={inputStyle} />
+                  </Field>
+                </Section>
+              </Paper>
+
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Customer">
+                  <Field label="Select Customer" required>
                     <Box
+                      onClick={() => setOpenCustomerDialog(true)}
                       sx={{
-                        width: '100%',
-                        height: 160,
-                        border: '1.5px dashed #D0D0D0',
-                        borderRadius: 1.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: '#FAFAFA',
-                        overflow: 'hidden',
-                        mb: 1.5
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        px: 1.5, py: '9px',
+                        border: `1px solid ${selectedCustomer ? '#1971C2' : '#E4E6EA'}`,
+                        borderRadius: '8px',
+                        bgcolor: selectedCustomer ? '#EBF4FF' : '#FFFFFF',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        '&:hover': { borderColor: selectedCustomer ? '#1971C2' : '#B0B5BC' },
                       }}
                     >
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Icon icon="mdi:image-plus" width={40} color="#C0C0C0" />
-                        <Typography fontSize={12} color="text.secondary" mt={1}>
-                          Logo upload temporarily disabled
+                      <Box display="flex" alignItems="center" gap={1.25}>
+                        <Icon icon="mdi:account-search" width={18} color={selectedCustomer ? '#1971C2' : '#9EA8B3'} />
+                        <Typography fontSize={14} sx={{ color: selectedCustomer ? '#1C1E21' : '#9EA8B3' }}>
+                          {selectedCustomer ? `${selectedCustomer.name} — ${selectedCustomer.carData?.plateNumber || 'No Plate'}` : 'Search and select customer...'}
                         </Typography>
                       </Box>
+                      {selectedCustomer
+                        ? <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} sx={{ p: 0.25 }}><Icon icon="mdi:close" width={15} color="#606770" /></IconButton>
+                        : <Icon icon="mdi:chevron-down" width={18} color="#9EA8B3" />
+                      }
                     </Box>
+                  </Field>
 
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      disabled
-                      startIcon={<Icon icon="mdi:upload" width={16} />}
-                      sx={{ 
-                        borderRadius: 1.5,
-                        textTransform: 'none',
-                        fontSize: 13,
-                        fontWeight: 500,
-                        borderColor: '#D0D0D0',
-                        color: '#5a5a5a',
-                        mb: 1,
-                      }}
-                    >
-                      Upload Logo (Coming Soon)
-                    </Button>
-
-                    <Typography variant="caption" display="block" color="text.secondary" mt={1} sx={{ fontSize: 11 }}>
-                      Logo feature temporarily disabled
-                    </Typography>
-
-                    {/* COMMENTED: Hidden file input
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      style={{ display: 'none' }}
-                    />
-                    */}
-                  </Grid>
-
-                  {/* Company Details */}
-                  <Grid item xs={12} md={8}>
-                    <Grid container spacing={2.5}>
-                      <Grid item xs={12}>
-                        <Typography fontSize={13} fontWeight={500} mb={1} sx={{ color: '#5a5a5a' }}>
-                          Company Name *
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="e.g., PT. Maju Jaya Abadi"
-                          required
-                          error={!companyName || companyName.trim() === ''}
-                          helperText={(!companyName || companyName.trim() === '') ? 'Company name is required' : ''}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 1.5,
-                              fontSize: 14,
-                              bgcolor: 'white',
-                              '& fieldset': { borderColor: '#E0E0E0' },
-                              '&:hover fieldset': { borderColor: '#B0B0B0' },
-                              '&.Mui-focused fieldset': { borderColor: '#1976d2', borderWidth: 1.5 }
-                            }
-                          }}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <Typography fontSize={13} fontWeight={500} mb={1} sx={{ color: '#5a5a5a' }}>
-                          Subtitle
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          value={companySubtitle}
-                          onChange={(e) => setCompanySubtitle(e.target.value)}
-                          placeholder="e.g., Solusi Teknologi Terdepan"
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 1.5,
-                              fontSize: 14,
-                              bgcolor: 'white',
-                              '& fieldset': { borderColor: '#E0E0E0' },
-                              '&:hover fieldset': { borderColor: '#B0B0B0' },
-                              '&.Mui-focused fieldset': { borderColor: '#1976d2', borderWidth: 1.5 }
-                            }
-                          }}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <Typography fontSize={13} fontWeight={500} mb={1} sx={{ color: '#5a5a5a' }}>
-                          City
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          value={companyCity}
-                          onChange={(e) => setCompanyCity(e.target.value)}
-                          placeholder="Jakarta"
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 1.5,
-                              fontSize: 14,
-                              bgcolor: 'white',
-                              '& fieldset': { borderColor: '#E0E0E0' },
-                              '&:hover fieldset': { borderColor: '#B0B0B0' },
-                              '&.Mui-focused fieldset': { borderColor: '#1976d2', borderWidth: 1.5 }
-                            }
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Grid>
-
-                  {/* Save Button - Bottom Right */}
-                  <Grid item xs={12}>
-                    <Box display="flex" justifyContent="flex-end">
-                      <Button
-                        variant="contained"
-                        onClick={handleSaveCompanyProfile}
-                        startIcon={<Icon icon="mdi:content-save" width={16} />}
-                        sx={{ 
-                          borderRadius: 1.5,
-                          textTransform: 'none',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          px: 3,
-                          boxShadow: 'none',
-                          '&:hover': { boxShadow: '0 2px 8px rgba(25,118,210,0.25)' }
-                        }}
-                      >
-                        Save Profile
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-
-            {/* Customer Information */}
-            <Card 
-              sx={{ 
-                mb: 3, 
-                borderRadius: 2,
-                border: '1px solid #E8E8E8',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Icon icon="mdi:account" width={20} color="#1976d2" />
-                  <Typography fontSize={15} fontWeight={600} sx={{ color: '#1a1a1a' }}>
-                    Customer Information
-                  </Typography>
-                </Box>
-
-                <Typography fontSize={13} fontWeight={500} mb={1} sx={{ color: '#5a5a5a' }}>
-                  Client *
-                </Typography>
-
-                <TextField
-                  fullWidth
-                  placeholder="Search and select client..."
-                  value={
-                    selectedCustomer
-                      ? `${selectedCustomer.name} (${selectedCustomer.carData?.plateNumber || 'No Plate'})`
-                      : ''
-                  }
-                  onClick={() => setOpenCustomerDialog(true)}
-                  InputProps={{
-                    readOnly: true,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Icon icon="mdi:account-search" width={18} color="#9E9E9E" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {selectedCustomer ? (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCustomer(null);
-                            }}
-                          >
-                            <Icon icon="mdi:close" width={16} />
-                          </IconButton>
-                        ) : (
-                          <Icon icon="mdi:chevron-down" width={18} color="#9E9E9E" />
-                        )}
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{
-                    mb: selectedCustomer ? 2.5 : 0,
-                    '& .MuiOutlinedInput-root': {
-                      cursor: 'pointer',
-                      borderRadius: 1.5,
-                      fontSize: 14,
-                      bgcolor: selectedCustomer ? alpha('#1976d2', 0.04) : 'white',
-                      '& fieldset': { borderColor: selectedCustomer ? '#1976d2' : '#E0E0E0' },
-                      '&:hover fieldset': { borderColor: '#1976d2' }
-                    }
-                  }}
-                />
-
-                {selectedCustomer && (
-                  <Paper 
-                    sx={{ 
-                      p: 2.5, 
-                      borderRadius: 1.5, 
-                      bgcolor: '#FAFAFA',
-                      border: '1px solid #F0F0F0'
-                    }}
-                  >
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Customer Name
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.name}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Phone
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.phone || '-'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Car Brand
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.carData?.carBrand || '-'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Model
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.carData?.carModel || '-'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Plate Number
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.carData?.plateNumber || '-'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography fontSize={11} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          Year
-                        </Typography>
-                        <Typography fontSize={14} fontWeight={500}>
-                          {selectedCustomer.carData?.carYear || '-'}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* TSI Amount */}
-            <Card 
-              sx={{ 
-                mb: 3, 
-                borderRadius: 2,
-                border: '1px solid #E8E8E8',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Icon icon="mdi:cash" width={20} color="#1976d2" />
-                  <Typography fontSize={15} fontWeight={600} sx={{ color: '#1a1a1a' }}>
-                    Total Sum Insured (TSI)
-                  </Typography>
-                </Box>
-
-                <Typography fontSize={13} fontWeight={500} mb={1} sx={{ color: '#5a5a5a' }}>
-                  Amount (IDR) *
-                </Typography>
-
-                <TextField
-                  fullWidth
-                  type="number"
-                  placeholder="e.g., 400000000"
-                  value={tsi}
-                  onChange={(e) => setTsi(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Typography fontWeight={600} fontSize={14}>Rp</Typography>
-                      </InputAdornment>
-                    )
-                  }}
-                  helperText="Nilai pertanggungan kendaraan"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 1.5,
-                      fontSize: 14,
-                      bgcolor: 'white',
-                      '& fieldset': { borderColor: '#E0E0E0' },
-                      '&:hover fieldset': { borderColor: '#B0B0B0' },
-                      '&.Mui-focused fieldset': { borderColor: '#1976d2', borderWidth: 1.5 }
-                    }
-                  }}
-                />
-
-                {tsi && (
-                  <Box sx={{ mt: 2.5, p: 2.5, borderRadius: 1.5, bgcolor: alpha('#1976d2', 0.06), border: `1px solid ${alpha('#1976d2', 0.15)}` }}>
-                    <Typography fontSize={12} color="text.secondary" mb={0.5} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      TSI Amount
-                    </Typography>
-                    <Typography fontSize={22} fontWeight={700} color="#1976d2">
-                      {formatCurrency(Number(tsi) || 0)}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Coverage Options */}
-            <Card 
-              sx={{ 
-                borderRadius: 2,
-                border: '1px solid #E8E8E8',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Icon icon="mdi:shield-check" width={20} color="#1976d2" />
-                  <Typography fontSize={15} fontWeight={600} sx={{ color: '#1a1a1a' }}>
-                    Coverage Options
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {Object.keys(coverages).map((key) => {
-                    const c = coverages[key];
-                    return (
-                      <Paper
-                        key={key}
-                        sx={{
-                          p: 2,
-                          borderRadius: 1.5,
-                          border: c.enabled ? '1.5px solid #1976d2' : '1px solid #E8E8E8',
-                          bgcolor: c.enabled ? alpha('#1976d2', 0.02) : 'white',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2} mb={c.enabled ? 1.5 : 0}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={c.enabled}
-                                onChange={() => handleCoverageToggle(key)}
-                                sx={{ 
-                                  color: '#D0D0D0', 
-                                  '&.Mui-checked': { color: '#1976d2' }
-                                }}
-                              />
-                            }
-                            label={
-                              <Typography fontSize={14} fontWeight={500} sx={{ color: '#1a1a1a' }}>
-                                {coverageLabels[key]}
-                              </Typography>
-                            }
-                          />
-
-                          {c.enabled && (
-                            <Chip
-                              label={chipLabelFor(key)}
-                              size="small"
-                              sx={{
-                                bgcolor: c.freeInclude ? alpha('#2e7d32', 0.15) : alpha('#1976d2', 0.15),
-                                color: c.freeInclude ? '#2e7d32' : '#1976d2',
-                                fontWeight: 600,
-                                fontSize: 11,
-                                whiteSpace: 'nowrap',
-                                height: 24
-                              }}
-                            />
-                          )}
-                        </Stack>
-
-                        {c.enabled && (
-                          <Grid container spacing={1.5} alignItems="center">
-                            <Grid item xs={12} sm="auto">
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    checked={c.freeInclude}
-                                    onChange={() => handleFreeIncludeToggle(key)}
-                                    size="small"
-                                  />
-                                }
-                                label={
-                                  <Typography fontSize={12} fontWeight={500} sx={{ color: '#5a5a5a' }}>
-                                    FREE INCLUDE
-                                  </Typography>
-                                }
-                              />
-                            </Grid>
-
-                            <Grid item xs={12} sm>
-                              <Box display="flex" gap={1} alignItems="center">
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  value={c.percentage}
-                                  disabled={c.freeInclude}
-                                  onChange={(e) => handlePercentageChange(key, e.target.value)}
-                                  inputProps={{ step: 0.01, min: 0, max: 100 }}
-                                  InputProps={{
-                                    endAdornment: (
-                                      <InputAdornment position="end">
-                                        <Typography fontSize={12}>%</Typography>
-                                      </InputAdornment>
-                                    )
-                                  }}
-                                  sx={{ 
-                                    width: 120,
-                                    '& .MuiOutlinedInput-root': {
-                                      borderRadius: 1.5,
-                                      fontSize: 13,
-                                      '& fieldset': { borderColor: '#E0E0E0' },
-                                      '&:hover fieldset': { borderColor: '#B0B0B0' },
-                                      '&.Mui-focused fieldset': { borderColor: '#1976d2' }
-                                    }
-                                  }}
-                                />
-                                <Typography fontSize={12} color="text.secondary">
-                                  dari TSI
-                                </Typography>
-                              </Box>
-                            </Grid>
+                  {selectedCustomer && (
+                    <Box sx={{ mt: -1.5, mb: 0.5, p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
+                      <Grid container spacing={1.5}>
+                        {[
+                          { label: 'Phone', value: selectedCustomer.phone },
+                          { label: 'Vehicle', value: `${selectedCustomer.carData?.carBrand || ''} ${selectedCustomer.carData?.carModel || ''}`.trim() },
+                          { label: 'Plate', value: selectedCustomer.carData?.plateNumber },
+                          { label: 'Address', value: selectedCustomer.address },
+                        ].map(({ label, value }) => (
+                          <Grid item xs={6} key={label}>
+                            <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.2 }}>{label}</Typography>
+                            <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
                           </Grid>
-                        )}
-                      </Paper>
-                    );
-                  })}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
+                  )}
+                </Section>
 
-          {/* RIGHT COLUMN - Calculator */}
-          <Grid item xs={12} md={5}>
-            <Box sx={{ position: { xs: 'static', md: 'sticky' }, top: { md: 24 } }}>
-              <Card 
-                sx={{ 
-                  borderRadius: 2,
-                  border: '1.5px solid #1976d2',
-                  boxShadow: '0 4px 12px rgba(25,118,210,0.12)'
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                    <Icon icon="mdi:calculator" width={20} color="#1976d2" />
-                    <Typography fontSize={15} fontWeight={600} sx={{ color: '#1a1a1a' }}>
-                      Premium Calculation
-                    </Typography>
-                  </Box>
+                <Divider sx={{ borderColor: '#E4E6EA', my: 2.5 }} />
 
-                  <Box sx={{ mb: 2.5 }}>
+                <Section title="Total Sum Insured (TSI)">
+                  <Field label="Amount (IDR)" required hint="Nilai pertanggungan kendaraan">
+                    <TextField fullWidth size="small" type="number" placeholder="e.g., 400000000"
+                      value={tsi} onChange={(e) => setTsi(e.target.value)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Typography fontSize={13} fontWeight={700} sx={{ color: '#606770' }}>Rp</Typography></InputAdornment>,
+                      }}
+                      sx={inputStyle}
+                    />
+                  </Field>
+                  {tsi && Number(tsi) > 0 && (
+                    <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
+                      <Typography fontSize={11} sx={{ color: '#1971C2', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>TSI Amount</Typography>
+                      <Typography fontSize={20} fontWeight={700} sx={{ color: '#1971C2' }}>{fmt(Number(tsi))}</Typography>
+                    </Box>
+                  )}
+                </Section>
+              </Paper>
+
+              <Button fullWidth variant="contained" onClick={handleNext}
+                endIcon={<Icon icon="mdi:arrow-right" width={16} />}
+                sx={{ borderRadius: '8px', py: 1.4, textTransform: 'none', fontSize: 14, fontWeight: 600, bgcolor: '#1971C2', boxShadow: 'none', '&:hover': { bgcolor: '#145EA8' } }}>
+                Continue to Coverage
+              </Button>
+            </Box>
+          </Fade>
+        )}
+
+        {/* ── STEP 2 ── */}
+        {activeStep === 1 && (
+          <Fade in key="s2">
+            <Box>
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Coverage Options">
+                  <Stack spacing={1.25}>
                     {Object.keys(coverages).map((key) => {
                       const c = coverages[key];
-                      if (!c.enabled) return null;
-
-                      const right = rightTextForCalc(key);
                       return (
-                        <Box key={key} display="flex" justifyContent="space-between" alignItems="center" mb={1.2} gap={2}>
-                          <Typography fontSize={13} color="text.secondary">
-                            {coverageLabels[key]}
-                          </Typography>
-                          <Typography
-                            fontSize={13}
-                            fontWeight={600}
-                            sx={{ 
-                              whiteSpace: 'nowrap', 
-                              color: c.freeInclude ? '#2e7d32' : '#1a1a1a' 
-                            }}
-                          >
-                            {right}
-                          </Typography>
+                        <Box key={key} sx={{
+                          borderRadius: '8px',
+                          border: `1px solid ${c.enabled ? '#1971C2' : '#E4E6EA'}`,
+                          bgcolor: c.enabled ? '#EBF4FF' : '#FAFBFC',
+                          overflow: 'hidden', transition: 'all 0.15s',
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, cursor: 'pointer' }}
+                            onClick={() => toggleCoverage(key)}>
+                            <Box display="flex" alignItems="center" gap={1.25}>
+                              <Box sx={{
+                                width: 18, height: 18, borderRadius: '4px',
+                                border: `2px solid ${c.enabled ? '#1971C2' : '#C8CDD4'}`,
+                                bgcolor: c.enabled ? '#1971C2' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s',
+                              }}>
+                                {c.enabled && <Icon icon="mdi:check" width={12} color="#fff" />}
+                              </Box>
+                              <Typography fontSize={13.5} fontWeight={c.enabled ? 600 : 400} sx={{ color: c.enabled ? '#1C1E21' : '#606770' }}>
+                                {coverageLabels[key]}
+                              </Typography>
+                            </Box>
+                            {c.enabled && (
+                              <Chip
+                                label={c.freeInclude ? 'FREE' : fmt(calculations.itemAmounts?.[key] ?? 0)}
+                                size="small"
+                                sx={{
+                                  height: 22, fontSize: 11, fontWeight: 700, ml: 1.5,
+                                  bgcolor: c.freeInclude ? '#EBF8EF' : alpha('#1971C2', 0.12),
+                                  color: c.freeInclude ? '#1E8840' : '#1971C2',
+                                }}
+                              />
+                            )}
+                          </Box>
+                          <Collapse in={c.enabled}>
+                            <Divider sx={{ borderColor: alpha('#1971C2', 0.15) }} />
+                            <Box sx={{ px: 2, py: 1.5, bgcolor: alpha('#1971C2', 0.025) }}>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems={{ sm: 'center' }}>
+                                <FormControlLabel
+                                  control={<Checkbox checked={c.freeInclude} onChange={() => toggleFree(key)} size="small" sx={{ p: 0.5, '&.Mui-checked': { color: '#1E8840' } }} />}
+                                  label={<Typography fontSize={12} fontWeight={600} sx={{ color: '#1E8840' }}>FREE INCLUDE</Typography>}
+                                  sx={{ m: 0 }}
+                                />
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <TextField size="small" type="number" value={c.percentage} disabled={c.freeInclude}
+                                    onChange={(e) => setPct(key, e.target.value)}
+                                    inputProps={{ step: 0.01, min: 0, max: 100 }}
+                                    InputProps={{ endAdornment: <InputAdornment position="end"><Typography fontSize={12} sx={{ color: '#606770' }}>%</Typography></InputAdornment> }}
+                                    sx={{ width: 100, '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: 13, bgcolor: c.freeInclude ? '#F0F0F0' : '#FFFFFF', '& fieldset': { borderColor: '#E4E6EA' }, '&.Mui-focused fieldset': { borderColor: '#1971C2' } } }}
+                                  />
+                                  <Typography fontSize={12} sx={{ color: '#606770' }}>dari TSI</Typography>
+                                </Box>
+                              </Stack>
+                            </Box>
+                          </Collapse>
                         </Box>
                       );
                     })}
-                  </Box>
+                  </Stack>
+                </Section>
+              </Paper>
 
-                  <Divider sx={{ my: 2.5 }} />
-
-                  <Box display="flex" justifyContent="space-between" mb={1.5} gap={2}>
-                    <Typography fontSize={14} fontWeight={600}>
-                      Subtotal Coverage
-                    </Typography>
-                    <Typography fontSize={14} fontWeight={700}>
-                      {formatCurrency(calculations.subtotal)}
-                    </Typography>
-                  </Box>
-
-                  <Divider sx={{ my: 2.5 }} />
-
-                  <Box display="flex" justifyContent="space-between" mb={1} gap={2}>
-                    <Typography fontSize={13} color="text.secondary">Admin Fee</Typography>
-                    <Typography fontSize={13} fontWeight={500}>
-                      {formatCurrency(calculations.adminFee)}
-                    </Typography>
-                  </Box>
-
-                  <Box display="flex" justifyContent="space-between" mb={2.5} gap={2}>
-                    <Typography fontSize={13} color="text.secondary">Stamp Duty</Typography>
-                    <Typography fontSize={13} fontWeight={500}>
-                      {formatCurrency(calculations.stampDuty)}
-                    </Typography>
-                  </Box>
-
-                  <Divider sx={{ my: 2.5 }} />
-
-                  <Box
-                    sx={{
-                      p: 2.5,
-                      borderRadius: 1.5,
-                      bgcolor: alpha('#1976d2', 0.08),
-                      border: `1px solid ${alpha('#1976d2', 0.2)}`
-                    }}
-                  >
-                    <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={2}>
-                      <Typography fontSize={14} fontWeight={700} sx={{ color: '#1a1a1a' }}>
-                        TOTAL PREMIUM
-                      </Typography>
-                      <Typography
-                        fontSize={20}
-                        fontWeight={700}
-                        color="#1976d2"
-                      >
-                        {formatCurrency(calculations.totalPremium)}
-                      </Typography>
+              {/* Premium Summary */}
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Premium Summary">
+                  {enabledKeys.length === 0 ? (
+                    <Typography fontSize={13} sx={{ color: '#9EA8B3', textAlign: 'center', py: 2 }}>No coverage selected</Typography>
+                  ) : (
+                    <Stack spacing={0.9} mb={2}>
+                      {enabledKeys.map(key => {
+                        const c = coverages[key];
+                        return (
+                          <Box key={key} display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
+                            <Typography fontSize={13} sx={{ color: '#606770', flex: 1 }}>{coverageLabels[key]}</Typography>
+                            <Typography fontSize={13} fontWeight={600} sx={{ color: c.freeInclude ? '#1E8840' : '#1C1E21', whiteSpace: 'nowrap' }}>
+                              {c.freeInclude ? 'FREE' : fmt(calculations.itemAmounts?.[key] ?? 0)}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                  <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
+                  <Stack spacing={0.75} mb={2}>
+                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Subtotal</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{fmt(calculations.subtotal)}</Typography></Box>
+                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
+                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
+                  </Stack>
+                  <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}` }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="baseline">
+                      <Typography fontSize={13} fontWeight={700} sx={{ color: '#1971C2' }}>TOTAL PREMIUM</Typography>
+                      <Typography fontSize={20} fontWeight={800} sx={{ color: '#1971C2' }}>{fmt(calculations.totalPremium)}</Typography>
                     </Box>
                   </Box>
+                </Section>
+              </Paper>
 
-                  <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    <Box sx={{ display: 'flex', gap: 1.5 }}>
-                      <Button 
-                        fullWidth 
-                        variant="outlined" 
-                        onClick={handleReset}
-                        sx={{ 
-                          borderRadius: 1.5, 
-                          py: 1.2,
-                          textTransform: 'none',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          borderColor: '#D0D0D0',
-                          color: '#5a5a5a',
-                          '&:hover': {
-                            borderColor: '#B0B0B0',
-                            bgcolor: alpha('#000', 0.02)
-                          }
-                        }}
-                      >
-                        Reset
-                      </Button>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        onClick={handlePrint}
-                        disabled={!selectedCustomer || !tsi}
-                        startIcon={<Icon icon="mdi:printer" width={16} />}
-                        sx={{ 
-                          borderRadius: 1.5, 
-                          py: 1.2,
-                          textTransform: 'none',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          borderColor: '#D0D0D0',
-                          color: '#5a5a5a',
-                          '&:hover': {
-                            borderColor: '#B0B0B0',
-                            bgcolor: alpha('#000', 0.02)
-                          }
-                        }}
-                      >
-                        Print
-                      </Button>
-                    </Box>
+              <Box display="flex" gap={1.5}>
+                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={16} />}
+                  sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+                  Back
+                </Button>
+                <Button fullWidth variant="contained" onClick={handleNext} endIcon={<Icon icon="mdi:arrow-right" width={16} />}
+                  sx={{ borderRadius: '8px', py: 1.3, textTransform: 'none', fontSize: 13, fontWeight: 600, bgcolor: '#1971C2', boxShadow: 'none' }}>
+                  Review
+                </Button>
+              </Box>
+            </Box>
+          </Fade>
+        )}
 
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      onClick={handleSubmit}
-                      disabled={!selectedCustomer || !tsi}
-                      startIcon={<Icon icon="mdi:file-pdf-box" width={16} />}
-                      sx={{ 
-                        bgcolor: '#d32f2f', 
-                        borderRadius: 1.5, 
-                        py: 1.4,
-                        textTransform: 'none',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        boxShadow: 'none',
-                        '&:hover': { 
-                          bgcolor: '#b71c1c',
-                          boxShadow: '0 4px 12px rgba(211,47,47,0.3)'
-                        }
-                      }}
-                    >
-                      Preview & Download PDF
-                    </Button>
+        {/* ── STEP 3 ── */}
+        {activeStep === 2 && (
+          <Fade in key="s3">
+            <Box>
+              {/* Company */}
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Company">
+                  <Box sx={{ p: 2, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA', textAlign: 'center' }}>
+                    <Typography fontSize={15} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName?.toUpperCase()}</Typography>
+                    <Typography fontSize={12} sx={{ color: '#606770', mt: 0.25 }}>{companySubtitle}</Typography>
+                    <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{companyCity}</Typography>
                   </Box>
-                </CardContent>
-              </Card>
+                </Section>
+              </Paper>
+
+              {/* Customer */}
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Customer Details">
+                  <Grid container spacing={2}>
+                    {[
+                      { label: 'Name', value: selectedCustomer?.name },
+                      { label: 'Phone', value: selectedCustomer?.phone },
+                      { label: 'Address', value: selectedCustomer?.address },
+                      { label: 'Plate', value: selectedCustomer?.carData?.plateNumber },
+                      { label: 'Vehicle', value: `${selectedCustomer?.carData?.carBrand || ''} ${selectedCustomer?.carData?.carModel || ''}`.trim() },
+                      { label: 'TSI', value: fmt(Number(tsi)) },
+                    ].map(({ label, value }) => (
+                      <Grid item xs={6} key={label}>
+                        <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4, mb: 0.3 }}>{label}</Typography>
+                        <Typography fontSize={13.5} fontWeight={500} sx={{ color: '#1C1E21' }}>{value || '—'}</Typography>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Section>
+              </Paper>
+
+              {/* Coverage + Premium */}
+              <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E4E6EA', bgcolor: '#FFFFFF', p: 3, mb: 2 }}>
+                <Section title="Coverage & Premium">
+                  <Stack spacing={1} mb={2}>
+                    {enabledKeys.map(key => {
+                      const c = coverages[key];
+                      return (
+                        <Box key={key} display="flex" justifyContent="space-between" alignItems="center" gap={2}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Icon icon="mdi:check-circle-outline" width={15} color="#1971C2" />
+                            <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
+                          </Box>
+                          <Chip label={c.freeInclude ? 'FREE' : `${c.percentage}%`} size="small"
+                            sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: c.freeInclude ? '#EBF8EF' : '#EBF4FF', color: c.freeInclude ? '#1E8840' : '#1971C2' }} />
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                  <Divider sx={{ borderColor: '#E4E6EA', my: 2 }} />
+                  <Stack spacing={0.75} mb={2}>
+                    {enabledKeys.filter(k => !coverages[k].freeInclude).map(key => (
+                      <Box key={key} display="flex" justifyContent="space-between">
+                        <Typography fontSize={13} sx={{ color: '#606770' }}>{coverageLabels[key]}</Typography>
+                        <Typography fontSize={13} fontWeight={500} sx={{ color: '#1C1E21' }}>{fmt(calculations.itemAmounts?.[key] ?? 0)}</Typography>
+                      </Box>
+                    ))}
+                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Admin Fee</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.adminFee)}</Typography></Box>
+                    <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Stamp Duty</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(calculations.stampDuty)}</Typography></Box>
+                  </Stack>
+                  <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#EBF4FF', border: `1px solid ${alpha('#1971C2', 0.2)}`, mb: 2 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="baseline">
+                      <Typography fontSize={14} fontWeight={700} sx={{ color: '#1971C2' }}>TOTAL PREMIUM</Typography>
+                      <Typography fontSize={22} fontWeight={800} sx={{ color: '#1971C2' }}>{fmt(calculations.totalPremium)}</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ p: 1.75, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
+                    <Typography fontSize={11} sx={{ color: '#9EA8B3', textTransform: 'uppercase', letterSpacing: 0.4 }}>Quotation No.</Typography>
+                    <Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21', fontFamily: 'monospace', mt: 0.25 }}>{quotationNumber}</Typography>
+                  </Box>
+                </Section>
+              </Paper>
+
+              <Button fullWidth variant="contained" onClick={handleDownload}
+                startIcon={<Icon icon="mdi:file-pdf-box" width={18} />}
+                sx={{ borderRadius: '8px', py: 1.5, textTransform: 'none', fontSize: 14, fontWeight: 600, bgcolor: '#D32F2F', boxShadow: 'none', mb: 1.5, '&:hover': { bgcolor: '#B71C1C', boxShadow: '0 4px 12px rgba(211,47,47,0.3)' } }}>
+                Download PDF
+              </Button>
+
+              <Box display="flex" gap={1.5}>
+                <Button fullWidth variant="outlined" onClick={handleBack} startIcon={<Icon icon="mdi:arrow-left" width={15} />}
+                  sx={{ borderRadius: '8px', py: 1.25, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+                  Edit Coverage
+                </Button>
+                <Button fullWidth variant="outlined" onClick={handleReset} startIcon={<Icon icon="mdi:refresh" width={15} />}
+                  sx={{ borderRadius: '8px', py: 1.25, textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+                  Start Over
+                </Button>
+              </Box>
             </Box>
-          </Grid>
-        </Grid>
+          </Fade>
+        )}
 
-        {/* Customer Dialog */}
-        <Dialog
-          open={openCustomerDialog}
-          onClose={() => {
-            setOpenCustomerDialog(false);
-            setCustomerSearch('');
-          }}
-          maxWidth="sm"
-          fullWidth
-          fullScreen={isMobile}
-          PaperProps={{
-            sx: {
-              borderRadius: isMobile ? 0 : 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-            }
-          }}
-        >
-          <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
-              <IconButton 
-                onClick={() => setOpenCustomerDialog(false)} 
-                sx={{ mr: 1 }}
-              >
-                <Icon icon="mdi:arrow-left" width={20} />
-              </IconButton>
-              <Typography variant="h6" fontWeight={600}>
-                Select Customer
-              </Typography>
-            </Box>
+      </Container>
 
-            <TextField
-              fullWidth
-              autoFocus
-              placeholder="Search customer..."
-              value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Icon icon="mdi:magnify" width={20} color="#9E9E9E" />
-                  </InputAdornment>
-                )
-              }}
-              sx={{ 
-                mb: 2.5,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 1.5,
-                  fontSize: 14,
-                  '& fieldset': { borderColor: '#E0E0E0' },
-                  '&:hover fieldset': { borderColor: '#B0B0B0' },
-                  '&.Mui-focused fieldset': { borderColor: '#1976d2' }
-                }
-              }}
-            />
-
-            <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-              {filteredCustomers.map((customer) => (
-                <Card
-                  key={customer.id}
-                  sx={{
-                    mb: 1.5,
-                    borderRadius: 1.5,
-                    cursor: 'pointer',
-                    bgcolor: selectedCustomer?.id === customer.id ? alpha('#1976d2', 0.08) : 'white',
-                    border: selectedCustomer?.id === customer.id ? '1.5px solid #1976d2' : '1px solid #E8E8E8',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      bgcolor: selectedCustomer?.id === customer.id ? alpha('#1976d2', 0.08) : '#FAFAFA',
-                      borderColor: '#1976d2'
-                    },
-                    '&:active': { transform: 'scale(0.99)' }
-                  }}
-                  onClick={() => {
-                    setSelectedCustomer(customer);
-                    setOpenCustomerDialog(false);
-                    setCustomerSearch('');
-                  }}
-                >
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar 
-                        sx={{ 
-                          bgcolor: '#1976d2', 
-                          width: 40, 
-                          height: 40,
-                          fontSize: 16,
-                          fontWeight: 600
-                        }}
-                      >
+      {/* Customer Dialog */}
+      <Dialog open={openCustomerDialog} onClose={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }}
+        maxWidth="xs" fullWidth fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: isMobile ? 0 : '12px', m: 2 } }}>
+        <Box sx={{ p: 2.5 }}>
+          <Box display="flex" alignItems="center" mb={2}>
+            <IconButton size="small" onClick={() => { setOpenCustomerDialog(false); setCustomerSearch(''); }} sx={{ mr: 1 }}>
+              <Icon icon="mdi:arrow-left" width={20} color="#606770" />
+            </IconButton>
+            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Select Customer</Typography>
+          </Box>
+          <TextField fullWidth autoFocus size="small" placeholder="Search by name, phone, or plate..."
+            value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" width={18} color="#9EA8B3" /></InputAdornment> }}
+            sx={{ mb: 2, ...inputStyle }} />
+          <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+            {filteredCustomers.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 5 }}>
+                <Icon icon="mdi:account-search" width={44} color="#C8CDD4" />
+                <Typography fontSize={14} sx={{ color: '#606770', mt: 1.5 }}>No customers found</Typography>
+                {customerSearch && <Button onClick={() => setCustomerSearch('')} sx={{ mt: 1, textTransform: 'none', fontSize: 12, color: '#1971C2' }}>Clear search</Button>}
+              </Box>
+            ) : (
+              <Stack spacing={1}>
+                {filteredCustomers.map((customer) => {
+                  const sel = selectedCustomer?.id === customer.id;
+                  return (
+                    <Box key={customer.id} onClick={() => { setSelectedCustomer(customer); setOpenCustomerDialog(false); setCustomerSearch(''); }}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '8px', cursor: 'pointer',
+                        border: `1px solid ${sel ? '#1971C2' : '#E4E6EA'}`,
+                        bgcolor: sel ? '#EBF4FF' : '#FFFFFF', transition: 'all 0.15s',
+                        '&:hover': { borderColor: '#1971C2', bgcolor: sel ? '#EBF4FF' : '#FAFBFC' },
+                      }}>
+                      <Avatar sx={{ width: 38, height: 38, bgcolor: '#1971C2', fontSize: 15, fontWeight: 700 }}>
                         {customer.name?.charAt(0)?.toUpperCase() || 'C'}
                       </Avatar>
-
-                      <Box flex={1}>
-                        <Typography fontWeight={600} fontSize={14} sx={{ color: '#1a1a1a' }}>
-                          {customer.name}
-                          {selectedCustomer?.id === customer.id && (
-                            <Icon 
-                              icon="mdi:check-circle" 
-                              color="#1976d2" 
-                              width={16}
-                              style={{ marginLeft: 6, verticalAlign: 'middle' }} 
-                            />
-                          )}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" fontSize={12}>
-                          {customer.phone || 'No phone'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" fontSize={12}>
-                          {customer.carData?.carBrand || 'No Car'} • {customer.carData?.plateNumber || 'No Plate'}
-                        </Typography>
+                      <Box flex={1} minWidth={0}>
+                        <Typography fontSize={13.5} fontWeight={600} sx={{ color: '#1C1E21' }}>{customer.name}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#606770' }}>{customer.phone || '—'}</Typography>
+                        <Typography fontSize={12} sx={{ color: '#9EA8B3' }}>{customer.carData?.carBrand || 'No car'} · {customer.carData?.plateNumber || 'No plate'}</Typography>
                       </Box>
-
-                      <Icon icon="mdi:chevron-right" color="#C0C0C0" width={20} />
+                      {sel && <Icon icon="mdi:check-circle" width={18} color="#1971C2" />}
                     </Box>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredCustomers.length === 0 && (
-                <Box sx={{ textAlign: 'center', py: 6 }}>
-                  <Icon icon="mdi:account-search" width={48} color="#D0D0D0" />
-                  <Typography color="text.secondary" mt={2} fontSize={14}>
-                    No customers found
-                  </Typography>
-                  <Button 
-                    variant="text" 
-                    onClick={() => setCustomerSearch('')} 
-                    sx={{ 
-                      mt: 1.5,
-                      textTransform: 'none',
-                      fontSize: 13
-                    }}
-                  >
-                    Clear Search
-                  </Button>
-                </Box>
-              )}
-            </Box>
+                  );
+                })}
+              </Stack>
+            )}
           </Box>
-        </Dialog>
+        </Box>
+      </Dialog>
 
-        {/* Preview Dialog */}
-        <Dialog
-          open={openPreviewDialog}
-          onClose={() => setOpenPreviewDialog(false)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-            }
-          }}
-        >
-          <DialogTitle>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Icon icon="mdi:file-pdf-box" width={24} color="#d32f2f" />
-              <Typography variant="h6" fontWeight={600}>
-                Preview Quotation
-              </Typography>
+      {/* Preview Dialog */}
+      <Dialog open={openPreviewDialog} onClose={() => setOpenPreviewDialog(false)}
+        maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '12px', m: 2 } }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Icon icon="mdi:file-pdf-box" width={22} color="#D32F2F" />
+            <Typography fontSize={16} fontWeight={700} sx={{ color: '#1C1E21' }}>Preview Quotation</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ p: 2.5, borderRadius: '8px', bgcolor: '#F8F9FA', border: '1px solid #E4E6EA' }}>
+            <Box textAlign="center" mb={2}>
+              <Typography fontSize={14} fontWeight={700} sx={{ color: '#1C1E21' }}>{companyName}</Typography>
+              <Typography fontSize={12} sx={{ color: '#606770' }}>{companySubtitle} · {companyCity}</Typography>
             </Box>
-          </DialogTitle>
-          
-          <DialogContent dividers>
-            <Paper 
-              sx={{ 
-                p: 3, 
-                bgcolor: '#FAFAFA', 
-                borderRadius: 1.5,
-                border: '1px solid #F0F0F0'
-              }}
-            >
-              {/* Preview Header - Logo temporarily disabled */}
-              <Box display="flex" gap={2} mb={3} alignItems="center">
-                {/*
-                {(logoPreview || companyLogo) && (
-                  <Box
-                    sx={{
-                      width: 60,
-                      height: 60,
-                      border: '1px solid #E0E0E0',
-                      borderRadius: 1.5,
-                      overflow: 'hidden',
-                      bgcolor: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <img
-                      src={logoPreview || companyLogo}
-                      alt="Logo Preview"
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </Box>
-                )}
-                */}
-                
-                <Box flex={1}>
-                  <Typography variant="h6" fontWeight={600} fontSize={16}>
-                    {companyName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" fontSize={13}>
-                    {companySubtitle}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" fontSize={12}>
-                    {companyCity}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Customer Info */}
-              <Box mb={2}>
-                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: 11 }}>
-                  Customer
-                </Typography>
-                <Typography variant="body1" fontWeight={600} fontSize={14}>
-                  {selectedCustomer?.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" fontSize={13}>
-                  {selectedCustomer?.carData?.carBrand} {selectedCustomer?.carData?.carModel} • {selectedCustomer?.carData?.plateNumber}
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Summary */}
-              <Box>
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2" fontSize={13}>TSI</Typography>
-                  <Typography variant="body2" fontWeight={600} fontSize={13}>
-                    {formatCurrency(Number(tsi) || 0)}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2" fontSize={13}>Total Premium</Typography>
-                  <Typography variant="body2" fontWeight={700} color="#d32f2f" fontSize={14}>
-                    {formatCurrency(calculations.totalPremium)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
-
-            <Box mt={2.5}>
-              <Typography variant="caption" color="text.secondary" fontSize={12}>
-                📄 PDF will include company info, customer details, coverage breakdown, and premium calculation. (Logo temporarily disabled)
-              </Typography>
-            </Box>
-          </DialogContent>
-
-          <DialogActions sx={{ p: 2.5 }}>
-            <Button
-              onClick={() => setOpenPreviewDialog(false)}
-              variant="outlined"
-              sx={{ 
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontSize: 13,
-                fontWeight: 500,
-                borderColor: '#D0D0D0',
-                color: '#5a5a5a'
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmDownload}
-              variant="contained"
-              startIcon={<Icon icon="mdi:download" width={16} />}
-              sx={{ 
-                bgcolor: '#d32f2f', 
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontSize: 13,
-                fontWeight: 500,
-                boxShadow: 'none',
-                '&:hover': { 
-                  bgcolor: '#b71c1c',
-                  boxShadow: '0 4px 12px rgba(211,47,47,0.3)'
-                }
-              }}
-            >
-              Download PDF
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
+            <Divider sx={{ borderColor: '#E4E6EA', my: 1.5 }} />
+            <Stack spacing={0.75}>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Customer</Typography><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>{selectedCustomer?.name}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>Vehicle</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{selectedCustomer?.carData?.plateNumber}</Typography></Box>
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} sx={{ color: '#606770' }}>TSI</Typography><Typography fontSize={13} sx={{ color: '#1C1E21' }}>{fmt(Number(tsi))}</Typography></Box>
+              <Divider sx={{ borderColor: '#E4E6EA', my: 0.5 }} />
+              <Box display="flex" justifyContent="space-between"><Typography fontSize={13} fontWeight={600} sx={{ color: '#1C1E21' }}>Total Premium</Typography><Typography fontSize={15} fontWeight={700} sx={{ color: '#D32F2F' }}>{fmt(calculations.totalPremium)}</Typography></Box>
+            </Stack>
+          </Box>
+          <Typography fontSize={12} sx={{ color: '#9EA8B3', mt: 2, display: 'block' }}>
+            PDF will include full coverage breakdown and calculation.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 0, gap: 1 }}>
+          <Button onClick={() => setOpenPreviewDialog(false)} variant="outlined"
+            sx={{ flex: 1, borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, borderColor: '#E4E6EA', color: '#606770' }}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDownload} variant="contained" startIcon={<Icon icon="mdi:download" width={15} />}
+            sx={{ flex: 1, bgcolor: '#D32F2F', borderRadius: '8px', textTransform: 'none', fontSize: 13, fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#B71C1C' } }}>
+            Download PDF
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
