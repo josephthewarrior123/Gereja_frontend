@@ -31,11 +31,7 @@ export default function DashboardLayout() {
   }, [user, isLoading, navigate]);
 
   const sections = [
-    {
-      icon: 'heroicons:rectangle-group',
-      label: 'Dashboard',
-      title: 'Dashboard',
-    },
+    { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
     {
       icon: 'heroicons:users',
       label: 'Customers',

@@ -14,6 +14,7 @@ import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import PropertyListPage from './pages/Property/PropertyList';
 import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
 import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
+import DashboardPage from './pages/dashboard/Dashboard';
 
 
 export default function AppRoutes() {
@@ -43,6 +44,9 @@ export default function AppRoutes() {
                 <Route path="quotations">
                     <Route path="create" element={<CreateQuotationPage />} />
                 </Route>
+
+                {/* Dashboard Routes */}
+                <Route path="dashboard" element={<DashboardPage />} />
 
                 {/* Invoices Routes */}
                 <Route path="invoices">
