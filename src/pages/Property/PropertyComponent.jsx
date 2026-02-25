@@ -1,19 +1,16 @@
-// PropertyComponentNativeSelect.jsx - Using Native HTML Select
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { Dialog } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
+import {
+    Dialog,
+    useMediaQuery,
+    useTheme,
+} from '@mui/material';
 import dayjs from 'dayjs';
-import { useFormik } from 'formik';
-import { useEffect, useState } from 'react';
-import * as Yup from 'yup';
 import PropertyDAO from '../../daos/propertyDao';
 import { useLoading } from '../../hooks/LoadingProvider.jsx';
 import { useAlert } from '../../hooks/SnackbarProvider.jsx';
-import { useUser } from '../../hooks/UserProvider';
-import {
-    CustomButton,
-    CustomTextInput,
-} from '../../reusables';
+import FormInput from '../../reusables/form/FormInput';
+import FormFileUpload from '../../reusables/form/FormFileUpload';
 
 const PROPERTY_TYPES = {
     HOUSE: 'House',
@@ -32,378 +29,113 @@ const COVERAGE_TYPES = {
     BASIC: 'Basic'
 };
 
-// Helper function untuk format number input
 const formatNumberInput = (value) => {
     if (!value) return '';
     return value.toString().replace(/[^0-9.]/g, '');
 };
 
-// Helper function untuk menentukan status berdasarkan endDate
 const determineStatus = (endDate) => {
     if (!endDate) return 'Active';
-    
-    // Reset waktu ke 00:00:00 untuk compare date saja (bukan datetime)
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    
     const end = new Date(endDate);
     end.setHours(0, 0, 0, 0);
-    
-    // Kalau endDate kurang dari hari ini, berarti expired
     if (end < now) {
         return 'Expired';
     }
     return 'Active';
 };
 
-// Native Select Component dengan styling
-const NativeSelect = ({ label, name, value, onChange, onBlur, options, isMobile }) => {
+const NativeSelect = ({ label, name, value, onChange, options, icon }) => {
     return (
-        <div className="flex flex-col gap-2">
-            <label className={`${isMobile ? 'typography-2' : 'typography-1'} mb-1`}>
-                {label}
-            </label>
-            <select
-                name={name}
-                value={value}
-                onChange={onChange}
-                onBlur={onBlur}
-                style={{
-                    width: '100%',
-                    padding: isMobile ? '12px 16px' : '16px 20px',
-                    fontSize: '14px',
-                    border: '1px solid var(--color-project-tertiary)',
-                    borderRadius: '8px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 16px center',
-                    paddingRight: '40px'
-                }}
-            >
-                <option value="">Select {label}</option>
-                {options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                    </option>
-                ))}
-            </select>
+        <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-gray-700">{label}</label>
+            <div className="relative">
+                {icon && (
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Icon icon={icon} width="20" />
+                    </div>
+                )}
+                <select
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    className={`w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#002D5B] focus:border-[#002D5B] block p-2.5 ${icon ? 'pl-10' : ''} transition-all duration-200 outline-none`}
+                    style={{
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        paddingRight: '36px'
+                    }}
+                >
+                    <option value="">Select {label}</option>
+                    {options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
         </div>
     );
 };
 
-export default function PropertyComponentNativeSelect({
+export default function PropertyComponent({
     open,
     onClose,
     selectedDetail,
     isNewRecord = false,
     onPropertySuccess,
-    isMobile = false
+    isMobile: _isMobileProp // Not used directly, useMediaQuery is better
 }) {
-    const loading = useLoading();
-    const message = useAlert();
-    const user = useUser();
+    const [activeStep, setActiveStep] = useState(0);
+    const [errors, setErrors] = useState({});
 
-    // State untuk file uploads
+    // File states
     const [propertyPhotos, setPropertyPhotos] = useState({
-        front: null,
-        back: null,
-        left: null,
-        right: null,
-        interior1: null,
-        interior2: null,
-        interior3: null,
-        interior4: null,
+        front: null, back: null, left: null, right: null,
+        interior1: null, interior2: null, interior3: null, interior4: null
     });
 
     const [propertyDocuments, setPropertyDocuments] = useState({
-        certificate: null,
-        imb: null,
-        pbb: null,
-        other: null,
+        certificate: null, imb: null, pbb: null, other: null
     });
 
-    const [createdPropertyId, setCreatedPropertyId] = useState(null);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const message = useAlert();
+    const loadingProvider = useLoading();
 
-    const validationSchema = Yup.object({
-        ownerName: Yup.string().required('Owner name is required'),
-        ownerEmail: Yup.string().email('Invalid email format'),
-        ownerPhone: Yup.string(),
-        ownerAddress: Yup.string(),
-        
-        propertyType: Yup.string(),
-        address: Yup.string(),
-        city: Yup.string(),
-        province: Yup.string(),
-        postalCode: Yup.string(),
-        buildingArea: Yup.number()
-            .typeError('Building area must be a number')
-            .min(0, 'Building area cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        landArea: Yup.number()
-            .typeError('Land area must be a number')
-            .min(0, 'Land area cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        numberOfFloors: Yup.number()
-            .typeError('Number of floors must be a number')
-            .min(0, 'Number of floors cannot be negative')
-            .integer('Must be a whole number')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        yearBuilt: Yup.number()
-            .typeError('Year must be a number')
-            .min(1800, 'Year must be after 1800')
-            .max(new Date().getFullYear(), 'Year cannot be in the future')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        propertyValue: Yup.number()
-            .typeError('Property value must be a number')
-            .min(0, 'Property value cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        buildingStructure: Yup.string(),
-        
-        policyNumber: Yup.string(),
-        insuranceCompany: Yup.string(),
-        coverageType: Yup.string(),
-        insuranceValue: Yup.number()
-            .typeError('Insurance value must be a number')
-            .min(0, 'Insurance value cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        premium: Yup.number()
-            .typeError('Premium must be a number')
-            .min(0, 'Premium cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        
-        startDate: Yup.date()
-            .nullable()
-            .typeError('Invalid date format'),
-        
-        endDate: Yup.date()
-            .nullable()
-            .typeError('Invalid date format')
-            .test(
-                'end-date-after-start',
-                'End date must be after start date',
-                function(value) {
-                    const { startDate } = this.parent;
-                    if (!value || !startDate) return true;
-                    
-                    const end = new Date(value);
-                    const start = new Date(startDate);
-                    return end > start;
-                }
-            ),
-        
-        deductible: Yup.number()
-            .typeError('Deductible must be a number')
-            .min(0, 'Deductible cannot be negative')
-            .nullable()
-            .transform((value, originalValue) => 
-                originalValue === '' ? null : value
-            ),
-        
-        notes: Yup.string(),
+    const [formData, setFormData] = useState({
+        ownerName: '', ownerEmail: '', ownerPhone: '', ownerAddress: '',
+        propertyType: '', address: '', city: '', province: '', postalCode: '',
+        buildingArea: '', landArea: '', numberOfFloors: '', yearBuilt: '',
+        propertyValue: '', buildingStructure: '',
+        policyNumber: '', insuranceCompany: '', coverageType: '',
+        insuranceValue: '', premium: '', startDate: '', endDate: '', deductible: '',
+        notes: ''
     });
 
-    const handleSubmit = async (values) => {
-        try {
-            loading.start();
-
-            const propertyData = {
-                ownerName: values.ownerName,
-                ownerPhone: values.ownerPhone,
-                ownerEmail: values.ownerEmail,
-                ownerAddress: values.ownerAddress,
-                
-                propertyType: values.propertyType,
-                address: values.address,
-                city: values.city,
-                province: values.province,
-                postalCode: values.postalCode,
-                buildingArea: values.buildingArea || '',
-                landArea: values.landArea || '',
-                numberOfFloors: values.numberOfFloors || '',
-                yearBuilt: values.yearBuilt || '',
-                propertyValue: values.propertyValue || '',
-                buildingStructure: values.buildingStructure,
-                
-                policyNumber: values.policyNumber,
-                insuranceCompany: values.insuranceCompany,
-                coverageType: values.coverageType,
-                insuranceValue: values.insuranceValue || '',
-                premium: values.premium || '',
-                startDate: values.startDate ? new Date(values.startDate).getTime() : null,
-                endDate: values.endDate ? new Date(values.endDate).getTime() : null,
-                deductible: values.deductible || '',
-                
-                notes: values.notes,
-            };
-
-            console.log('💾 Submitting property data:', propertyData);
-
-            let result;
-            let propertyId;
-
-            if (isNewRecord) {
-                result = await PropertyDAO.createProperty(propertyData);
-                propertyId = result.property.id;
-                console.log('✅ Property created with ID:', propertyId);
-                message('Property created successfully', 'success');
-            } else {
-                result = await PropertyDAO.updateProperty(selectedDetail.id, propertyData);
-                propertyId = selectedDetail.id;
-                console.log('✅ Property updated:', propertyId);
-                message('Property updated successfully', 'success');
-            }
-
-            // Upload photos if any
-            const hasPhotos = Object.values(propertyPhotos).some(photo => photo !== null);
-            if (hasPhotos && propertyId) {
-                try {
-                    const photoFormData = new FormData();
-                    
-                    Object.entries(propertyPhotos).forEach(([key, file]) => {
-                        if (file) {
-                            photoFormData.append(key, file);
-                        }
-                    });
-
-                    console.log('📸 Uploading photos...');
-                    await PropertyDAO.uploadPropertyPhotos(propertyId, photoFormData);
-                    console.log('✅ Photos uploaded successfully');
-                    message('Photos uploaded successfully', 'success');
-                } catch (photoError) {
-                    console.error('❌ Error uploading photos:', photoError);
-                    message('Property saved but photos upload failed', 'warning');
-                }
-            }
-
-            // Upload documents if any
-            const hasDocs = Object.values(propertyDocuments).some(doc => doc !== null);
-            if (hasDocs && propertyId) {
-                try {
-                    const docFormData = new FormData();
-                    
-                    Object.entries(propertyDocuments).forEach(([key, file]) => {
-                        if (file) {
-                            docFormData.append(key, file);
-                        }
-                    });
-
-                    console.log('📄 Uploading documents...');
-                    await PropertyDAO.uploadPropertyDocuments(propertyId, docFormData);
-                    console.log('✅ Documents uploaded successfully');
-                    message('Documents uploaded successfully', 'success');
-                } catch (docError) {
-                    console.error('❌ Error uploading documents:', docError);
-                    message('Property saved but documents upload failed', 'warning');
-                }
-            }
-
-            // Reset state and close
-            setPropertyPhotos({
-                front: null,
-                back: null,
-                left: null,
-                right: null,
-                interior1: null,
-                interior2: null,
-                interior3: null,
-                interior4: null,
-            });
-            setPropertyDocuments({
-                certificate: null,
-                imb: null,
-                pbb: null,
-                other: null,
-            });
-
-            onPropertySuccess();
-            onClose();
-        } catch (err) {
-            console.error('❌ Error saving property:', err);
-            message(err.error || 'Failed to save property', 'error');
-        } finally {
-            loading.stop();
-        }
-    };
-
-    const formik = useFormik({
-        initialValues: {
-            ownerName: '',
-            ownerEmail: '',
-            ownerPhone: '',
-            ownerAddress: '',
-            
-            propertyType: '',
-            address: '',
-            city: '',
-            province: '',
-            postalCode: '',
-            buildingArea: '',
-            landArea: '',
-            numberOfFloors: '',
-            yearBuilt: '',
-            propertyValue: '',
-            buildingStructure: '',
-            
-            policyNumber: '',
-            insuranceCompany: '',
-            coverageType: '',
-            insuranceValue: '',
-            premium: '',
-            startDate: null,
-            endDate: null,
-            deductible: '',
-            
-            notes: '',
-        },
-        enableReinitialize: true,
-        validationSchema,
-        onSubmit: handleSubmit,
-        validateOnChange: true,
-        validateOnBlur: true,
-    });
+    const steps = ['OWNER INFO', 'PROPERTY DETAILS', 'INSURANCE DETAILS', 'DOCUMENTS', 'UPLOAD PHOTO'];
 
     useEffect(() => {
         if (selectedDetail && open) {
             const formatDate = (dateValue) => {
-                if (!dateValue) return null;
+                if (!dateValue) return '';
                 try {
                     return dayjs(dateValue).format('YYYY-MM-DD');
                 } catch (error) {
-                    return null;
+                    return '';
                 }
             };
 
-            formik.setValues({
+            setFormData({
                 ownerName: selectedDetail.ownerName || '',
                 ownerEmail: selectedDetail.ownerEmail || '',
                 ownerPhone: selectedDetail.ownerPhone || '',
                 ownerAddress: selectedDetail.ownerAddress || '',
-                
+
                 propertyType: selectedDetail.propertyData?.propertyType || '',
                 address: selectedDetail.propertyData?.address || '',
                 city: selectedDetail.propertyData?.city || '',
@@ -415,7 +147,7 @@ export default function PropertyComponentNativeSelect({
                 yearBuilt: selectedDetail.propertyData?.yearBuilt || '',
                 propertyValue: selectedDetail.propertyData?.propertyValue || '',
                 buildingStructure: selectedDetail.propertyData?.buildingStructure || '',
-                
+
                 policyNumber: selectedDetail.insuranceData?.policyNumber || '',
                 insuranceCompany: selectedDetail.insuranceData?.insuranceCompany || '',
                 coverageType: selectedDetail.insuranceData?.coverageType || '',
@@ -424,752 +156,472 @@ export default function PropertyComponentNativeSelect({
                 startDate: formatDate(selectedDetail.insuranceData?.startDate),
                 endDate: formatDate(selectedDetail.insuranceData?.endDate),
                 deductible: selectedDetail.insuranceData?.deductible || '',
-                
+
                 notes: selectedDetail.notes || '',
             });
         } else {
-            formik.resetForm();
+            resetForm();
         }
     }, [open, selectedDetail]);
 
+    const resetForm = () => {
+        setFormData({
+            ownerName: '', ownerEmail: '', ownerPhone: '', ownerAddress: '',
+            propertyType: '', address: '', city: '', province: '', postalCode: '',
+            buildingArea: '', landArea: '', numberOfFloors: '', yearBuilt: '',
+            propertyValue: '', buildingStructure: '',
+            policyNumber: '', insuranceCompany: '', coverageType: '',
+            insuranceValue: '', premium: '', startDate: '', endDate: '', deductible: '',
+            notes: ''
+        });
+        setPropertyPhotos({
+            front: null, back: null, left: null, right: null,
+            interior1: null, interior2: null, interior3: null, interior4: null
+        });
+        setPropertyDocuments({
+            certificate: null, imb: null, pbb: null, other: null
+        });
+        setActiveStep(0);
+        setErrors({});
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    };
+
+    const handleNumberChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: formatNumberInput(value) }));
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    };
+
+    const handlePhotoUpload = (key, file) => {
+        if (!file) {
+            setPropertyPhotos(prev => ({ ...prev, [key]: null }));
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            message('File too large. Max 5MB', 'error');
+            return;
+        }
+        setPropertyPhotos(prev => ({ ...prev, [key]: file }));
+    };
+
+    const handleDocUpload = (key, file) => {
+        if (!file) {
+            setPropertyDocuments(prev => ({ ...prev, [key]: null }));
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            message('File too large. Max 10MB', 'error');
+            return;
+        }
+        setPropertyDocuments(prev => ({ ...prev, [key]: file }));
+    };
+
+    const validateStep = () => {
+        const newErrors = {};
+        if (activeStep === 0) {
+            if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
+        }
+
+        if (activeStep === 2) {
+            if (formData.startDate && formData.endDate) {
+                if (new Date(formData.endDate) <= new Date(formData.startDate)) {
+                    newErrors.endDate = 'End date must be after start date';
+                }
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = () => {
+        if (validateStep()) {
+            if (activeStep === steps.length - 1) {
+                handleSubmit();
+            } else {
+                setActiveStep(prev => prev + 1);
+            }
+        }
+    };
+
+    const handleBack = () => {
+        setActiveStep(prev => prev - 1);
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
+    };
+
+    const handleSubmit = async () => {
+        try {
+            loadingProvider.start();
+
+            const propertyData = {
+                ownerName: formData.ownerName,
+                ownerPhone: formData.ownerPhone,
+                ownerEmail: formData.ownerEmail,
+                ownerAddress: formData.ownerAddress,
+
+                propertyType: formData.propertyType,
+                address: formData.address,
+                city: formData.city,
+                province: formData.province,
+                postalCode: formData.postalCode,
+                buildingArea: formData.buildingArea || '',
+                landArea: formData.landArea || '',
+                numberOfFloors: formData.numberOfFloors || '',
+                yearBuilt: formData.yearBuilt || '',
+                propertyValue: formData.propertyValue || '',
+                buildingStructure: formData.buildingStructure,
+
+                policyNumber: formData.policyNumber,
+                insuranceCompany: formData.insuranceCompany,
+                coverageType: formData.coverageType,
+                insuranceValue: formData.insuranceValue || '',
+                premium: formData.premium || '',
+                startDate: formData.startDate ? new Date(formData.startDate).getTime() : null,
+                endDate: formData.endDate ? new Date(formData.endDate).getTime() : null,
+                deductible: formData.deductible || '',
+
+                notes: formData.notes,
+            };
+
+            let result;
+            let propertyId;
+
+            if (isNewRecord) {
+                result = await PropertyDAO.createProperty(propertyData);
+                propertyId = result.property.id;
+                message('Property created successfully', 'success');
+            } else {
+                result = await PropertyDAO.updateProperty(selectedDetail.id, propertyData);
+                propertyId = selectedDetail.id;
+                message('Property updated successfully', 'success');
+            }
+
+            // Upload photos if any
+            const hasPhotos = Object.values(propertyPhotos).some(photo => photo !== null);
+            if (hasPhotos && propertyId) {
+                try {
+                    const photoFormData = new FormData();
+                    Object.entries(propertyPhotos).forEach(([key, file]) => {
+                        if (file) photoFormData.append(key, file);
+                    });
+                    await PropertyDAO.uploadPropertyPhotos(propertyId, photoFormData);
+                } catch (photoError) {
+                    console.error('Error uploading photos:', photoError);
+                    message('Property saved but photos upload failed', 'warning');
+                }
+            }
+
+            // Upload documents if any
+            const hasDocs = Object.values(propertyDocuments).some(doc => doc !== null);
+            if (hasDocs && propertyId) {
+                try {
+                    const docFormData = new FormData();
+                    Object.entries(propertyDocuments).forEach(([key, file]) => {
+                        if (file) docFormData.append(key, file);
+                    });
+                    await PropertyDAO.uploadPropertyDocuments(propertyId, docFormData);
+                } catch (docError) {
+                    console.error('Error uploading documents:', docError);
+                    message('Property saved but documents upload failed', 'warning');
+                }
+            }
+
+            onPropertySuccess();
+            handleClose();
+        } catch (err) {
+            console.error('Error saving property:', err);
+            message(err.error || 'Failed to save property', 'error');
+        } finally {
+            loadingProvider.stop();
+        }
+    };
+
     const propertyTypeOptions = Object.keys(PROPERTY_TYPES).map(key => ({
-        value: PROPERTY_TYPES[key],
-        label: PROPERTY_TYPES[key]
+        value: PROPERTY_TYPES[key], label: PROPERTY_TYPES[key]
     }));
 
     const coverageTypeOptions = Object.keys(COVERAGE_TYPES).map(key => ({
-        value: COVERAGE_TYPES[key],
-        label: COVERAGE_TYPES[key]
+        value: COVERAGE_TYPES[key], label: COVERAGE_TYPES[key]
     }));
 
     return (
-        <Dialog 
-            open={open} 
-            maxWidth="md" 
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="md"
             fullWidth
             fullScreen={isMobile}
+            PaperProps={{
+                style: { borderRadius: isMobile ? '0px' : '12px', overflow: 'hidden' }
+            }}
         >
-            <div className={`${isMobile ? 'p-4' : 'px-6 pt-5 pb-7'}`}>
-                <div className="flex justify-between items-center mb-4">
-                    <div className={`${isMobile ? 'typography-3' : 'typography-2'}`}>
-                        {isNewRecord ? 'Add New Property' : 'Edit Property'}
-                    </div>
-                    <IconButton sx={{ p: isMobile ? 1 : 3 }} onClick={onClose}>
-                        <Icon icon="heroicons:x-mark" />
-                    </IconButton>
-                </div>
+            {/* Header */}
+            <div className={`flex items-center justify-between ${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-100`}>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-gray-800`}>
+                    {isNewRecord ? 'Add New Property' : 'Edit Property'}
+                </h2>
+                <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
+                    <Icon icon="mdi:close" width="24" />
+                </button>
+            </div>
 
-                <div className={isMobile ? 'max-h-[80vh] overflow-y-auto' : 'mt-5'}>
-                    <form onSubmit={formik.handleSubmit}>
-                        {/* Owner Information */}
-                        <div className="flex flex-col gap-4">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Owner Information</div>
-                            <CustomTextInput
-                                name="ownerName"
-                                value={formik.values.ownerName}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.ownerName && Boolean(formik.errors.ownerName)}
-                                helperText={formik.touched.ownerName && formik.errors.ownerName}
-                                placeholder="Enter owner's name"
-                                label="Owner Name *"
-                                fullWidth
-                                size={isMobile ? "small" : "medium"}
-                            />
-                            <CustomTextInput
-                                name="ownerEmail"
-                                value={formik.values.ownerEmail}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.ownerEmail && Boolean(formik.errors.ownerEmail)}
-                                helperText={formik.touched.ownerEmail && formik.errors.ownerEmail}
-                                placeholder="Enter owner's email"
+            {/* Stepper */}
+            <div className={`bg-gray-50 ${isMobile ? 'px-4 py-4' : 'px-6 py-6'} border-b border-gray-100`}>
+                <div className="flex items-center justify-between relative">
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gray-200 -z-0 -translate-y-[10px]" />
+                    {steps.map((label, index) => {
+                        const isActive = index === activeStep;
+                        const isCompleted = index < activeStep;
+                        return (
+                            <div key={label} className="flex flex-col items-center relative z-10 bg-gray-50 px-1">
+                                <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold mb-2 transition-colors
+                                        ${isActive || isCompleted
+                                            ? 'bg-[#002D5B] text-white shadow-md'
+                                            : 'bg-white border border-gray-300 text-gray-400'
+                                        }`}
+                                >
+                                    {isCompleted ? <Icon icon="mdi:check" width="16" /> : index + 1}
+                                </div>
+                                <span className={`text-[10px] font-bold tracking-wider uppercase text-center
+                                    ${isActive ? 'text-[#002D5B]' : 'text-gray-400'}
+                                    ${isMobile && !isActive ? 'hidden' : 'block'}
+                                `}>
+                                    {label}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Content Body */}
+            <div className={`${isMobile ? 'p-4' : 'p-8'} min-h-[400px] overflow-y-auto`}>
+                {activeStep === 0 && (
+                    <div className="space-y-5 animate-fadeIn">
+                        <FormInput
+                            label="Owner Name"
+                            name="ownerName"
+                            placeholder="John Doe"
+                            icon="lucide:user"
+                            required
+                            value={formData.ownerName}
+                            onChange={handleChange}
+                            error={errors.ownerName}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormInput
                                 label="Email"
-                                fullWidth
-                                size={isMobile ? "small" : "medium"}
+                                name="ownerEmail"
+                                type="email"
+                                placeholder="john@example.com"
+                                icon="lucide:mail"
+                                value={formData.ownerEmail}
+                                onChange={handleChange}
+                                error={errors.ownerEmail}
                             />
-                            <CustomTextInput
+                            <FormInput
+                                label="Phone Number"
                                 name="ownerPhone"
-                                value={formik.values.ownerPhone}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                placeholder="Enter owner's phone"
-                                label="Phone"
-                                fullWidth
-                                size={isMobile ? "small" : "medium"}
-                            />
-                            <CustomTextInput
-                                name="ownerAddress"
-                                value={formik.values.ownerAddress}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                placeholder="Enter owner's address"
-                                label="Address"
-                                fullWidth
-                                multiline
-                                rows={isMobile ? 2 : 2}
-                                size={isMobile ? "small" : "medium"}
+                                placeholder="+62 812 3456 7890"
+                                icon="lucide:phone"
+                                value={formData.ownerPhone}
+                                onChange={handleChange}
+                                error={errors.ownerPhone}
                             />
                         </div>
 
-                        {/* Property Details */}
-                        <div className="flex flex-col gap-4 mt-6">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Property Details</div>
-                            
-                            {/* Property Type - NATIVE SELECT */}
+                        <FormInput
+                            label="Owner Address"
+                            name="ownerAddress"
+                            placeholder="Owner's full address..."
+                            icon="lucide:map-pin"
+                            multiline
+                            value={formData.ownerAddress}
+                            onChange={handleChange}
+                            error={errors.ownerAddress}
+                        />
+
+                        <FormInput
+                            label="Additional Notes"
+                            name="notes"
+                            placeholder="Add any additional details..."
+                            icon="lucide:file-text"
+                            multiline
+                            value={formData.notes}
+                            onChange={handleChange}
+                            error={errors.notes}
+                        />
+                    </div>
+                )}
+
+                {activeStep === 1 && (
+                    <div className="space-y-5 animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <NativeSelect
                                 label="Property Type"
                                 name="propertyType"
-                                value={formik.values.propertyType}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
+                                value={formData.propertyType}
+                                onChange={handleChange}
                                 options={propertyTypeOptions}
-                                isMobile={isMobile}
+                                icon="lucide:home"
                             />
-                            
-                            <CustomTextInput
-                                name="address"
-                                value={formik.values.address}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                placeholder="Enter property address"
-                                label="Property Address"
-                                fullWidth
-                                multiline
-                                rows={isMobile ? 2 : 2}
-                                size={isMobile ? "small" : "medium"}
-                            />
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="city"
-                                    value={formik.values.city}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    placeholder="City"
-                                    label="City"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="province"
-                                    value={formik.values.province}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    placeholder="Province"
-                                    label="Province"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="postalCode"
-                                    value={formik.values.postalCode}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    placeholder="Postal Code"
-                                    label="Postal Code"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="yearBuilt"
-                                    value={formik.values.yearBuilt}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('yearBuilt', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.yearBuilt && Boolean(formik.errors.yearBuilt)}
-                                    helperText={formik.touched.yearBuilt && formik.errors.yearBuilt}
-                                    placeholder="Year Built"
-                                    label="Year Built"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="buildingArea"
-                                    value={formik.values.buildingArea}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('buildingArea', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.buildingArea && Boolean(formik.errors.buildingArea)}
-                                    helperText={formik.touched.buildingArea && formik.errors.buildingArea}
-                                    placeholder="Building Area (m²)"
-                                    label="Building Area (m²)"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="landArea"
-                                    value={formik.values.landArea}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('landArea', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.landArea && Boolean(formik.errors.landArea)}
-                                    helperText={formik.touched.landArea && formik.errors.landArea}
-                                    placeholder="Land Area (m²)"
-                                    label="Land Area (m²)"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="numberOfFloors"
-                                    value={formik.values.numberOfFloors}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('numberOfFloors', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.numberOfFloors && Boolean(formik.errors.numberOfFloors)}
-                                    helperText={formik.touched.numberOfFloors && formik.errors.numberOfFloors}
-                                    placeholder="Number of Floors"
-                                    label="Number of Floors"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="propertyValue"
-                                    value={formik.values.propertyValue}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('propertyValue', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.propertyValue && Boolean(formik.errors.propertyValue)}
-                                    helperText={formik.touched.propertyValue && formik.errors.propertyValue}
-                                    placeholder="Property Value"
-                                    label="Property Value"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <CustomTextInput
-                                name="buildingStructure"
-                                value={formik.values.buildingStructure}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                placeholder="e.g., Concrete, Wood, Steel"
-                                label="Building Structure"
-                                fullWidth
-                                size={isMobile ? "small" : "medium"}
-                            />
+                            <FormInput label="Building Structure" name="buildingStructure" placeholder="Concrete, Wood, Steel" icon="lucide:layout" value={formData.buildingStructure} onChange={handleChange} />
                         </div>
 
-                        {/* Insurance Details */}
-                        <div className="flex flex-col gap-4 mt-6">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Insurance Details</div>
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="policyNumber"
-                                    value={formik.values.policyNumber}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    placeholder="Policy Number"
-                                    label="Policy Number"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="insuranceCompany"
-                                    value={formik.values.insuranceCompany}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    placeholder="Insurance Company"
-                                    label="Insurance Company"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            
-                            {/* Coverage Type - NATIVE SELECT */}
-                            <NativeSelect
-                                label="Coverage Type"
-                                name="coverageType"
-                                value={formik.values.coverageType}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                options={coverageTypeOptions}
-                                isMobile={isMobile}
-                            />
-                            
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="insuranceValue"
-                                    value={formik.values.insuranceValue}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('insuranceValue', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.insuranceValue && Boolean(formik.errors.insuranceValue)}
-                                    helperText={formik.touched.insuranceValue && formik.errors.insuranceValue}
-                                    placeholder="Insurance Value"
-                                    label="Insurance Value"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="premium"
-                                    value={formik.values.premium}
-                                    onChange={(e) => {
-                                        const formatted = formatNumberInput(e.target.value);
-                                        formik.setFieldValue('premium', formatted);
-                                    }}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.premium && Boolean(formik.errors.premium)}
-                                    helperText={formik.touched.premium && formik.errors.premium}
-                                    placeholder="Premium"
-                                    label="Premium"
-                                    fullWidth
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                <CustomTextInput
-                                    name="startDate"
-                                    type="date"
-                                    value={formik.values.startDate || ''}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.startDate && Boolean(formik.errors.startDate)}
-                                    helperText={formik.touched.startDate && formik.errors.startDate}
-                                    label="Start Date"
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                                <CustomTextInput
-                                    name="endDate"
-                                    type="date"
-                                    value={formik.values.endDate || ''}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.endDate && Boolean(formik.errors.endDate)}
-                                    helperText={formik.touched.endDate && formik.errors.endDate}
-                                    label="End Date"
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
-                                    size={isMobile ? "small" : "medium"}
-                                />
-                            </div>
-                            <CustomTextInput
-                                name="deductible"
-                                value={formik.values.deductible}
-                                onChange={(e) => {
-                                    const formatted = formatNumberInput(e.target.value);
-                                    formik.setFieldValue('deductible', formatted);
-                                }}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.deductible && Boolean(formik.errors.deductible)}
-                                helperText={formik.touched.deductible && formik.errors.deductible}
-                                placeholder="Deductible Amount"
-                                label="Deductible"
-                                fullWidth
-                                size={isMobile ? "small" : "medium"}
-                            />
+                        <FormInput label="Property Address" name="address" placeholder="Property locations..." icon="lucide:map-pin" multiline value={formData.address} onChange={handleChange} />
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <FormInput label="City" name="city" placeholder="Jakarta" icon="lucide:map" value={formData.city} onChange={handleChange} />
+                            <FormInput label="Province" name="province" placeholder="DKI Jakarta" icon="lucide:map" value={formData.province} onChange={handleChange} />
+                            <FormInput label="Postal Code" name="postalCode" placeholder="12345" icon="lucide:hash" value={formData.postalCode} onChange={handleChange} />
                         </div>
 
-                        {/* Property Photos */}
-                        <div className="flex flex-col gap-4 mt-6">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Property Photos</div>
-                            <div className="text-sm text-gray-600 mb-2">
-                                Upload property photos (front, back, left, right, and interior views)
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormInput label="Building Area (m²)" name="buildingArea" value={formData.buildingArea} onChange={handleNumberChange} icon="lucide:maximize" />
+                            <FormInput label="Land Area (m²)" name="landArea" value={formData.landArea} onChange={handleNumberChange} icon="lucide:maximize" />
+                            <FormInput label="Number of Floors" name="numberOfFloors" value={formData.numberOfFloors} onChange={handleNumberChange} icon="lucide:layers" />
+                            <FormInput label="Year Built" name="yearBuilt" value={formData.yearBuilt} onChange={handleNumberChange} icon="lucide:calendar" />
+                            <FormInput label="Property Value" name="propertyValue" value={formData.propertyValue} onChange={handleNumberChange} icon="lucide:dollar-sign" />
+                        </div>
+                    </div>
+                )}
+
+                {activeStep === 2 && (
+                    <div className="space-y-5 animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormInput label="Policy Number" name="policyNumber" value={formData.policyNumber} onChange={handleChange} icon="lucide:file-text" />
+                            <FormInput label="Insurance Company" name="insuranceCompany" value={formData.insuranceCompany} onChange={handleChange} icon="lucide:shield" />
+                        </div>
+
+                        <NativeSelect
+                            label="Coverage Type"
+                            name="coverageType"
+                            value={formData.coverageType}
+                            onChange={handleChange}
+                            options={coverageTypeOptions}
+                            icon="lucide:check-square"
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <FormInput label="Insurance Value" name="insuranceValue" value={formData.insuranceValue} onChange={handleNumberChange} icon="lucide:dollar-sign" />
+                            <FormInput label="Premium" name="premium" value={formData.premium} onChange={handleNumberChange} icon="lucide:dollar-sign" />
+                            <FormInput label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleChange} icon="lucide:calendar" />
+                            <FormInput label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleChange} error={errors.endDate} icon="lucide:calendar" />
+                            <FormInput label="Deductible" name="deductible" value={formData.deductible} onChange={handleNumberChange} icon="lucide:dollar-sign" />
+                        </div>
+
+                        {formData.endDate && (
+                            <div className="flex items-center gap-3 mt-4 text-sm">
+                                <span className="font-semibold text-gray-700">Property Policy Status:</span>
+                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${determineStatus(formData.endDate) === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {determineStatus(formData.endDate)}
+                                </span>
                             </div>
-                            
-                            {/* Photo Upload Grid */}
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                {/* Front Photo */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Front View</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        name="photoFront"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 5 * 1024 * 1024) {
-                                                    message('File too large. Max 5MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyPhotos(prev => ({ ...prev, front: file }));
-                                                console.log('✅ Front photo selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyPhotos.front && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyPhotos.front.name}
-                                        </div>
-                                    )}
-                                </div>
+                        )}
+                    </div>
+                )}
 
-                                {/* Back Photo */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Back View</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        name="photoBack"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 5 * 1024 * 1024) {
-                                                    message('File too large. Max 5MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyPhotos(prev => ({ ...prev, back: file }));
-                                                console.log('✅ Back photo selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyPhotos.back && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyPhotos.back.name}
-                                        </div>
-                                    )}
-                                </div>
+                {activeStep === 3 && (
+                    <div className="animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormFileUpload
+                                label="Upload Certificate (SHM/HGB)"
+                                file={propertyDocuments.certificate}
+                                onClick={() => document.getElementById('doc-certificate').click()}
+                                icon="lucide:file-text"
+                            />
+                            <FormFileUpload
+                                label="Upload Building Permit (IMB)"
+                                file={propertyDocuments.imb}
+                                onClick={() => document.getElementById('doc-imb').click()}
+                                icon="lucide:file-text"
+                            />
+                            <FormFileUpload
+                                label="Upload Property Tax (PBB)"
+                                file={propertyDocuments.pbb}
+                                onClick={() => document.getElementById('doc-pbb').click()}
+                                icon="lucide:file-text"
+                            />
+                            <FormFileUpload
+                                label="Other Documents"
+                                file={propertyDocuments.other}
+                                onClick={() => document.getElementById('doc-other').click()}
+                                icon="lucide:folder"
+                            />
+                        </div>
+                        {/* Hidden Inputs */}
+                        <input id="doc-certificate" type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload('certificate', e.target.files[0])} />
+                        <input id="doc-imb" type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload('imb', e.target.files[0])} />
+                        <input id="doc-pbb" type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload('pbb', e.target.files[0])} />
+                        <input id="doc-other" type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleDocUpload('other', e.target.files[0])} />
+                    </div>
+                )}
 
-                                {/* Left Photo */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Left View</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        name="photoLeft"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 5 * 1024 * 1024) {
-                                                    message('File too large. Max 5MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyPhotos(prev => ({ ...prev, left: file }));
-                                                console.log('✅ Left photo selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyPhotos.left && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyPhotos.left.name}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Right Photo */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Right View</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        name="photoRight"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 5 * 1024 * 1024) {
-                                                    message('File too large. Max 5MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyPhotos(prev => ({ ...prev, right: file }));
-                                                console.log('✅ Right photo selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyPhotos.right && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyPhotos.right.name}
-                                        </div>
-                                    )}
-                                </div>
+                {activeStep === 4 && (
+                    <div className="animate-fadeIn space-y-6">
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Exterior Photos</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <FormFileUpload label="Front View" file={propertyPhotos.front} onClick={() => document.getElementById('photo-front').click()} icon="lucide:camera" />
+                                <FormFileUpload label="Back View" file={propertyPhotos.back} onClick={() => document.getElementById('photo-back').click()} icon="lucide:camera" />
+                                <FormFileUpload label="Left View" file={propertyPhotos.left} onClick={() => document.getElementById('photo-left').click()} icon="lucide:camera" />
+                                <FormFileUpload label="Right View" file={propertyPhotos.right} onClick={() => document.getElementById('photo-right').click()} icon="lucide:camera" />
                             </div>
-
-                            {/* Interior Photos */}
-                            <div className="mt-2">
-                                <label className={`${isMobile ? 'typography-2' : 'typography-1'} mb-2 block`}>
-                                    Interior Photos (up to 4 photos)
-                                </label>
-                                <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                    {[1, 2, 3, 4].map((num) => (
-                                        <div key={num} className="flex flex-col gap-2">
-                                            <label className="typography-1 mb-1">Interior {num}</label>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                name={`photoInterior${num}`}
-                                                onChange={(e) => {
-                                                    const file = e.target.files[0];
-                                                    if (file) {
-                                                        if (file.size > 5 * 1024 * 1024) {
-                                                            message('File too large. Max 5MB', 'error');
-                                                            return;
-                                                        }
-                                                        setPropertyPhotos(prev => ({ 
-                                                            ...prev, 
-                                                            [`interior${num}`]: file 
-                                                        }));
-                                                        console.log(`✅ Interior ${num} photo selected:`, file.name);
-                                                    }
-                                                }}
-                                                style={{
-                                                    padding: '12px',
-                                                    border: '1px solid var(--color-project-tertiary)',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer'
-                                                }}
-                                            />
-                                            {propertyPhotos[`interior${num}`] && (
-                                                <div className="text-xs text-green-600 mt-1">
-                                                    ✓ {propertyPhotos[`interior${num}`].name}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="text-xs text-gray-500 mt-2">
-                                Note: Photos can be uploaded after creating the property. Maximum 5MB per photo.
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Interior Photos</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {[1, 2, 3, 4].map((num) => (
+                                    <FormFileUpload key={`int-${num}`} label={`Interior ${num}`} file={propertyPhotos[`interior${num}`]} onClick={() => document.getElementById(`photo-interior${num}`).click()} icon="lucide:camera" />
+                                ))}
                             </div>
                         </div>
 
-                        {/* Property Documents */}
-                        <div className="flex flex-col gap-4 mt-6">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Property Documents</div>
-                            <div className="text-sm text-gray-600 mb-2">
-                                Upload property documents (certificate, building permit, property tax, etc.)
-                            </div>
-                            
-                            <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"}>
-                                {/* Certificate */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Land Certificate (Sertifikat)</label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        name="docCertificate"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 10 * 1024 * 1024) {
-                                                    message('File too large. Max 10MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyDocuments(prev => ({ ...prev, certificate: file }));
-                                                console.log('✅ Certificate selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyDocuments.certificate && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyDocuments.certificate.name}
-                                        </div>
-                                    )}
-                                </div>
+                        {/* Hidden Inputs */}
+                        <input id="photo-front" type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload('front', e.target.files[0])} />
+                        <input id="photo-back" type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload('back', e.target.files[0])} />
+                        <input id="photo-left" type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload('left', e.target.files[0])} />
+                        <input id="photo-right" type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload('right', e.target.files[0])} />
+                        {[1, 2, 3, 4].map(num => (
+                            <input key={`inpt-int-${num}`} id={`photo-interior${num}`} type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload(`interior${num}`, e.target.files[0])} />
+                        ))}
+                    </div>
+                )}
+            </div>
 
-                                {/* IMB */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Building Permit (IMB)</label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        name="docIMB"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 10 * 1024 * 1024) {
-                                                    message('File too large. Max 10MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyDocuments(prev => ({ ...prev, imb: file }));
-                                                console.log('✅ IMB selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyDocuments.imb && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyDocuments.imb.name}
-                                        </div>
-                                    )}
-                                </div>
+            {/* Footer */}
+            <div className={`border-t border-gray-100 ${isMobile ? 'p-4' : 'p-6'} flex justify-between items-center bg-gray-50`}>
+                <button
+                    onClick={handleBack}
+                    disabled={activeStep === 0}
+                    type="button"
+                    className={`px-4 py-2 border rounded-md text-sm font-medium transition-colors
+                        ${activeStep === 0
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed bg-white'
+                            : 'border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 bg-white'
+                        }`}
+                >
+                    &lt; Back
+                </button>
 
-                                {/* PBB */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Property Tax (PBB)</label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        name="docPBB"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 10 * 1024 * 1024) {
-                                                    message('File too large. Max 10MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyDocuments(prev => ({ ...prev, pbb: file }));
-                                                console.log('✅ PBB selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyDocuments.pbb && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyDocuments.pbb.name}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Other */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="typography-1 mb-1">Other Documents</label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        name="docOther"
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                if (file.size > 10 * 1024 * 1024) {
-                                                    message('File too large. Max 10MB', 'error');
-                                                    return;
-                                                }
-                                                setPropertyDocuments(prev => ({ ...prev, other: file }));
-                                                console.log('✅ Other document selected:', file.name);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '12px',
-                                            border: '1px solid var(--color-project-tertiary)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    {propertyDocuments.other && (
-                                        <div className="text-xs text-green-600 mt-1">
-                                            ✓ {propertyDocuments.other.name}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="text-xs text-gray-500 mt-2">
-                                Accepted formats: PDF, JPG, PNG. Maximum 10MB per document.
-                            </div>
-                        </div>
-
-                        {/* Additional Information */}
-                        <div className="flex flex-col gap-4 mt-6">
-                            <div className={`${isMobile ? 'typography-2' : 'typography-3'}`}>Additional Information</div>
-                            <CustomTextInput
-                                name="notes"
-                                value={formik.values.notes}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                placeholder="Enter any additional notes"
-                                label="Notes"
-                                fullWidth
-                                multiline
-                                rows={isMobile ? 3 : 3}
-                                size={isMobile ? "small" : "medium"}
-                            />
-                            
-                            {/* Status Display (Read Only) */}
-                            <div className="flex flex-col gap-2">
-                                <div className={`${isMobile ? 'typography-2' : 'typography-1'}`}>
-                                    Status (Automatically Calculated)
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className={`px-3 py-2 rounded-full text-sm font-medium ${
-                                        determineStatus(formik.values.endDate) === 'Active' 
-                                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                                            : 'bg-red-100 text-red-800 border border-red-200'
-                                    }`}>
-                                        {determineStatus(formik.values.endDate)}
-                                    </div>
-                                    {formik.values.endDate && (
-                                        <div className="text-sm text-gray-600">
-                                            {determineStatus(formik.values.endDate) === 'Active' 
-                                                ? `Expires: ${dayjs(formik.values.endDate).format('DD/MM/YYYY')}`
-                                                : `Expired since: ${dayjs(formik.values.endDate).format('DD/MM/YYYY')}`
-                                            }
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                    Status is automatically determined based on the insurance end date.
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className={`flex justify-end items-center gap-3 ${isMobile ? 'mt-6 sticky bottom-0 bg-white py-3' : 'mt-5'}`}>
-                            <CustomButton 
-                                color="secondary" 
-                                onClick={onClose}
-                                size={isMobile ? "small" : "medium"}
-                            >
-                                Cancel
-                            </CustomButton>
-                            <CustomButton 
-                                type="submit"
-                                size={isMobile ? "small" : "medium"}
-                                disabled={!formik.isValid || formik.isSubmitting}
-                            >
-                                {isNewRecord ? 'Create Property' : 'Update Property'}
-                            </CustomButton>
-                        </div>
-                    </form>
-                </div>
+                <button
+                    onClick={handleNext}
+                    type="button"
+                    className="px-6 py-2 bg-[#002D5B] text-white text-sm font-medium rounded-md hover:bg-[#001f40] transition-colors shadow-sm flex items-center gap-2"
+                >
+                    {activeStep === steps.length - 1 ? (isNewRecord ? 'Create' : 'Save Changes') : 'Next >'}
+                </button>
             </div>
         </Dialog>
     );

@@ -30,6 +30,9 @@ export default function SignUpPage() {
             .required('Username is required!')
             .min(4, 'Username must be at least 4 characters')
             .matches(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+        email: Yup.string()
+            .email('Invalid email format')
+            .required('Email is required!'),
         password: Yup.string()
             .required('Password is required!')
             .min(6, 'Password must be at least 6 characters'),
@@ -41,41 +44,34 @@ export default function SignUpPage() {
     const handleSubmit = async (data) => {
         try {
             loading.start();
-            
-            // Trim input to avoid whitespace
-            const fullName = data.fullName.trim();
-            const username = data.username.trim();
-            const password = data.password.trim();
-            
-            // Call backend API through UserDAO
+
             const result = await UserDAO.signUp({
-                fullName: fullName,
-                username: username,
-                password: password,
-                role: 'user' // Default role
+                fullName: data.fullName.trim(),
+                username: data.username.trim(),
+                email: data.email.trim().toLowerCase(),
+                password: data.password.trim(),
+                role: 'user',
             });
 
-            // Check response
             if (!result.success) {
                 throw new Error(result.error || 'Sign up failed');
             }
 
-            // Save token to localStorage
             if (result.token) {
                 localStorage.setItem('authToken', result.token);
             }
 
-            // Login with user data from backend
             login({
                 id: result.user.id,
                 username: result.user.username,
                 fullName: result.user.fullName,
-                role: result.user.role || 'user'
+                role: result.user.role || 'user',
+                email: result.user.email || '',
             });
 
             message('Account created successfully! Welcome aboard! 🎉', 'success');
             navigate('/', { replace: true });
-            
+
         } catch (error) {
             console.error('Sign up error:', error);
             message(error.message || 'Sign up failed. Please try again.', 'error');
@@ -88,6 +84,7 @@ export default function SignUpPage() {
         initialValues: {
             fullName: '',
             username: '',
+            email: '',
             password: '',
             confirmPassword: '',
         },
@@ -160,6 +157,24 @@ export default function SignUpPage() {
                                 />
                             </div>
 
+                            {/* Email Input */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Email
+                                </label>
+                                <CustomTextInput
+                                    name="email"
+                                    fullWidth
+                                    placeholder="john@example.com"
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    value={formik.values.email}
+                                    error={formik.touched.email && Boolean(formik.errors.email)}
+                                    helperText={formik.touched.email && formik.errors.email}
+                                    type="email"
+                                />
+                            </div>
+
                             {/* Password Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -199,8 +214,8 @@ export default function SignUpPage() {
 
                         {/* Submit Button */}
                         <div className="mt-8">
-                            <CustomButton 
-                                fullWidth 
+                            <CustomButton
+                                fullWidth
                                 type="submit"
                                 disabled={!formik.isValid || formik.isSubmitting}
                                 className="h-12 text-base font-semibold"

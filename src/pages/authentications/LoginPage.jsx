@@ -23,45 +23,38 @@ export default function LoginPage() {
 
     // Form validation schema
     const validationSchema = Yup.object({
-        username: Yup.string().required('Username is required!'),
+        login: Yup.string().required('Username or email is required!'),
         password: Yup.string().required('Password is required!'),
     });
 
     const handleSubmit = async (data) => {
         try {
             loading.start();
-            
-            // Trim input untuk hindari whitespace
-            const username = data.username.trim();
-            const password = data.password.trim();
-            
-            // Call backend API melalui UserDAO
+
             const result = await UserDAO.login({
-                username: username,
-                password: password
+                login: data.login.trim(),
+                password: data.password.trim(),
             });
 
-            // Check response
             if (!result.success) {
                 throw new Error(result.error || 'Login failed');
             }
 
-            // Simpan token ke localStorage
             if (result.token) {
                 localStorage.setItem('authToken', result.token);
             }
 
-            // Login dengan data user dari backend
             login({
                 id: result.user.id,
                 username: result.user.username,
                 fullName: result.user.fullName,
-                role: result.user.role || 'user'
+                role: result.user.role || 'user',
+                email: result.user.email || '',
             });
 
             message('Welcome back! 👋', 'success');
             navigate('/', { replace: true });
-            
+
         } catch (error) {
             console.error('Login error:', error);
             message(error.message || 'Login failed. Please check your credentials.', 'error');
@@ -72,7 +65,7 @@ export default function LoginPage() {
 
     const formik = useFormik({
         initialValues: {
-            username: '',
+            login: '',
             password: '',
         },
         validationSchema,
@@ -110,20 +103,20 @@ export default function LoginPage() {
                 <form onSubmit={formik.handleSubmit}>
                     <div className="bg-white rounded-2xl shadow-xl p-8">
                         <div className="space-y-5">
-                            {/* Username Input */}
+                            {/* Username or Email Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Username
+                                    Username or Email
                                 </label>
                                 <CustomTextInput
-                                    name="username"
+                                    name="login"
                                     fullWidth
-                                    placeholder="Enter your username"
+                                    placeholder="Enter your username or email"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    value={formik.values.username}
-                                    error={formik.touched.username && Boolean(formik.errors.username)}
-                                    helperText={formik.touched.username && formik.errors.username}
+                                    value={formik.values.login}
+                                    error={formik.touched.login && Boolean(formik.errors.login)}
+                                    helperText={formik.touched.login && formik.errors.login}
                                 />
                             </div>
 
@@ -159,8 +152,8 @@ export default function LoginPage() {
 
                         {/* Submit Button */}
                         <div className="mt-8">
-                            <CustomButton 
-                                fullWidth 
+                            <CustomButton
+                                fullWidth
                                 type="submit"
                                 disabled={!formik.isValid || formik.isSubmitting}
                                 className="h-12 text-base font-semibold"
