@@ -25,7 +25,7 @@ export default function AppRoutes() {
             <Route path="/signup" element={<SignUpPage />} />
 
             <Route path="/" element={<DashboardLayout />}>
-                <Route index element={<PropertyListPage />} /> {/* Ubah default ke PropertyListPage */}
+               <Route index element={<DashboardPage />} />{/* Ubah default ke PropertyListPage */}
 
                 {/* Customers Routes */}
                 <Route path="customers">

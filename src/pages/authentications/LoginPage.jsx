@@ -17,7 +17,7 @@ export default function LoginPage() {
     // Redirect if already logged in
     useEffect(() => {
         if (user && !isLoading) {
-            navigate('/', { replace: true });
+            navigate('/dashboard', { replace: true });
         }
     }, [user, isLoading, navigate]);
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
             });
 
             message('Welcome back! 👋', 'success');
-            navigate('/', { replace: true });
+            navigate('/dashboard', { replace: true });
 
         } catch (error) {
             console.error('Login error:', error);
