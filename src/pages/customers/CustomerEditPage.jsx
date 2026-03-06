@@ -5,7 +5,6 @@ import {
     Typography,
     Button,
     Grid,
-    TextField,
     Paper,
     Alert,
     Tabs,
@@ -20,10 +19,7 @@ import {
     DialogActions,
     useMediaQuery,
     useTheme,
-    Divider,
-    Chip,
-    Stack,
-    alpha
+    Stack
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -610,7 +606,7 @@ export default function CustomerEditPage() {
                     {/* Tab Panel 1: Customer Info */}
                     <TabPanel value={tabValue} index={0}>
                         <Grid container spacing={3}>
-                            <Grid item xs={12}>
+                            <Grid size={12}>
                                 <FormInput
                                     label="Full Name"
                                     name="name"
@@ -622,7 +618,7 @@ export default function CustomerEditPage() {
                                     placeholder="John Doe"
                                 />
                             </Grid>
-                            <Grid item xs={12} md={6}>
+                            <Grid size={{ xs: 12, md: 6 }}>
                                 <FormInput
                                     label="Phone Number"
                                     name="phone"
@@ -632,7 +628,7 @@ export default function CustomerEditPage() {
                                     placeholder="+62 812 3456 7890"
                                 />
                             </Grid>
-                            <Grid item xs={12} md={6}>
+                            <Grid size={{ xs: 12, md: 6 }}>
                                 <FormInput
                                     label="Address"
                                     name="address"
@@ -642,7 +638,7 @@ export default function CustomerEditPage() {
                                     placeholder="1234 Main St"
                                 />
                             </Grid>
-                            <Grid item xs={12}>
+                            <Grid size={12}>
                                 <FormInput
                                     label="Additional Notes"
                                     name="notes"
@@ -660,7 +656,7 @@ export default function CustomerEditPage() {
                     {/* Tab Panel 2: Car Details */}
                     <TabPanel value={tabValue} index={1}>
                         <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Car Owner Name"
                                     name="carOwnerName"
@@ -670,7 +666,7 @@ export default function CustomerEditPage() {
                                     placeholder="Owner Name"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Car Brand"
                                     name="carBrand"
@@ -682,7 +678,7 @@ export default function CustomerEditPage() {
                                     placeholder="Toyota"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Car Model"
                                     name="carModel"
@@ -692,7 +688,7 @@ export default function CustomerEditPage() {
                                     placeholder="Avanza"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Plate Number"
                                     name="plateNumber"
@@ -704,7 +700,7 @@ export default function CustomerEditPage() {
                                     placeholder="B 1234 ABC"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Chassis Number"
                                     name="chassisNumber"
@@ -714,7 +710,7 @@ export default function CustomerEditPage() {
                                     placeholder="MH..."
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Engine Number"
                                     name="engineNumber"
@@ -724,7 +720,7 @@ export default function CustomerEditPage() {
                                     placeholder="ENG..."
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Car Price"
                                     name="carPrice"
@@ -737,7 +733,7 @@ export default function CustomerEditPage() {
                                     Vehicle price in Indonesian Rupiah
                                 </Typography>
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormInput
                                     label="Insurance Due Date"
                                     name="dueDate"
@@ -784,7 +780,7 @@ export default function CustomerEditPage() {
 
                         <Grid container spacing={3}>
                             {documentTypes.map(({ key, label, description, icon }) => (
-                                <Grid item xs={12} sm={6} md={4} key={key}>
+                                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
                                     <Card
                                         elevation={0}
                                         sx={{
@@ -930,7 +926,7 @@ export default function CustomerEditPage() {
 
                         <Grid container spacing={3}>
                             {carPhotoSides.map(({ key, label, icon }) => (
-                                <Grid item xs={12} sm={6} md={3} key={key}>
+                                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={key}>
                                     <Card
                                         elevation={0}
                                         sx={{
