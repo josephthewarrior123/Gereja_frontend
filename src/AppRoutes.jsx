@@ -4,18 +4,14 @@ import DashboardLayout from './reusables/layouts/DashboardLayout';
 import LoginPage from './pages/authentications/LoginPage';
 import SignUpPage from './pages/authentications/SignupPage';
 import AdminList from './pages/Admin/AdminList';
-import CreateAdmin from './pages/Admin/CreateAdmin';
 import AdminEdit from './pages/Admin/AdminEdit';
 import AdminAssignPage from './pages/Admin/AdminAssignPage';
-import Kwitansi from './pages/Kwitansi/KwitansiCreate';
-import CustomerListPage from './pages/customers/CustomerListPage';
-import CustomerEditPage from './pages/customers/CustomerEditPage';
-import CustomerDetailPage from './pages/customers/CustomerDetailPage';
-import PropertyListPage from './pages/Property/PropertyList';
-import CreateQuotationPage from './pages/quotations/CreateQuotationPage';
-import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
 import DashboardPage from './pages/dashboard/Dashboard';
-
+import UserListPage from './pages/User/UserList';
+import CreateUserPage from './pages/User/CreateUserPage';
+import JournalPage from './pages/journal/Journalpage';
+import SubmitEntryPage from './pages/journal/Submitentrypage';
+import ActivityFormPage from './pages/journal/Activityformpage';
 
 export default function AppRoutes() {
     return (
@@ -25,42 +21,25 @@ export default function AppRoutes() {
             <Route path="/signup" element={<SignUpPage />} />
 
             <Route path="/" element={<DashboardLayout />}>
-               <Route index element={<DashboardPage />} />{/* Ubah default ke PropertyListPage */}
+                <Route index element={<DashboardPage />} />
 
-                {/* Customers Routes */}
-                <Route path="customers">
-                    <Route index element={<CustomerListPage />} />
-                    <Route path=":id" element={<CustomerDetailPage />} />
-                    <Route path="edit/:id" element={<CustomerEditPage />} />
-
-                </Route>
-
-                {/* Properties Routes */}
-                <Route path="properties">
-                    <Route index element={<PropertyListPage />} />
-                </Route>
-
-                {/* Quotations Routes */}
-                <Route path="quotations">
-                    <Route path="create" element={<CreateQuotationPage />} />
-                </Route>
+                {/* User Routes */}
+                <Route path="/users" element={<UserListPage />} />
+                <Route path="/users/create" element={<CreateUserPage />} />
 
                 {/* Dashboard Routes */}
                 <Route path="dashboard" element={<DashboardPage />} />
 
-                {/* Invoices Routes */}
-                <Route path="invoices">
-                    <Route path="create" element={<CreateInvoicePage />} />
-                </Route>
+                {/* Journal Routes */}
+                <Route path="journal" element={<JournalPage />} />
+                <Route path="journal/submit" element={<SubmitEntryPage />} />
+                <Route path="journal/activities/create" element={<ActivityFormPage />} />
+                <Route path="journal/activities/:activityId/edit" element={<ActivityFormPage />} />
 
                 {/* Other Routes */}
-
                 <Route path="admin-management" element={<AdminList />} />
-                <Route path="create-admin" element={<CreateAdmin />} />
                 <Route path="edit-admin/:id" element={<AdminEdit />} />
                 <Route path="assign-admin/:id" element={<AdminAssignPage />} />
-                <Route path="kwitansi" element={<Kwitansi />} />
-
             </Route>
 
             <Route path="*" element={<Page404 />} />
