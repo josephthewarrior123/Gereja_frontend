@@ -4,13 +4,13 @@ export default class ApiRequest {
     // Regular API call untuk JSON
     static set = async (endpoint, method, body, apiUrl = null) => {
         const token = localStorage.getItem('authToken');
-        
+
         // Prepare headers
         const headers = {
             'Authorization': token ? `Bearer ${token}` : '',
             'Accept': 'application/json',
         };
-        
+
         // Determine Content-Type
         let requestBody = body;
         if (body instanceof FormData) {
@@ -22,7 +22,7 @@ export default class ApiRequest {
             headers['Content-Type'] = 'application/json';
             requestBody = JSON.stringify(body);
         }
-        
+
         const request = {
             method: method,
             headers: headers,
@@ -31,7 +31,7 @@ export default class ApiRequest {
 
         const baseURL = apiUrl || ApiConfig.base_url;
         const response = await fetch(baseURL + endpoint, request);
-        
+
         if (response.ok) {
             return await response.json();
         }
@@ -57,14 +57,14 @@ export default class ApiRequest {
     // ⭐ DEDICATED method untuk multipart/form-data (file upload)
     static setMultipart = async (endpoint, method, formData, apiUrl = null) => {
         const token = localStorage.getItem('authToken');
-        
+
         // Untuk multipart, HANYA set Authorization
         // JANGAN set Content-Type, biar browser auto-set dengan boundary
         const headers = {
             'Authorization': token ? `Bearer ${token}` : '',
             'Accept': 'application/json',
         };
-        
+
         const request = {
             method: method,
             headers: headers,
@@ -72,12 +72,12 @@ export default class ApiRequest {
         };
 
         const baseURL = apiUrl || ApiConfig.base_url;
-        
+
         console.log(`📤 Uploading to: ${baseURL}${endpoint}`);
         console.log(`📦 FormData entries:`, [...formData.entries()].length);
-        
+
         const response = await fetch(baseURL + endpoint, request);
-        
+
         if (response.ok) {
             return await response.json();
         }
@@ -115,6 +115,7 @@ export default class ApiRequest {
         GET: 'GET',
         POST: 'POST',
         PUT: 'PUT',
+        PATCH: 'PATCH',
         DELETE: 'DELETE',
     };
 }

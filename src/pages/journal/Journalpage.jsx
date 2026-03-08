@@ -1,7 +1,7 @@
 import { Icon } from '@iconify/react';
 import {
-    Avatar, Box, Card, CardContent, Chip, CircularProgress,
-    Grid, InputAdornment, Stack, TextField, Typography,
+    Box, Card, CardContent, Chip, CircularProgress,
+    Stack, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -25,6 +25,104 @@ function PointsBadge({ points }) {
             <Icon icon="mdi:star" color="#F59E0B" width={12} />
             <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#D97706' }}>{points} pts</Typography>
         </Box>
+    );
+}
+
+// ── Stat Card — card style like reference image, blue ──────────────────────
+
+function StatCard({ label, value, icon }) {
+    return (
+        <Card sx={{
+            flex: 1,
+            borderRadius: 3,
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            bgcolor: '#fff',
+        }}>
+            <CardContent sx={{ p: '18px 20px !important' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Box>
+                        <Typography sx={{
+                            fontSize: 11, fontWeight: 700, color: '#94A3B8',
+                            textTransform: 'uppercase', letterSpacing: 0.8, mb: 1,
+                        }}>
+                            {label}
+                        </Typography>
+                        <Typography sx={{ fontSize: 32, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                            {value}
+                        </Typography>
+                    </Box>
+                    <Box sx={{
+                        width: 40, height: 40, borderRadius: 2.5,
+                        bgcolor: '#EFF6FF',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                    }}>
+                        <Icon icon={icon} color="#2563EB" width={20} />
+                    </Box>
+                </Stack>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ── Empty State — styled like reference image ──────────────────────────────
+
+function EmptyState({ label, description, actionLabel, onAction }) {
+    return (
+        <Card sx={{
+            borderRadius: 4,
+            border: '1.5px dashed #E2E8F0',
+            boxShadow: 'none',
+            bgcolor: '#fff',
+        }}>
+            <CardContent sx={{ py: 6, textAlign: 'center' }}>
+                <Box sx={{
+                    width: 96, height: 96, borderRadius: '50%',
+                    bgcolor: '#FFF7F5', mx: 'auto', mb: 3,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <Box sx={{
+                        width: 72, height: 72, borderRadius: '50%',
+                        bgcolor: '#DBEAFE',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <Icon icon="mdi:file-document-edit-outline" color="#93C5FD" width={36} />
+                    </Box>
+                </Box>
+
+                <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#0F172A', mb: 1 }}>
+                    {label}
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: '#94A3B8', maxWidth: 320, mx: 'auto', lineHeight: 1.6, mb: 3 }}>
+                    {description}
+                </Typography>
+
+                {onAction && (
+                    <Stack direction="row" spacing={1.5} justifyContent="center">
+                        <Box onClick={onAction} sx={{
+                            display: 'inline-flex', alignItems: 'center', gap: 1,
+                            px: 3, py: 1.4, borderRadius: 99,
+                            bgcolor: '#1E3A8A', color: '#fff',
+                            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                            '&:hover': { bgcolor: '#1e40af' },
+                        }}>
+                            <Icon icon="mdi:plus-circle-outline" width={17} />
+                            {actionLabel}
+                        </Box>
+                        <Box sx={{
+                            display: 'inline-flex', alignItems: 'center', gap: 1,
+                            px: 3, py: 1.4, borderRadius: 99,
+                            bgcolor: '#F1F5F9', color: '#64748B',
+                            fontWeight: 600, fontSize: 13, cursor: 'default',
+                        }}>
+                            <Icon icon="mdi:information-outline" width={17} />
+                            Learn More
+                        </Box>
+                    </Stack>
+                )}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -112,26 +210,6 @@ function ActivityCard({ activity, onEdit, isAdmin }) {
     );
 }
 
-function EmptyState({ label, actionLabel, onAction }) {
-    return (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Icon icon="mdi:book-open-page-variant-outline" width={56} color="#CBD5E1" />
-            <Typography sx={{ mt: 1.5, color: '#94A3B8', fontWeight: 600, fontSize: 14 }}>{label}</Typography>
-            {onAction && (
-                <Box onClick={onAction} sx={{
-                    mt: 2, display: 'inline-flex', alignItems: 'center', gap: 1,
-                    px: 3, py: 1.2, borderRadius: 99, bgcolor: '#1E3A8A', color: '#fff',
-                    fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                    '&:hover': { bgcolor: '#1e40af' },
-                }}>
-                    <Icon icon="mdi:plus" width={16} />
-                    {actionLabel}
-                </Box>
-            )}
-        </Box>
-    );
-}
-
 function TabButton({ active, label, icon, onClick }) {
     return (
         <Box onClick={onClick} sx={{
@@ -149,6 +227,8 @@ function TabButton({ active, label, icon, onClick }) {
     );
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 export default function JournalPage() {
     const { user } = useUser();
     const navigate = useNavigate();
@@ -158,11 +238,10 @@ export default function JournalPage() {
 
     const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-    const [tab, setTab] = useState('entries'); // 'entries' | 'activities'
+    const [tab, setTab] = useState('entries');
     const [entries, setEntries] = useState([]);
     const [activities, setActivities] = useState([]);
     const [fetching, setFetching] = useState(false);
-    const [keyword, setKeyword] = useState('');
 
     const load = async () => {
         try {
@@ -187,93 +266,48 @@ export default function JournalPage() {
 
     const totalPoints = entries.reduce((s, e) => s + (e.points_awarded || 0), 0);
 
-    const filteredEntries = entries.filter((e) =>
-        !keyword || (e.activity_name_snapshot || '').toLowerCase().includes(keyword.toLowerCase())
-    );
-    const filteredActivities = activities.filter((a) =>
-        !keyword || a.name.toLowerCase().includes(keyword.toLowerCase())
-    );
+
 
     return (
         <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh' }}>
 
-            {/* ===== HEADER STATS ===== */}
-            <Box sx={{ px: { xs: 2, sm: 0 }, pt: { xs: 2, sm: 0 }, pb: 2 }}>
-                <Box sx={{
-                    borderRadius: 4, p: { xs: 2.5, sm: 3 },
-                    background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
-                    <Box>
-                        <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 600, mb: 0.5 }}>
-                            My Points
-                        </Typography>
-                        <Stack direction="row" alignItems="center" gap={0.75}>
-                            <Icon icon="mdi:star" color="#FCD34D" width={22} />
-                            <Typography sx={{ fontSize: 34, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
-                                {totalPoints}
-                            </Typography>
-                        </Stack>
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 600, mb: 0.5 }}>
-                            Total Entries
-                        </Typography>
-                        <Typography sx={{ fontSize: 34, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
-                            {entries.length}
-                        </Typography>
-                    </Box>
-                    {isAdmin && (
-                        <Box sx={{ textAlign: 'right' }}>
-                            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 600, mb: 0.5 }}>
-                                Activities
-                            </Typography>
-                            <Typography sx={{ fontSize: 34, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
-                                {activities.length}
-                            </Typography>
-                        </Box>
-                    )}
-                </Box>
+            {/* ===== STAT CARDS ===== */}
+            <Box sx={{ px: { xs: 2, sm: 0 }, pt: { xs: 2, sm: 0 }, pb: 2.5 }}>
+                <Stack direction="row" spacing={2}>
+                    <StatCard
+                        label="My Points"
+                        value={totalPoints.toLocaleString()}
+                        icon="mdi:star-four-points"
+                    />
+                    <StatCard
+                        label="Total Entries"
+                        value={entries.length}
+                        icon="mdi:book-edit-outline"
+                    />
+                </Stack>
             </Box>
 
-            {/* ===== TABS + SEARCH + ACTION ===== */}
+            {/* ===== TABS + ACTION ===== */}
             <Box sx={{ px: { xs: 2, sm: 0 }, mb: 2 }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1.5}>
-                    {/* Tabs */}
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Stack direction="row" spacing={1}>
                         <TabButton
                             active={tab === 'entries'}
                             label="My Entries"
                             icon="mdi:book-open-outline"
-                            onClick={() => { setTab('entries'); setKeyword(''); }}
+                            onClick={() => setTab('entries')}
                         />
                         {isAdmin && (
                             <TabButton
                                 active={tab === 'activities'}
                                 label="Activities"
                                 icon="mdi:lightning-bolt-outline"
-                                onClick={() => { setTab('activities'); setKeyword(''); }}
+                                onClick={() => setTab('activities')}
                             />
                         )}
                     </Stack>
 
-                    {/* Search + CTA */}
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                        <TextField
-                            size="small"
-                            placeholder="Search..."
-                            value={keyword}
-                            onChange={(e) => setKeyword(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Icon icon="mdi:magnify" color="#94A3B8" width={18} />
-                                    </InputAdornment>
-                                ),
-                                sx: { borderRadius: 3, bgcolor: '#fff', fontSize: 13 },
-                            }}
-                            sx={{ width: { xs: '100%', sm: 200 } }}
-                        />
+                    <Stack direction="row" spacing={1}>
                         {tab === 'entries' && (
                             <Box onClick={() => navigate('/journal/submit')} sx={{
                                 px: 2.5, py: 1, borderRadius: 99, cursor: 'pointer', whiteSpace: 'nowrap',
@@ -307,24 +341,26 @@ export default function JournalPage() {
                         <CircularProgress sx={{ color: '#1E3A8A' }} />
                     </Box>
                 ) : tab === 'entries' ? (
-                    filteredEntries.length === 0 ? (
+                    entries.length === 0 ? (
                         <EmptyState
-                            label={keyword ? 'Tidak ada hasil' : 'Belum ada journal entry'}
-                            actionLabel={!keyword ? 'Submit Entry' : undefined}
-                            onAction={!keyword ? () => navigate('/journal/submit') : undefined}
+                            label="Your journal is waiting"
+                            description="You haven't added any entries yet. Capture your first thought, activity, or milestone of the day."
+                            actionLabel="Create Your First Entry"
+                            onAction={() => navigate('/journal/submit')}
                         />
                     ) : (
-                        filteredEntries.map((e) => <EntryCard key={e.id} entry={e} />)
+                        entries.map((e) => <EntryCard key={e.id} entry={e} />)
                     )
                 ) : (
-                    filteredActivities.length === 0 ? (
+                    activities.length === 0 ? (
                         <EmptyState
-                            label={keyword ? 'Tidak ada hasil' : 'Belum ada activity'}
-                            actionLabel={!keyword && isAdmin ? 'Buat Activity' : undefined}
-                            onAction={!keyword && isAdmin ? () => navigate('/journal/activities/create') : undefined}
+                            label="No activities yet"
+                            description="Belum ada activity yang dibuat. Buat activity baru untuk mulai mencatat."
+                            actionLabel={isAdmin ? 'Buat Activity' : undefined}
+                            onAction={isAdmin ? () => navigate('/journal/activities/create') : undefined}
                         />
                     ) : (
-                        filteredActivities.map((a) => (
+                        activities.map((a) => (
                             <ActivityCard
                                 key={a.id}
                                 activity={a}

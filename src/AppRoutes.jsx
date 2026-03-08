@@ -12,6 +12,9 @@ import CreateUserPage from './pages/User/CreateUserPage';
 import JournalPage from './pages/journal/Journalpage';
 import SubmitEntryPage from './pages/journal/Submitentrypage';
 import ActivityFormPage from './pages/journal/Activityformpage';
+import GroupListPage from './pages/Group/GroupListPage';
+import GroupFormDialog from './pages/Group/GroupFormDialog';
+import GroupDeleteDialog from './pages/Group/GroupDeleteDialog';
 
 export default function AppRoutes() {
     return (
@@ -35,6 +38,11 @@ export default function AppRoutes() {
                 <Route path="journal/submit" element={<SubmitEntryPage />} />
                 <Route path="journal/activities/create" element={<ActivityFormPage />} />
                 <Route path="journal/activities/:activityId/edit" element={<ActivityFormPage />} />
+
+                <Route path="group" element={<GroupListPage />} />
+                <Route path="group/create" element={<GroupFormDialog />} />
+                <Route path="group/:groupId/edit" element={<GroupFormDialog />} />
+                <Route path="group/:groupId/delete" element={<GroupDeleteDialog />} />
 
                 {/* Other Routes */}
                 <Route path="admin-management" element={<AdminList />} />

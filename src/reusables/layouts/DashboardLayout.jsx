@@ -24,6 +24,7 @@ export default function DashboardLayout() {
       { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
       { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
       { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
+      { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
       { icon: 'heroicons:shield-check', label: 'Admin Management', url: '/admin-management', title: 'Admin Management', superAdminOnly: true },
     ],
     []
@@ -39,15 +40,33 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  // Derive page label for mobile header
   const currentSection = sections.find(
     (s) => s.url === location.pathname || (s.url !== '/' && location.pathname.startsWith(s.url))
   );
   const pageLabel = currentSection?.label || 'Dashboard';
 
-  // Show + button only on /users page (non-create routes)
   const isUsersPage = location.pathname === '/users';
   const canCreateUser = user?.role === 'admin' || user?.role === 'super_admin';
+
+  // Mobile bottom nav right item logic
+  // Priority: Groups (if admin) → Users → Journal
+  const getMobileRightItem = () => {
+    const isOnUsersArea = location.pathname.startsWith('/users');
+    const isOnGroupsArea = location.pathname.startsWith('/groups');
+
+    if (!canCreateUser) {
+      return { icon: 'heroicons:book-open', label: 'Journal', url: '/journal' };
+    }
+    if (isOnUsersArea) {
+      return { icon: 'heroicons:user-group', label: 'Groups', url: '/groups' };
+    }
+    if (isOnGroupsArea) {
+      return { icon: 'heroicons:users', label: 'Users', url: '/users' };
+    }
+    return { icon: 'heroicons:users', label: 'Users', url: '/users' };
+  };
+
+  const mobileRightItem = getMobileRightItem();
 
   return (
     <div className="max-w-screen max-h-screen overflow-hidden h-full">
@@ -87,19 +106,16 @@ export default function DashboardLayout() {
             position: 'relative',
           }}
         >
-          {/* Left: hamburger */}
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}>
             <CustomIcon icon="heroicons:bars-3-solid" />
           </IconButton>
 
-          {/* Center: page title */}
           <Box sx={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16, whiteSpace: 'nowrap' }}>
               {pageLabel}
             </Typography>
           </Box>
 
-          {/* Right: avatar */}
           <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>
             {user?.username?.charAt(0)?.toUpperCase() || 'U'}
           </Avatar>
@@ -243,22 +259,16 @@ export default function DashboardLayout() {
               <Box sx={{ width: 56 }} />
             )}
 
-            {/* Right: Journal (always) OR Users (only when NOT on /users page) */}
+            {/* Right: dynamic — Groups / Users / Journal */}
             {(() => {
-              const isOnUsersArea = location.pathname.startsWith('/users');
-              // Kalau lagi di users page, show Journal di kanan
-              // Kalau tidak di users, show Users (kalau admin/super_admin) atau Journal
-              const item = isOnUsersArea || !canCreateUser
-                ? { icon: 'heroicons:book-open', label: 'Journal', url: '/journal' }
-                : { icon: 'heroicons:users', label: 'Users', url: '/users' };
-              const isActive = location.pathname === item.url || (item.url !== '/' && location.pathname.startsWith(item.url));
+              const isActive = location.pathname === mobileRightItem.url || location.pathname.startsWith(mobileRightItem.url);
               return (
                 <Box
-                  onClick={() => navigate(item.url)}
+                  onClick={() => navigate(mobileRightItem.url)}
                   sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '80px', zIndex: 1 }}
                 >
-                  <CustomIcon icon={isActive ? `${item.icon}-solid` : item.icon} sx={{ fontSize: '22px' }} />
-                  <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{item.label}</Typography>
+                  <CustomIcon icon={isActive ? `${mobileRightItem.icon}-solid` : mobileRightItem.icon} sx={{ fontSize: '22px' }} />
+                  <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{mobileRightItem.label}</Typography>
                 </Box>
               );
             })()}

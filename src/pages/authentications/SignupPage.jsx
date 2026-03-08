@@ -5,14 +5,38 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useNavigate } from 'react-router';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import UserDAO from '../../daos/UserDAO';
+import GroupDAO from '../../daos/GroupDao';
 
 export default function SignUpPage() {
     const { user, login, isLoading } = useUser();
     const loading = useLoading();
     const message = useAlert();
     const navigate = useNavigate();
+
+    const [groupOptions, setGroupOptions] = useState([]);
+    const [groupsLoading, setGroupsLoading] = useState(true);
+
+    // Fetch groups on mount (public endpoint, no auth needed)
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                setGroupsLoading(true);
+                const result = await GroupDAO.listGroups();
+                if (result.success) {
+                    // Only show active groups
+                    const activeGroups = result.groups.filter((g) => g.isActive !== false);
+                    setGroupOptions(activeGroups);
+                }
+            } catch (error) {
+                console.error('Failed to fetch groups:', error);
+            } finally {
+                setGroupsLoading(false);
+            }
+        };
+        fetchGroups();
+    }, []);
 
     // Redirect if already logged in
     useEffect(() => {
@@ -21,7 +45,6 @@ export default function SignUpPage() {
         }
     }, [user, isLoading, navigate]);
 
-    // Form validation schema
     const validationSchema = Yup.object({
         fullName: Yup.string()
             .required('Full name is required!')
@@ -39,6 +62,8 @@ export default function SignUpPage() {
         confirmPassword: Yup.string()
             .required('Please confirm your password!')
             .oneOf([Yup.ref('password'), null], 'Passwords must match'),
+        groups: Yup.array()
+            .min(1, 'Pilih minimal 1 grup'),
     });
 
     const handleSubmit = async (data) => {
@@ -51,6 +76,7 @@ export default function SignUpPage() {
                 email: data.email.trim().toLowerCase(),
                 password: data.password.trim(),
                 role: 'user',
+                groups: data.groups,
             });
 
             if (!result.success) {
@@ -67,6 +93,7 @@ export default function SignUpPage() {
                 fullName: result.user.fullName,
                 role: result.user.role || 'user',
                 email: result.user.email || '',
+                groups: result.user.groups || [],
             });
 
             message('Account created successfully! Welcome aboard! 🎉', 'success');
@@ -87,12 +114,22 @@ export default function SignUpPage() {
             email: '',
             password: '',
             confirmPassword: '',
+            groups: [],
         },
         validationSchema,
         onSubmit: handleSubmit,
         validateOnChange: true,
         validateOnBlur: true,
     });
+
+    // Toggle group selection
+    const toggleGroup = (groupId) => {
+        const current = formik.values.groups;
+        const next = current.includes(groupId)
+            ? current.filter((g) => g !== groupId)
+            : [...current, groupId];
+        formik.setFieldValue('groups', next);
+    };
 
     if (isLoading) {
         return (
@@ -108,7 +145,7 @@ export default function SignUpPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 py-8">
             <div className="w-full max-w-md">
-                {/* Header Section */}
+                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-project-primary rounded-2xl shadow-lg mb-4">
                         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +160,8 @@ export default function SignUpPage() {
                 <form onSubmit={formik.handleSubmit}>
                     <div className="bg-white rounded-2xl shadow-xl p-8">
                         <div className="space-y-5">
-                            {/* Full Name Input */}
+
+                            {/* Full Name */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Full Name
@@ -140,7 +178,7 @@ export default function SignUpPage() {
                                 />
                             </div>
 
-                            {/* Username Input */}
+                            {/* Username */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Username
@@ -157,7 +195,7 @@ export default function SignUpPage() {
                                 />
                             </div>
 
-                            {/* Email Input */}
+                            {/* Email */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Email
@@ -175,7 +213,7 @@ export default function SignUpPage() {
                                 />
                             </div>
 
-                            {/* Password Input */}
+                            {/* Password */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Password
@@ -193,7 +231,7 @@ export default function SignUpPage() {
                                 />
                             </div>
 
-                            {/* Confirm Password Input */}
+                            {/* Confirm Password */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Confirm Password
@@ -210,6 +248,53 @@ export default function SignUpPage() {
                                     type="password"
                                 />
                             </div>
+
+                            {/* Group Selection */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Pilih Grup
+                                </label>
+
+                                {groupsLoading ? (
+                                    <div className="flex items-center gap-2 text-sm text-gray-500 py-3">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-project-primary"></div>
+                                        Memuat daftar grup...
+                                    </div>
+                                ) : groupOptions.length === 0 ? (
+                                    <p className="text-sm text-gray-400 py-3">
+                                        Belum ada grup tersedia. Hubungi admin.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {groupOptions.map((group) => {
+                                            const isSelected = formik.values.groups.includes(group.id);
+                                            return (
+                                                <button
+                                                    key={group.id}
+                                                    type="button"
+                                                    onClick={() => toggleGroup(group.id)}
+                                                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-150
+                                                        ${isSelected
+                                                            ? 'bg-project-primary text-white border-project-primary shadow-sm'
+                                                            : 'bg-white text-gray-600 border-gray-300 hover:border-project-primary hover:text-project-primary'
+                                                        }`}
+                                                >
+                                                    {isSelected && (
+                                                        <span className="mr-1">✓</span>
+                                                    )}
+                                                    {group.name}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Error message for groups */}
+                                {formik.touched.groups && formik.errors.groups && (
+                                    <p className="text-xs text-red-500 mt-1">{formik.errors.groups}</p>
+                                )}
+                            </div>
+
                         </div>
 
                         {/* Submit Button */}
@@ -234,7 +319,6 @@ export default function SignUpPage() {
                             </CustomButton>
                         </div>
 
-                        {/* Privacy Note */}
                         <p className="text-xs text-gray-500 text-center mt-6">
                             By creating an account, you agree to our Terms of Service and Privacy Policy
                         </p>
