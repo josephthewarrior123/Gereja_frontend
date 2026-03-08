@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     // Form validation schema
     const validationSchema = Yup.object({
-        login: Yup.string().required('Username or email is required!'),
+        username: Yup.string().required('Username is required!'),
         password: Yup.string().required('Password is required!'),
     });
 
@@ -31,8 +31,9 @@ export default function LoginPage() {
         try {
             loading.start();
 
+            // FIX 1: kirim field 'username' sesuai yang backend expect
             const result = await UserDAO.login({
-                login: data.login.trim(),
+                username: data.username.trim(),
                 password: data.password.trim(),
             });
 
@@ -44,12 +45,15 @@ export default function LoginPage() {
                 localStorage.setItem('authToken', result.token);
             }
 
+            // FIX 2: backend tidak return 'id', pakai 'username' sebagai id
             login({
-                id: result.user.id,
+                id: result.user.username,
                 username: result.user.username,
                 fullName: result.user.fullName,
                 role: result.user.role || 'user',
                 email: result.user.email || '',
+                groups: result.user.groups || [],
+                managedGroups: result.user.managedGroups || [],
             });
 
             message('Welcome back! 👋', 'success');
@@ -65,7 +69,7 @@ export default function LoginPage() {
 
     const formik = useFormik({
         initialValues: {
-            login: '',
+            username: '',
             password: '',
         },
         validationSchema,
@@ -103,20 +107,20 @@ export default function LoginPage() {
                 <form onSubmit={formik.handleSubmit}>
                     <div className="bg-white rounded-2xl shadow-xl p-8">
                         <div className="space-y-5">
-                            {/* Username or Email Input */}
+                            {/* FIX 3: field name ganti dari 'login' → 'username' */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Username or Email
+                                    Username
                                 </label>
                                 <CustomTextInput
-                                    name="login"
+                                    name="username"
                                     fullWidth
-                                    placeholder="Enter your username or email"
+                                    placeholder="Enter your username"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    value={formik.values.login}
-                                    error={formik.touched.login && Boolean(formik.errors.login)}
-                                    helperText={formik.touched.login && formik.errors.login}
+                                    value={formik.values.username}
+                                    error={formik.touched.username && Boolean(formik.errors.username)}
+                                    helperText={formik.touched.username && formik.errors.username}
                                 />
                             </div>
 
