@@ -9,6 +9,7 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 import JournalDAO from '../../daos/JournalDao';
+import AdminDAO from '../../daos/AdminDao';
 import GroupDAO from '../../daos/GroupDao';
 
 const FIELD_TYPES = ['text', 'number', 'date'];
@@ -99,7 +100,7 @@ export default function ActivityFormPage() {
         is_active: true,
     });
 
-    // Load groups
+    // Load groups — admin biasa hanya bisa assign ke managedGroups-nya
     useEffect(() => {
         const loadGroups = async () => {
             try {
@@ -109,7 +110,13 @@ export default function ActivityFormPage() {
                 const normalized = (Array.isArray(raw) ? raw : [])
                     .map((g) => typeof g === 'string' ? { id: g, name: g } : { id: g.id || g.code, name: g.name || g.id })
                     .filter((g) => g.id);
-                setAllGroups(normalized);
+
+                // Filter: admin hanya lihat group yang dia kelola
+                const filtered = user?.role === 'super_admin'
+                    ? normalized
+                    : normalized.filter((g) => (user?.managedGroups || []).includes(g.id));
+
+                setAllGroups(filtered);
             } catch (e) {
                 message('Gagal memuat groups', 'warning');
             } finally {
@@ -117,15 +124,15 @@ export default function ActivityFormPage() {
             }
         };
         loadGroups();
-    }, []);
+    }, [user]);
 
-    // Load activity if edit mode
+    // Load activity if edit mode — pakai admin endpoint supaya filtered by managedGroups
     useEffect(() => {
         if (!isEdit) return;
         const loadActivity = async () => {
             try {
                 setLoadingActivity(true);
-                const res = await JournalDAO.listActivities();
+                const res = await AdminDAO.listAdminActivities();
                 if (res.success) {
                     const found = (res.data || []).find((a) => a.id === activityId);
                     if (found) {
@@ -137,7 +144,7 @@ export default function ActivityFormPage() {
                             is_active: found.is_active ?? true,
                         });
                     } else {
-                        message('Activity tidak ditemukan', 'error');
+                        message('Activity tidak ditemukan atau tidak ada akses', 'error');
                         navigate('/journal');
                     }
                 }

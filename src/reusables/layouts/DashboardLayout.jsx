@@ -15,13 +15,23 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isRegularUser = user?.role === 'user';
+
   useEffect(() => {
-    if (!user && !isLoading) navigate('/login', { replace: true });
-  }, [user, isLoading, navigate]);
+    if (!user && !isLoading) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // Redirect regular user away from /dashboard to /journal
+    if (user && isRegularUser && location.pathname === '/dashboard') {
+      navigate('/journal', { replace: true });
+    }
+  }, [user, isLoading, navigate, isRegularUser, location.pathname]);
 
   const sections = useMemo(
     () => [
-      { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard' },
+      { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard', adminAndSuperAdminOnly: true },
       { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
       { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
       { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
@@ -45,11 +55,8 @@ export default function DashboardLayout() {
   );
   const pageLabel = currentSection?.label || 'Dashboard';
 
-  const isUsersPage = location.pathname === '/users';
   const canCreateUser = user?.role === 'admin' || user?.role === 'super_admin';
 
-  // Mobile bottom nav right item logic
-  // Priority: Groups (if admin) → Users → Journal
   const getMobileRightItem = () => {
     const isOnUsersArea = location.pathname.startsWith('/users');
     const isOnGroupsArea = location.pathname.startsWith('/groups');
@@ -67,6 +74,11 @@ export default function DashboardLayout() {
   };
 
   const mobileRightItem = getMobileRightItem();
+
+  // Mobile left nav item: regular user gets Journal, others get Dashboard
+  const mobileLeftItem = isRegularUser
+    ? { icon: 'heroicons:book-open', label: 'Journal', url: '/journal' }
+    : { icon: 'heroicons:home', label: 'Dashboard', url: '/dashboard' };
 
   return (
     <div className="max-w-screen max-h-screen overflow-hidden h-full">
@@ -217,9 +229,9 @@ export default function DashboardLayout() {
               justifyContent: 'space-around',
             }}
           >
-            {/* Left: Dashboard */}
+            {/* Left item: Dashboard (admin/super_admin) or Journal (regular user) */}
             {(() => {
-              const item = { icon: 'heroicons:home', label: 'Dashboard', url: '/dashboard' };
+              const item = mobileLeftItem;
               const isActive = location.pathname === item.url || location.pathname.startsWith(item.url);
               return (
                 <Box
@@ -282,13 +294,17 @@ export default function DashboardLayout() {
 function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
+
   const filteredSections = sections.filter((s) => {
     if (s.superAdminOnly) return user?.role === 'super_admin';
     if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
+    // Hide Dashboard from regular users
+    if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     return true;
   });
-  const mainNav = filteredSections.filter((s) => !s.adminOnly && !s.superAdminOnly);
-  const adminNav = filteredSections.filter((s) => s.adminOnly || s.superAdminOnly);
+
+  const mainNav = filteredSections.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
+  const privilegedNav = filteredSections.filter((s) => s.adminOnly || s.superAdminOnly || s.adminAndSuperAdminOnly);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -322,9 +338,9 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
             <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />
           ))}
         </NavGroup>
-        {adminNav.length > 0 && (
+        {privilegedNav.length > 0 && (
           <NavGroup label="Admin">
-            {adminNav.map((s) => (
+            {privilegedNav.map((s) => (
               <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />
             ))}
           </NavGroup>

@@ -9,6 +9,7 @@ import AdminAssignPage from './pages/Admin/AdminAssignPage';
 import DashboardPage from './pages/dashboard/Dashboard';
 import UserListPage from './pages/User/UserList';
 import CreateUserPage from './pages/User/CreateUserPage';
+import EdituserPage from './pages/User/EdituserPage';
 import JournalPage from './pages/journal/Journalpage';
 import SubmitEntryPage from './pages/journal/Submitentrypage';
 import ActivityFormPage from './pages/journal/Activityformpage';
@@ -29,6 +30,7 @@ export default function AppRoutes() {
                 {/* User Routes */}
                 <Route path="/users" element={<UserListPage />} />
                 <Route path="/users/create" element={<CreateUserPage />} />
+                <Route path="/users/:username/edit" element={<EdituserPage />} />
 
                 {/* Dashboard Routes */}
                 <Route path="dashboard" element={<DashboardPage />} />
