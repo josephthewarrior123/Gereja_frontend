@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter } from 'react-router';
 import { LoadingProvider } from './hooks/LoadingProvider';
 import { MuiThemeProvider } from './hooks/MuiThemeProvider';
@@ -13,16 +14,18 @@ dayjs.extend(timezone);
 
 export default function App() {
     return (
-        <BrowserRouter>
-            <UserProvider>
-                <MuiThemeProvider>
-                    <LoadingProvider>
-                        <SnackbarProvider>
-                            <AppRoutes />
-                        </SnackbarProvider>
-                    </LoadingProvider>
-                </MuiThemeProvider>
-            </UserProvider>
-        </BrowserRouter>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+            <BrowserRouter>
+                <UserProvider>
+                    <MuiThemeProvider>
+                        <LoadingProvider>
+                            <SnackbarProvider>
+                                <AppRoutes />
+                            </SnackbarProvider>
+                        </LoadingProvider>
+                    </MuiThemeProvider>
+                </UserProvider>
+            </BrowserRouter>
+        </GoogleOAuthProvider>
     );
 }

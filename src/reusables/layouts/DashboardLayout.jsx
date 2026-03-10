@@ -1,4 +1,4 @@
-import Avatar from '@mui/material/Avatar';
+// src/reusables/layouts/DashboardLayout.jsx
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
@@ -9,407 +9,377 @@ import Constants from '../../utils/Constants';
 import CustomIcon from '../CustomIcon';
 import { useUser } from '../../hooks/UserProvider';
 
-export default function DashboardLayout() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { user, logout, isLoading } = useUser();
-  const navigate = useNavigate();
-  const location = useLocation();
+// ─── tokens ───────────────────────────────────────────────────────────────────
+const ACCENT      = '#6366f1';
+const ACCENT_DARK = '#4f46e5';
 
-  const isRegularUser = user?.role === 'user';
-
-  useEffect(() => {
-    if (!user && !isLoading) {
-      navigate('/login', { replace: true });
-      return;
-    }
-
-    // Redirect regular user away from /dashboard to /journal
-    if (user && isRegularUser && location.pathname === '/dashboard') {
-      navigate('/journal', { replace: true });
-    }
-  }, [user, isLoading, navigate, isRegularUser, location.pathname]);
-
-  const sections = useMemo(
-    () => [
-      { icon: 'heroicons:rectangle-group', label: 'Dashboard', url: '/dashboard', title: 'Dashboard', adminAndSuperAdminOnly: true },
-      { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
-      { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
-      { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
-      { icon: 'heroicons:shield-check', label: 'Admin Management', url: '/admin-management', title: 'Admin Management', superAdminOnly: true },
-    ],
-    []
-  );
-
-  useEffect(() => {
-    const matched = sections.find((s) => s.url === location.pathname);
-    if (matched?.title) document.title = matched.title;
-  }, [location.pathname, sections]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const currentSection = sections.find(
-    (s) => s.url === location.pathname || (s.url !== '/' && location.pathname.startsWith(s.url))
-  );
-  const pageLabel = currentSection?.label || 'Dashboard';
-
-  const canCreateUser = user?.role === 'admin' || user?.role === 'super_admin';
-
-  const getMobileRightItem = () => {
-    const isOnUsersArea = location.pathname.startsWith('/users');
-    const isOnGroupsArea = location.pathname.startsWith('/groups');
-
-    if (!canCreateUser) {
-      return { icon: 'heroicons:book-open', label: 'Journal', url: '/journal' };
-    }
-    if (isOnUsersArea) {
-      return { icon: 'heroicons:user-group', label: 'Groups', url: '/groups' };
-    }
-    if (isOnGroupsArea) {
-      return { icon: 'heroicons:users', label: 'Users', url: '/users' };
-    }
-    return { icon: 'heroicons:users', label: 'Users', url: '/users' };
-  };
-
-  const mobileRightItem = getMobileRightItem();
-
-  // Mobile left nav item: regular user gets Journal, others get Dashboard
-  const mobileLeftItem = isRegularUser
-    ? { icon: 'heroicons:book-open', label: 'Journal', url: '/journal' }
-    : { icon: 'heroicons:home', label: 'Dashboard', url: '/dashboard' };
-
+// ─── Role pill ────────────────────────────────────────────────────────────────
+const ROLE_CFG = {
+  super_admin: { label: 'Super Admin', color: '#7c3aed', bg: '#f5f3ff' },
+  admin:       { label: 'Admin',       color: '#1d4ed8', bg: '#eff6ff' },
+  user:        { label: 'User',        color: '#0f766e', bg: '#f0fdfa' },
+};
+function RolePill({ role }) {
+  const cfg = ROLE_CFG[role] || { label: role, color: '#64748b', bg: '#f8fafc' };
   return (
-    <div className="max-w-screen max-h-screen overflow-hidden h-full">
-      <Box component="nav" sx={{ width: { sm: Constants.NAVIGATION_DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>
-        <Drawer
-          variant="temporary"
-          open={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          ModalProps={{ keepMounted: true }}
-          className="sm:hidden"
-          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' } }}
-        >
-          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout} />
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          className="hidden sm:block"
-          open
-          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none', borderRight: '1px solid #f1f5f9' } }}
-        >
-          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout} />
-        </Drawer>
-      </Box>
+    <span style={{
+      display: 'inline-block', padding: '1px 8px', borderRadius: 99,
+      fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}22`,
+      fontFamily: '"DM Sans", sans-serif',
+    }}>
+      {cfg.label}
+    </span>
+  );
+}
 
-      <div className="max-h-full w-full flex flex-col">
-
-        {/* ===== MOBILE HEADER ===== */}
-        <Box
-          sx={{
-            display: { xs: 'flex', sm: 'none' },
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            px: 2,
-            height: `${Constants.HEADER_MOBILE_HEIGHT}px`,
-            bgcolor: '#fff',
-            borderBottom: '1px solid #f1f5f9',
-            position: 'relative',
-          }}
-        >
-          <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155' }}>
-            <CustomIcon icon="heroicons:bars-3-solid" />
-          </IconButton>
-
-          <Box sx={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-            <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 16, whiteSpace: 'nowrap' }}>
-              {pageLabel}
-            </Typography>
-          </Box>
-
-          <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>
-            {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-          </Avatar>
-        </Box>
-
-        {/* ===== DESKTOP HEADER ===== */}
-        <Box
-          sx={{
-            display: { xs: 'none', sm: 'flex' },
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            px: 5,
-            width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` },
-            ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` },
-            height: `${Constants.HEADER_DESKTOP_HEIGHT}px`,
-            gap: 2,
-            borderBottom: '1px solid #f1f5f9',
-            bgcolor: '#fff',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{user?.username || 'Demo User'}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
-            </div>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontSize: 13, fontWeight: 700 }}>
-              {(user?.username?.charAt(0) || 'D')?.toUpperCase()}
-            </Avatar>
-          </div>
-        </Box>
-
-        {/* ===== MAIN CONTENT ===== */}
-        <Box
-          component="main"
-          sx={{
-            px: { xs: 0, sm: 5 },
-            py: { xs: 0, sm: 4 },
-            width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` },
-            marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` },
-            maxHeight: { xs: `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px - 60px)`, sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)` },
-            overflow: 'auto',
-            bgcolor: '#f8fafc',
-          }}
-        >
-          <div className="w-full">
-            <Outlet />
-          </div>
-        </Box>
-
-        {/* ===== MOBILE BOTTOM NAV ===== */}
-        <Box
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1000,
-          }}
-        >
-          {/* SVG notch background */}
-          <svg
-            style={{ display: 'block', width: '100%', position: 'absolute', bottom: 0, left: 0 }}
-            height="60"
-            viewBox="0 0 375 60"
-            preserveAspectRatio="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0,0 
-                 L155,0 
-                 Q172,0 175,10 
-                 Q187.5,44 200,10 
-                 Q203,0 220,0 
-                 L375,0 
-                 L375,60 L0,60 Z"
-              fill="white"
-            />
-            <path
-              d="M0,0 
-                 L155,0 
-                 Q172,0 175,10 
-                 Q187.5,44 200,10 
-                 Q203,0 220,0 
-                 L375,0"
-              fill="none"
-              stroke="#f1f5f9"
-              strokeWidth="1"
-            />
-          </svg>
-
-          {/* Nav items row */}
-          <Box
-            sx={{
-              position: 'relative',
-              height: '60px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-around',
-            }}
-          >
-            {/* Left item: Dashboard (admin/super_admin) or Journal (regular user) */}
-            {(() => {
-              const item = mobileLeftItem;
-              const isActive = location.pathname === item.url || location.pathname.startsWith(item.url);
-              return (
-                <Box
-                  onClick={() => navigate(item.url)}
-                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '80px', zIndex: 1 }}
-                >
-                  <CustomIcon icon={isActive ? `${item.icon}-solid` : item.icon} sx={{ fontSize: '22px' }} />
-                  <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{item.label}</Typography>
-                </Box>
-              );
-            })()}
-
-            {/* Center: FAB */}
-            {canCreateUser ? (
-              <Box
-                onClick={() => navigate('/users/create')}
-                sx={{
-                  width: 56, height: 56,
-                  borderRadius: '50%',
-                  bgcolor: '#1E3A8A',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(30,58,138,0.5)',
-                  position: 'absolute',
-                  bottom: '18px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 2,
-                  transition: 'all 0.15s',
-                  '&:hover': { bgcolor: '#1e40af' },
-                  '&:active': { transform: 'translateX(-50%) scale(0.93)' },
-                }}
-              >
-                <CustomIcon icon="heroicons:plus-solid" sx={{ fontSize: 28, color: '#ffffff !important' }} style={{ color: '#ffffff' }} />
-              </Box>
-            ) : (
-              <Box sx={{ width: 56 }} />
-            )}
-
-            {/* Right: dynamic — Groups / Users / Journal */}
-            {(() => {
-              const isActive = location.pathname === mobileRightItem.url || location.pathname.startsWith(mobileRightItem.url);
-              return (
-                <Box
-                  onClick={() => navigate(mobileRightItem.url)}
-                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, color: isActive ? '#2563eb' : '#94a3b8', cursor: 'pointer', minWidth: '80px', zIndex: 1 }}
-                >
-                  <CustomIcon icon={isActive ? `${mobileRightItem.icon}-solid` : mobileRightItem.icon} sx={{ fontSize: '22px' }} />
-                  <Typography variant="caption" sx={{ fontWeight: isActive ? 600 : 400, fontSize: '0.6rem' }}>{mobileRightItem.label}</Typography>
-                </Box>
-              );
-            })()}
-          </Box>
-        </Box>
+// ─── Sidebar NavGroup ─────────────────────────────────────────────────────────
+function NavGroup({ label, children }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        fontSize: 9.5, fontWeight: 700, color: '#cbd5e1',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+        padding: '0 10px', marginBottom: 4,
+        fontFamily: '"DM Sans", sans-serif',
+      }}>
+        {label}
       </div>
+      {children}
     </div>
   );
 }
 
+// ─── Sidebar NavItem ──────────────────────────────────────────────────────────
+function NavItem({ section, location, navigate, onClose }) {
+  const isActive = location.pathname === section.url ||
+    (section.url !== '/' && location.pathname.startsWith(section.url));
+  return (
+    <button
+      onClick={() => { navigate(section.url); onClose(); }}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '9px 12px', marginBottom: 2, borderRadius: 10, border: 'none',
+        background: isActive ? `${ACCENT}12` : 'transparent',
+        cursor: 'pointer', transition: 'background .12s', textAlign: 'left',
+        position: 'relative',
+      }}
+      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f8fafc'; }}
+      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+    >
+      {isActive && (
+        <div style={{
+          position: 'absolute', left: 0, top: '20%', bottom: '20%',
+          width: 3, borderRadius: '0 3px 3px 0',
+          background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT_DARK})`,
+        }}/>
+      )}
+      <div style={{
+        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: isActive ? `${ACCENT}18` : 'transparent',
+        transition: 'background .12s',
+      }}>
+        <CustomIcon icon={section.icon} sx={{ fontSize: 17, color: isActive ? ACCENT : '#94a3b8' }}/>
+      </div>
+      <span style={{
+        fontSize: 13.5, fontWeight: isActive ? 600 : 400,
+        color: isActive ? ACCENT_DARK : '#64748b',
+        flex: 1, fontFamily: '"DM Sans", sans-serif',
+      }}>
+        {section.label}
+      </span>
+      {isActive && <div style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, flexShrink: 0 }}/>}
+    </button>
+  );
+}
+
+// ─── Drawer Content ───────────────────────────────────────────────────────────
 function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const filteredSections = sections.filter((s) => {
-    if (s.superAdminOnly) return user?.role === 'super_admin';
-    if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
-    // Hide Dashboard from regular users
+  const filtered = sections.filter((s) => {
+    if (s.superAdminOnly)        return user?.role === 'super_admin';
+    if (s.adminOnly)             return user?.role === 'admin' || user?.role === 'super_admin';
     if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     return true;
   });
 
-  const mainNav = filteredSections.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
-  const privilegedNav = filteredSections.filter((s) => s.adminOnly || s.superAdminOnly || s.adminAndSuperAdminOnly);
+  const mainNav       = filtered.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
+  const privilegedNav = filtered.filter((s) =>  s.adminOnly ||  s.superAdminOnly ||  s.adminAndSuperAdminOnly);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
-      <div style={{ padding: '20px 16px 14px', borderBottom: '1px solid #f1f5f9' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622C17.176 19.29 21 14.591 21 9a12.02 12.02 0 00-.382-3.016A11.955 11.955 0 0112 2.944z" fill="white" />
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', letterSpacing: '-0.3px' }}>Asuransi</span>
-        </div>
-      </div>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
 
-      <div style={{ padding: '12px 12px 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 8, background: '#f8fafc', border: '1px solid #f1f5f9' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+
+      {/* user card */}
+      <div style={{ padding: '12px 14px 8px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px', borderRadius: 12,
+          background: '#f8fafc', border: '1px solid #f1f5f9',
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DARK})`,
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 13, fontFamily: '"Outfit", sans-serif',
+            boxShadow: `0 2px 6px ${ACCENT}33`,
+          }}>
             {user?.username?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username || 'Demo User'}</div>
-            <div style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'capitalize' }}>{user?.role || 'user'}</div>
+            <div style={{
+              fontSize: 13, fontWeight: 600, color: '#0f172a',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              fontFamily: '"DM Sans", sans-serif', marginBottom: 2,
+            }}>
+              {user?.username || 'Demo User'}
+            </div>
+            <RolePill role={user?.role}/>
           </div>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0, boxShadow: '0 0 0 2px #fff' }}/>
         </div>
       </div>
 
+      {/* nav */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px 0' }}>
         <NavGroup label="Main">
-          {mainNav.map((s) => (
-            <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />
-          ))}
+          {mainNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose}/>)}
         </NavGroup>
         {privilegedNav.length > 0 && (
           <NavGroup label="Admin">
-            {privilegedNav.map((s) => (
-              <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />
-            ))}
+            {privilegedNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose}/>)}
           </NavGroup>
         )}
       </div>
 
-      <div style={{ padding: '8px 10px 20px' }}>
-        <div style={{ height: 1, background: '#f1f5f9', marginBottom: 6 }} />
+      {/* logout */}
+      <div style={{ padding: '8px 10px 22px' }}>
+        <div style={{ height: 1, background: '#f1f5f9', marginBottom: 8 }}/>
         <button
           onClick={onLogout}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', transition: 'all 0.12s' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#fff1f2';
-            e.currentTarget.style.color = '#ef4444';
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 12px', borderRadius: 10, border: 'none',
+            background: 'transparent', cursor: 'pointer', color: '#94a3b8',
+            transition: 'all .12s', fontFamily: '"DM Sans", sans-serif',
           }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#94a3b8';
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#fff1f2'; e.currentTarget.style.color = '#ef4444'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
         >
-          <CustomIcon icon="heroicons:arrow-left-end-on-rectangle" sx={{ fontSize: 16, color: 'inherit' }} />
-          <span style={{ fontSize: 13, fontWeight: 400 }}>Logout</span>
+          <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CustomIcon icon="heroicons:arrow-left-end-on-rectangle" sx={{ fontSize: 17, color: 'inherit' }}/>
+          </div>
+          <span style={{ fontSize: 13.5, fontWeight: 400 }}>Logout</span>
         </button>
       </div>
     </div>
   );
 }
 
-function NavGroup({ label, children }) {
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px', marginBottom: 3 }}>{label}</div>
-      {children}
-    </div>
-  );
-}
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export default function DashboardLayout() {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { user, logout, isLoading } = useUser();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
-function NavItem({ section, location, navigate, onClose }) {
-  const isActive = location.pathname === section.url || (section.url !== '/' && location.pathname.startsWith(section.url));
+  const isRegularUser = user?.role === 'user';
+
+  const sections = useMemo(() => [
+    { icon: 'heroicons:book-open',  label: 'Journal',     url: '/journal',     title: 'Journal' },
+    { icon: 'heroicons:trophy',     label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
+    { icon: 'heroicons:users',      label: 'Users',       url: '/users',       title: 'User Management',  adminOnly: true },
+    { icon: 'heroicons:user-group', label: 'Groups',      url: '/group',       title: 'Group Management', adminOnly: true },
+  ], []);
+
+  useEffect(() => {
+    if (!user && !isLoading) { navigate('/login', { replace: true }); return; }
+    if (user && isRegularUser && location.pathname === '/dashboard') navigate('/journal', { replace: true });
+  }, [user, isLoading, navigate, isRegularUser, location.pathname]);
+
+  useEffect(() => {
+    const matched = sections.find((s) => s.url === location.pathname);
+    if (matched?.title) document.title = matched.title;
+  }, [location.pathname, sections]);
+
+  const handleLogout = () => { logout(); navigate('/login'); };
+
+  const currentSection = sections.find(
+    (s) => s.url === location.pathname || (s.url !== '/' && location.pathname.startsWith(s.url))
+  );
+  const pageLabel = currentSection?.label || 'Dashboard';
+
+  // mobile bottom nav: filter by role, same logic as sidebar
+  const mobileNavItems = sections.filter((s) => {
+    if (s.superAdminOnly)         return user?.role === 'super_admin';
+    if (s.adminOnly)              return user?.role === 'admin' || user?.role === 'super_admin';
+    if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
+    return true;
+  });
+
+  // bottom nav height scales with item count
+  const BOTTOM_NAV_H = 64;
+
   return (
-    <button
-      onClick={() => {
-        navigate(section.url);
-        onClose();
-      }}
-      style={{
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 9,
-        padding: '8px 10px',
-        marginBottom: 2,
-        borderRadius: 8,
-        border: 'none',
-        background: isActive ? '#eff6ff' : 'transparent',
-        cursor: 'pointer',
-        transition: 'background 0.12s',
-        textAlign: 'left',
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) e.currentTarget.style.background = '#f8fafc';
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) e.currentTarget.style.background = 'transparent';
-      }}
-    >
-      <CustomIcon icon={section.icon} sx={{ fontSize: 16, color: isActive ? '#2563eb' : '#94a3b8', flexShrink: 0 }} />
-      <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, color: isActive ? '#1d4ed8' : '#64748b', flex: 1 }}>{section.label}</span>
-      {isActive && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563eb', flexShrink: 0 }} />}
-    </button>
+    <div className="max-w-screen max-h-screen overflow-hidden h-full">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
+
+      {/* sidebar */}
+      <Box component="nav" sx={{ width: { sm: Constants.NAVIGATION_DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>
+        <Drawer variant="temporary" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}
+          ModalProps={{ keepMounted: true }} className="sm:hidden"
+          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' } }}>
+          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout}/>
+        </Drawer>
+        <Drawer variant="permanent" className="hidden sm:block" open
+          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none', borderRight: '1px solid #f1f5f9' } }}>
+          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout}/>
+        </Drawer>
+      </Box>
+
+      <div className="max-h-full w-full flex flex-col">
+
+        {/* mobile header */}
+        <Box sx={{
+          display: { xs: 'flex', sm: 'none' },
+          justifyContent: 'space-between', alignItems: 'center',
+          px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`,
+          bgcolor: '#fff', borderBottom: '1px solid #f1f5f9', position: 'relative',
+        }}>
+          <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155', borderRadius: '10px' }}>
+            <CustomIcon icon="heroicons:bars-3-solid"/>
+          </IconButton>
+          <Box sx={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 15, whiteSpace: 'nowrap', fontFamily: '"Outfit", sans-serif' }}>
+              {pageLabel}
+            </Typography>
+          </Box>
+          <Box sx={{
+            width: 32, height: 32, borderRadius: '9px',
+            background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DARK})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 13, fontWeight: 700,
+            fontFamily: '"Outfit", sans-serif',
+            boxShadow: `0 2px 6px ${ACCENT}44`,
+          }}>
+            {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+          </Box>
+        </Box>
+
+        {/* desktop header */}
+        <Box sx={{
+          display: { xs: 'none', sm: 'flex' },
+          justifyContent: 'flex-end', alignItems: 'center',
+          px: 5,
+          width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` },
+          ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` },
+          height: `${Constants.HEADER_DESKTOP_HEIGHT}px`,
+          gap: 2, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', fontFamily: '"DM Sans", sans-serif' }}>
+                {user?.username || 'Demo User'}
+              </div>
+              <div style={{ marginTop: 2 }}><RolePill role={user?.role}/></div>
+            </div>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DARK})`,
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: 14, fontFamily: '"Outfit", sans-serif',
+              boxShadow: `0 2px 8px ${ACCENT}44`,
+            }}>
+              {(user?.username?.charAt(0) || 'D')?.toUpperCase()}
+            </div>
+          </div>
+        </Box>
+
+        {/* main content */}
+        <Box component="main" sx={{
+          px: { xs: 0, sm: 5 },
+          py: { xs: 0, sm: 4 },
+          width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` },
+          marginLeft: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` },
+          maxHeight: {
+            xs: `calc(100vh - ${Constants.HEADER_MOBILE_HEIGHT}px - ${BOTTOM_NAV_H}px)`,
+            sm: `calc(100vh - ${Constants.HEADER_DESKTOP_HEIGHT}px)`,
+          },
+          overflow: 'auto',
+          bgcolor: '#f8fafc',
+        }}>
+          <div className="w-full"><Outlet/></div>
+        </Box>
+
+        {/* ── Mobile Bottom Nav ── */}
+        <Box sx={{
+          display: { xs: 'flex', sm: 'none' },
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          height: `${BOTTOM_NAV_H}px`,
+          bgcolor: '#fff',
+          borderTop: '1px solid #f1f5f9',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          px: 1,
+          zIndex: 1000,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+        }}>
+          {mobileNavItems.map((item) => {
+            const isActive = location.pathname === item.url ||
+              (item.url !== '/' && location.pathname.startsWith(item.url));
+            return (
+              <Box
+                key={item.url}
+                onClick={() => navigate(item.url)}
+                sx={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 0.4, cursor: 'pointer', flex: 1, py: 1,
+                  position: 'relative',
+                  transition: 'opacity .15s',
+                  '&:active': { opacity: 0.7 },
+                }}
+              >
+                {/* active pill indicator */}
+                {isActive && (
+                  <Box sx={{
+                    position: 'absolute', top: 0, left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 28, height: 3, borderRadius: '0 0 4px 4px',
+                    background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT_DARK})`,
+                  }}/>
+                )}
+
+                {/* icon container */}
+                <Box sx={{
+                  width: 36, height: 36, borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: isActive ? `${ACCENT}14` : 'transparent',
+                  transition: 'background .15s',
+                }}>
+                  <CustomIcon
+                    icon={isActive ? `${item.icon}-solid` : item.icon}
+                    sx={{ fontSize: '20px', color: isActive ? ACCENT : '#94a3b8' }}
+                  />
+                </Box>
+
+                <Typography sx={{
+                  fontSize: '0.58rem', fontWeight: isActive ? 700 : 400,
+                  color: isActive ? ACCENT : '#94a3b8',
+                  fontFamily: '"DM Sans", sans-serif',
+                  lineHeight: 1,
+                }}>
+                  {item.label}
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+
+      </div>
+    </div>
   );
 }

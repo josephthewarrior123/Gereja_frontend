@@ -106,13 +106,11 @@ export default function CreateUserPage() {
     const [selectedRole, setSelectedRole] = useState('user');
     const [selectedGroups, setSelectedGroups] = useState([]);
 
-    // Role yang tersedia tergantung role yang login
     const availableRoles = ROLES.filter((r) => {
         if (user?.role === 'admin') return r.key === 'user';
         return true;
     });
 
-    // Guard
     useEffect(() => {
         if (user && user.role === 'user') {
             message('Access denied', 'error');
@@ -120,7 +118,6 @@ export default function CreateUserPage() {
         }
     }, [user]);
 
-    // Fetch groups
     useEffect(() => {
         const fetchGroups = async () => {
             try {
@@ -148,7 +145,6 @@ export default function CreateUserPage() {
         fetchGroups();
     }, []);
 
-    // Auto-select semua group untuk super_admin
     useEffect(() => {
         if (selectedRole === 'super_admin') {
             setSelectedGroups(allGroups.map((g) => g.id));
@@ -206,7 +202,6 @@ export default function CreateUserPage() {
 
             const username = form.username.trim();
 
-            // Signup dulu
             const signupRes = await UserDAO.signUp({
                 fullName: form.fullName.trim(),
                 username,
@@ -217,7 +212,6 @@ export default function CreateUserPage() {
             });
             if (!signupRes.success) throw new Error(signupRes.error || 'Gagal membuat akun');
 
-            // Kalau bukan user biasa, update role
             if (selectedRole !== 'user') {
                 const roleRes = await UserDAO.setUserRole(username, {
                     role: selectedRole,
@@ -240,7 +234,6 @@ export default function CreateUserPage() {
 
     const roleInfo = ROLES.find((r) => r.key === selectedRole);
 
-    // ===== STEP 0: INFO AKUN =====
     const renderStep0 = () => (
         <Box sx={{ display: 'grid', gap: 2 }}>
             <TextField
@@ -297,10 +290,8 @@ export default function CreateUserPage() {
         </Box>
     );
 
-    // ===== STEP 1: ROLE & GROUP =====
     const renderStep1 = () => (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Role picker */}
             <Box>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, mb: 1.5 }}>
                     Pilih Role
@@ -351,7 +342,6 @@ export default function CreateUserPage() {
                 </Box>
             </Box>
 
-            {/* Group picker */}
             <Box>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, mb: 1.5 }}>
                     {selectedRole === 'user' ? 'Assign ke Group' : 'Group yang Dikelola'}
@@ -418,10 +408,8 @@ export default function CreateUserPage() {
         </Box>
     );
 
-    // ===== STEP 2: KONFIRMASI =====
     const renderStep2 = () => (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* User card */}
             <Box sx={{
                 p: 2.5, borderRadius: 3, border: '2px solid',
                 borderColor: roleInfo?.border, bgcolor: roleInfo?.bg,
@@ -442,7 +430,6 @@ export default function CreateUserPage() {
                 </Box>
             </Box>
 
-            {/* Detail */}
             <Box sx={{ borderRadius: 3, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                 {[
                     { label: 'Email', value: form.email || '-', icon: 'mdi:email-outline' },
@@ -482,7 +469,8 @@ export default function CreateUserPage() {
     );
 
     return (
-        <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 560 }}>
+        // ✅ FIX: tambah mx: 'auto' agar konten center di tengah halaman
+        <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 560, mx: 'auto' }}>
             {/* Header */}
             <Box sx={{ mb: 4 }}>
                 <Typography sx={{ fontSize: 26, fontWeight: 800, color: '#0f172a', mb: 0.5 }}>

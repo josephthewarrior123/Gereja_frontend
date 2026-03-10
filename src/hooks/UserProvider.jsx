@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
-    const [user, setUser] = useState(null);
+    const [user, setUser]       = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -22,14 +22,19 @@ export function UserProvider({ children }) {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
+        localStorage.removeItem('needsOnboarding'); // bersihkan flag juga
     };
 
-    const value = { 
-        user, 
-        login, 
-        logout,
-        isLoading
+    // Dipanggil setelah onboarding selesai — update user di context & storage
+    const updateUser = (patch) => {
+        setUser((prev) => {
+            const updated = { ...prev, ...patch };
+            localStorage.setItem('user', JSON.stringify(updated));
+            return updated;
+        });
     };
+
+    const value = { user, login, logout, updateUser, isLoading };
 
     return (
         <UserContext.Provider value={value}>

@@ -16,6 +16,8 @@ import ActivityFormPage from './pages/journal/Activityformpage';
 import GroupListPage from './pages/Group/GroupListPage';
 import GroupFormDialog from './pages/Group/GroupFormDialog';
 import GroupDeleteDialog from './pages/Group/GroupDeleteDialog';
+import LeaderboardList from './pages/Leaderboard/LeaderboardList';
+import OnboardingPage from './pages/authentications/OnboardingPage';
 
 export default function AppRoutes() {
     return (
@@ -23,6 +25,7 @@ export default function AppRoutes() {
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
 
             <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<DashboardPage />} />
@@ -32,6 +35,7 @@ export default function AppRoutes() {
                 <Route path="/users/create" element={<CreateUserPage />} />
                 <Route path="/users/:username/edit" element={<EdituserPage />} />
 
+                <Route path="/leaderboard" element={<LeaderboardList />} />
                 {/* Dashboard Routes */}
                 <Route path="dashboard" element={<DashboardPage />} />
 

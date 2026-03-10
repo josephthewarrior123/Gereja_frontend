@@ -3,12 +3,31 @@ import ApiRequest from '../utils/ApiRequest';
 export default class UserDAO {
     // Login user
     static login = async (body) => {
-        return await ApiRequest.set(
-            '/api/users/login',
-            ApiRequest.HTTP_METHOD.POST,
-            body,
-        );
-    };
+    return await ApiRequest.set(
+        '/api/users/login',
+        ApiRequest.HTTP_METHOD.POST,
+        body,
+    );
+};
+
+// ← tambah ini
+static loginGoogle = async (accessToken) => {
+    return await ApiRequest.set(
+        '/api/auth/google',
+        ApiRequest.HTTP_METHOD.POST,
+        { accessToken },
+    );
+};
+
+static updateGroups = async (username, groups) => {
+    return await ApiRequest.set(
+        `/api/users/me/groups`,
+        ApiRequest.HTTP_METHOD.PATCH,
+        { groups },
+    );
+};
+
+    
 
     // Sign up new user
     static signUp = async (body) => {
