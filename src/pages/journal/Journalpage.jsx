@@ -11,12 +11,20 @@ import { useUser } from '../../hooks/UserProvider';
 import JournalDAO from '../../daos/JournalDao';
 import AdminDAO from '../../daos/AdminDao';
 
+const BLUE = '#2563EB';
+const BLUE_LIGHT = '#3B82F6';
+const BLUE_BG = '#EFF6FF';
+const BLUE_BORDER = '#BFDBFE';
+
 function formatDate(ts) {
     if (!ts) return '-';
-    return new Date(ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(ts);
+    const date = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const time = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${date}, ${time}`;
 }
 
-const GROUP_COLORS = ['#6366f1','#0ea5e9','#f97316','#10b981','#ec4899','#8b5cf6','#14b8a6','#f59e0b'];
+const GROUP_COLORS = [BLUE,'#0ea5e9','#f97316','#10b981','#ec4899',BLUE_LIGHT,'#14b8a6','#f59e0b'];
 const groupColor = (name = '') => GROUP_COLORS[name.charCodeAt(0) % GROUP_COLORS.length];
 
 function EmptyJournalSVG() {
@@ -29,7 +37,7 @@ function EmptyJournalSVG() {
             <rect x="28" y="59" width="52" height="4" rx="2" fill="#E2E8F0"/>
             <rect x="28" y="69" width="36" height="4" rx="2" fill="#E2E8F0"/>
             <rect x="76" y="62" width="8" height="22" rx="2" transform="rotate(-35 76 62)" fill="#BFDBFE"/>
-            <path d="M88 52 L94 58 L76 76 L70 70 Z" fill="#3B82F6"/>
+            <path d="M88 52 L94 58 L76 76 L70 70 Z" fill="#2563EB"/>
             <path d="M70 70 L68 78 L76 76 Z" fill="#1D4ED8"/>
             <rect x="90" y="48" width="8" height="6" rx="1" transform="rotate(-35 90 48)" fill="#93C5FD"/>
         </svg>
@@ -42,7 +50,7 @@ function EmptyActivitySVG() {
             <circle cx="60" cy="55" r="38" fill="#F1F5F9" stroke="#E2E8F0" strokeWidth="1.5"/>
             <path d="M42 55 L54 67 L78 43" stroke="#CBD5E1" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="88" cy="28" r="16" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5"/>
-            <path d="M88 20 V28 H96" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M88 20 V28 H96" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
     );
 }
@@ -128,7 +136,7 @@ function EntryCard({ entry }) {
             boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
             p: 2,
             transition: 'box-shadow .15s, transform .15s',
-            '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.08)', transform: 'translateY(-1px)' },
+            '&:hover': { boxShadow: '0 4px 16px rgba(37,99,235,0.08)', transform: 'translateY(-1px)', borderColor: BLUE_BORDER },
         }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
                 <Typography sx={{
@@ -182,7 +190,7 @@ function ActivityCard({ activity, onEdit, isAdmin }) {
             boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
             p: 2,
             transition: 'box-shadow .15s, transform .15s',
-            '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.08)', transform: 'translateY(-1px)' },
+            '&:hover': { boxShadow: '0 4px 16px rgba(37,99,235,0.08)', transform: 'translateY(-1px)', borderColor: BLUE_BORDER },
         }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box flex={1} mr={1}>
@@ -229,7 +237,7 @@ function ActivityCard({ activity, onEdit, isAdmin }) {
                         width: 32, height: 32, borderRadius: '8px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', color: '#94a3b8', flexShrink: 0,
-                        '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' },
+                        '&:hover': { bgcolor: BLUE_BG, color: BLUE },
                         transition: 'all .15s',
                     }}>
                         <Icon icon="mdi:pencil-outline" width={16} />
@@ -245,7 +253,7 @@ function EmptyState({ type, onAction, actionLabel }) {
     return (
         <Box sx={{
             bgcolor: '#fff', borderRadius: '20px',
-            border: '1.5px dashed #e2e8f0',
+            border: `1.5px dashed ${BLUE_BORDER}`,
             py: 7, px: 3, textAlign: 'center',
         }}>
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
@@ -269,12 +277,12 @@ function EmptyState({ type, onAction, actionLabel }) {
                 <Box onClick={onAction} sx={{
                     display: 'inline-flex', alignItems: 'center', gap: 0.75,
                     px: 3, py: 1.3, borderRadius: '99px',
-                    bgcolor: '#0f172a', color: '#fff',
+                    bgcolor: BLUE, color: '#fff',
                     fontWeight: 700, fontSize: 13, cursor: 'pointer',
                     fontFamily: '"DM Sans", sans-serif',
-                    boxShadow: '0 2px 8px rgba(15,23,42,0.2)',
+                    boxShadow: `0 2px 8px rgba(37,99,235,0.3)`,
                     transition: 'all .15s',
-                    '&:hover': { bgcolor: '#1e293b', transform: 'translateY(-1px)' },
+                    '&:hover': { bgcolor: '#1D4ED8', transform: 'translateY(-1px)' },
                 }}>
                     <Icon icon="mdi:plus" width={16} />
                     {actionLabel}
@@ -289,13 +297,13 @@ function TabButton({ active, label, icon, onClick }) {
         <Box onClick={onClick} sx={{
             px: 2.5, py: 0.9, borderRadius: '99px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 0.75,
-            bgcolor: active ? '#0f172a' : '#fff',
+            bgcolor: active ? BLUE : '#fff',
             color: active ? '#fff' : '#64748b',
-            border: '1.5px solid', borderColor: active ? '#0f172a' : '#e2e8f0',
+            border: '1.5px solid', borderColor: active ? BLUE : '#e2e8f0',
             fontWeight: 600, fontSize: 13, transition: 'all .15s',
             userSelect: 'none', fontFamily: '"DM Sans", sans-serif',
-            boxShadow: active ? '0 2px 8px rgba(15,23,42,0.18)' : 'none',
-            '&:hover': { borderColor: '#0f172a', color: active ? '#fff' : '#0f172a' },
+            boxShadow: active ? `0 2px 8px rgba(37,99,235,0.25)` : 'none',
+            '&:hover': { borderColor: BLUE, color: active ? '#fff' : BLUE },
         }}>
             <Icon icon={icon} width={15} />
             {label}
@@ -347,6 +355,9 @@ export default function JournalPage() {
 
     const totalPoints = entries.reduce((s, e) => s + (e.points_awarded || 0), 0);
 
+    const showEntryFAB = tab === 'entries';
+    const showActivityFAB = tab === 'activities' && isAdmin;
+
     return (
         <Box sx={{ bgcolor: '#f8fafc', minHeight: '100vh', position: 'relative' }}>
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');`}</style>
@@ -355,7 +366,7 @@ export default function JournalPage() {
             <Box sx={{ px: { xs: 2, sm: 0 }, pt: { xs: 0, sm: 0 }, pb: 3, display: { xs: 'none', sm: 'block' } }}>
                 <Typography sx={{
                     fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', color: '#94a3b8',
+                    textTransform: 'uppercase', color: BLUE,
                     fontFamily: '"DM Sans", sans-serif', mb: 0.3,
                 }}>
                     Activity Tracker
@@ -381,33 +392,17 @@ export default function JournalPage() {
                         label="Total Entries"
                         value={entries.length}
                         icon="mdi:book-edit-outline"
-                        accent={{ from: '#6366f1', to: '#8b5cf6' }}
+                        accent={{ from: BLUE, to: BLUE_LIGHT }}
                     />
                 </Stack>
             </Box>
 
-            {/* ── Tabs + action ── */}
+            {/* ── Tabs ── */}
             <Box sx={{ px: { xs: 2, sm: 0 }, mb: 2.5 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={1}>
-                        <TabButton active={tab === 'entries'} label="My Entries" icon="mdi:book-open-outline" onClick={() => setTab('entries')} />
-                        {isAdmin && (
-                            <TabButton active={tab === 'activities'} label="Activities" icon="mdi:lightning-bolt-outline" onClick={() => setTab('activities')} />
-                        )}
-                    </Stack>
-                    {tab === 'activities' && isAdmin && (
-                        <Box onClick={() => navigate('/journal/activities/create')} sx={{
-                            display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                            px: 2.5, py: 1, borderRadius: '99px', cursor: 'pointer',
-                            bgcolor: '#0f172a', color: '#fff',
-                            fontWeight: 700, fontSize: 13, fontFamily: '"DM Sans", sans-serif',
-                            boxShadow: '0 2px 8px rgba(15,23,42,0.2)',
-                            transition: 'all .15s', whiteSpace: 'nowrap',
-                            '&:hover': { bgcolor: '#1e293b' },
-                        }}>
-                            <Icon icon="mdi:plus" width={16} />
-                            Buat Activity
-                        </Box>
+                <Stack direction="row" spacing={1}>
+                    <TabButton active={tab === 'entries'} label="My Entries" icon="mdi:book-open-outline" onClick={() => setTab('entries')} />
+                    {isAdmin && (
+                        <TabButton active={tab === 'activities'} label="Activities" icon="mdi:lightning-bolt-outline" onClick={() => setTab('activities')} />
                     )}
                 </Stack>
             </Box>
@@ -416,7 +411,7 @@ export default function JournalPage() {
             <Box sx={{ px: { xs: 2, sm: 0 }, pb: { xs: 14, sm: 4 } }}>
                 {fetching ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-                        <CircularProgress size={32} sx={{ color: '#6366f1' }} />
+                        <CircularProgress size={32} sx={{ color: BLUE }} />
                     </Box>
                 ) : tab === 'entries' ? (
                     entries.length === 0 ? (
@@ -427,16 +422,16 @@ export default function JournalPage() {
                             {hasMore && (
                                 <Box onClick={() => !loadingMore && load(false)} sx={{
                                     py: 1.5, borderRadius: '12px',
-                                    border: '1.5px solid #e2e8f0', bgcolor: '#fff',
+                                    border: `1.5px solid ${BLUE_BORDER}`, bgcolor: '#fff',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     gap: 1, cursor: loadingMore ? 'default' : 'pointer',
-                                    color: '#64748b', fontWeight: 600, fontSize: 13,
+                                    color: BLUE, fontWeight: 600, fontSize: 13,
                                     fontFamily: '"DM Sans", sans-serif',
                                     transition: 'all .15s',
-                                    '&:hover': { bgcolor: loadingMore ? '#fff' : '#f8fafc', borderColor: '#cbd5e1' },
+                                    '&:hover': { bgcolor: loadingMore ? '#fff' : BLUE_BG },
                                 }}>
                                     {loadingMore
-                                        ? <><CircularProgress size={14} sx={{ color: '#94a3b8' }} /> Memuat...</>
+                                        ? <><CircularProgress size={14} sx={{ color: BLUE }} /> Memuat...</>
                                         : <><Icon icon="mdi:chevron-down" width={18} /> Lihat lebih banyak</>
                                     }
                                 </Box>
@@ -463,22 +458,51 @@ export default function JournalPage() {
                 )}
             </Box>
 
-            {/* ── FAB ── */}
-            {tab === 'entries' && (
-                <Box onClick={() => navigate('/journal/submit')} sx={{
-                    position: 'fixed',
-                    bottom: { xs: 80, sm: 32 },
-                    right: { xs: 20, sm: 32 },
-                    width: 54, height: 54, borderRadius: '50%',
-                    bgcolor: '#0f172a', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(15,23,42,0.3)',
-                    zIndex: 1200, transition: 'all .2s',
-                    '&:hover': { bgcolor: '#1e293b', transform: 'scale(1.08)', boxShadow: '0 6px 24px rgba(15,23,42,0.4)' },
-                    '&:active': { transform: 'scale(0.95)' },
-                }}>
+            {/* ── FAB: Add Entry ── */}
+            {showEntryFAB && (
+                <Box
+                    onClick={() => navigate('/journal/submit')}
+                    sx={{
+                        position: 'fixed',
+                        bottom: { xs: 80, sm: 32 },
+                        right: { xs: 20, sm: 32 },
+                        width: 54, height: 54, borderRadius: '50%',
+                        bgcolor: BLUE, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: `0 4px 20px rgba(37,99,235,0.4)`,
+                        zIndex: 1200, transition: 'all .2s',
+                        '&:hover': { bgcolor: '#1D4ED8', transform: 'scale(1.08)', boxShadow: `0 6px 24px rgba(37,99,235,0.5)` },
+                        '&:active': { transform: 'scale(0.95)' },
+                    }}
+                >
                     <Icon icon="mdi:plus" width={26} />
+                </Box>
+            )}
+
+            {/* ── FAB: Create Activity (admin only) ── */}
+            {showActivityFAB && (
+                <Box
+                    onClick={() => navigate('/journal/activities/create')}
+                    sx={{
+                        position: 'fixed',
+                        bottom: { xs: 80, sm: 32 },
+                        right: { xs: 20, sm: 32 },
+                        display: 'flex', alignItems: 'center',
+                        gap: 1.5, px: 2.5,
+                        height: 54, borderRadius: '27px',
+                        bgcolor: BLUE, color: '#fff',
+                        cursor: 'pointer',
+                        boxShadow: `0 4px 20px rgba(37,99,235,0.4)`,
+                        zIndex: 1200, transition: 'all .2s',
+                        '&:hover': { bgcolor: '#1D4ED8', transform: 'translateY(-2px)', boxShadow: `0 6px 24px rgba(37,99,235,0.5)` },
+                        '&:active': { transform: 'scale(0.97)' },
+                    }}
+                >
+                    <Icon icon="mdi:plus" width={22} />
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: '"DM Sans", sans-serif', color: '#fff', whiteSpace: 'nowrap' }}>
+                        Buat Activity
+                    </Typography>
                 </Box>
             )}
         </Box>

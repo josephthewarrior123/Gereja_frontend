@@ -15,6 +15,13 @@ import {
     Typography,
     useMediaQuery,
     useTheme,
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Fab,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useLoading } from '../../hooks/LoadingProvider';
@@ -27,19 +34,19 @@ import GroupDeleteDialog from './GroupDeleteDialog';
 
 // ─── design tokens ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-    active:   { label: 'Aktif',    color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    active: { label: 'Aktif', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
     inactive: { label: 'Nonaktif', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
 };
 
 const STAT_ACCENT = {
-    ALL:      { from: '#6366f1', to: '#8b5cf6' },
-    active:   { from: '#16a34a', to: '#22c55e' },
+    ALL: { from: '#6366f1', to: '#8b5cf6' },
+    active: { from: '#16a34a', to: '#22c55e' },
     inactive: { from: '#dc2626', to: '#f97316' },
 };
 
 const GROUP_COLORS = [
-    '#6366f1','#0ea5e9','#f97316','#10b981',
-    '#ec4899','#8b5cf6','#14b8a6','#f59e0b',
+    '#6366f1', '#0ea5e9', '#f97316', '#10b981',
+    '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b',
 ];
 const groupColor = (name = '') => GROUP_COLORS[name.charCodeAt(0) % GROUP_COLORS.length];
 
@@ -47,12 +54,12 @@ const groupColor = (name = '') => GROUP_COLORS[name.charCodeAt(0) % GROUP_COLORS
 function EmptyGroupIllustration() {
     return (
         <svg width="110" height="90" viewBox="0 0 110 90" fill="none">
-            <rect x="15" y="20" width="80" height="55" rx="10" fill="#F1F5F9"/>
-            <rect x="25" y="32" width="30" height="6" rx="3" fill="#CBD5E1"/>
-            <rect x="25" y="44" width="50" height="4" rx="2" fill="#E2E8F0"/>
-            <rect x="25" y="53" width="40" height="4" rx="2" fill="#E2E8F0"/>
-            <circle cx="82" cy="28" r="14" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5"/>
-            <path d="M82 22 V28 H88" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="15" y="20" width="80" height="55" rx="10" fill="#F1F5F9" />
+            <rect x="25" y="32" width="30" height="6" rx="3" fill="#CBD5E1" />
+            <rect x="25" y="44" width="50" height="4" rx="2" fill="#E2E8F0" />
+            <rect x="25" y="53" width="40" height="4" rx="2" fill="#E2E8F0" />
+            <circle cx="82" cy="28" r="14" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
+            <path d="M82 22 V28 H88" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
@@ -75,7 +82,7 @@ function StatCard({ statKey, label, value, selected, onClick }) {
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                 background: isSelected ? `linear-gradient(90deg, ${accent.from}, ${accent.to})` : 'transparent',
                 borderRadius: '16px 16px 0 0', transition: 'background .18s',
-            }}/>
+            }} />
             <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#94a3b8', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>
                 {label}
             </Typography>
@@ -105,7 +112,7 @@ function StatusBadge({ isActive }) {
             color: cfg.color, fontSize: 11, fontWeight: 700,
             fontFamily: '"DM Sans", sans-serif', letterSpacing: '0.03em',
         }}>
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }}/>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }} />
             {cfg.label}
         </Box>
     );
@@ -149,6 +156,7 @@ export default function GroupListPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
+    const [actionSheetGroup, setActionSheetGroup] = useState(null);
 
     // ── logic (unchanged) ─────────────────────────────────────────────────────
     const applyFilters = (groups, status, options) => {
@@ -214,8 +222,8 @@ export default function GroupListPage() {
         } finally { loading.stop(); }
     };
 
-    const openEdit   = (g) => { setEditTarget(g); setFormOpen(true); };
-    const openCreate = ()  => { setEditTarget(null); setFormOpen(true); };
+    const openEdit = (g) => { setEditTarget(g); setFormOpen(true); };
+    const openCreate = () => { setEditTarget(null); setFormOpen(true); };
     const openDelete = (g) => { setDeleteTarget(g); setDeleteDialogOpen(true); };
     const formatDate = (ts) => !ts ? '-' : new Date(ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -294,12 +302,8 @@ export default function GroupListPage() {
         const total = filtered.length;
 
         return (
-            <Box sx={{ p: 2, bgcolor: '#f8fafc', minHeight: '100%' }}>
+            <Box sx={{ p: 2, bgcolor: '#f8fafc', minHeight: '100%', pb: 12 }}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
-                <Button fullWidth variant="contained" startIcon={<Icon icon="mdi:plus" />} onClick={openCreate}
-                    sx={{ textTransform: 'none', borderRadius: '12px', mb: 2, bgcolor: '#0f172a', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, '&:hover': { bgcolor: '#1e293b' } }}>
-                    Buat Group Baru
-                </Button>
 
                 <TextField fullWidth placeholder="Cari group..." value={mobileSearchInput}
                     onChange={(e) => setMobileSearchInput(e.target.value)}
@@ -314,8 +318,8 @@ export default function GroupListPage() {
                 {/* filter pills */}
                 <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1.5, mb: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
                     {[
-                        { key: 'ALL',      label: `Semua (${summaries.total})` },
-                        { key: 'active',   label: `Aktif (${summaries.active})` },
+                        { key: 'ALL', label: `Semua (${summaries.total})` },
+                        { key: 'active', label: `Aktif (${summaries.active})` },
                         { key: 'inactive', label: `Nonaktif (${summaries.inactive})` },
                     ].map((f) => {
                         const acc = STAT_ACCENT[f.key];
@@ -347,17 +351,31 @@ export default function GroupListPage() {
                         {paginated.map((g) => (
                             <Card key={g.id} sx={{ borderRadius: '16px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
                                 <CardContent sx={{ p: '18px !important' }}>
-                                    <Stack direction="row" alignItems="center" spacing={1.5} mb={1.5}>
-                                        <GroupAvatar name={g.name} size={44} inactive={!g.isActive} />
-                                        <Box flex={1}>
-                                            <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: '"Outfit", sans-serif' }}>
-                                                {g.name}
-                                            </Typography>
-                                            <Typography sx={{ fontSize: 11, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>
-                                                ID: {g.id}
-                                            </Typography>
-                                        </Box>
-                                        <StatusBadge isActive={g.isActive} />
+                                    <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
+                                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                                            <GroupAvatar name={g.name} size={44} inactive={!g.isActive} />
+                                            <Box flex={1}>
+                                                <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: '"Outfit", sans-serif' }}>
+                                                    {g.name}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: 11, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>
+                                                    ID: {g.id}
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+                                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                                            <StatusBadge isActive={g.isActive} />
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => setActionSheetGroup(g)}
+                                                sx={{
+                                                    width: 32, height: 32, borderRadius: '8px',
+                                                    color: '#64748b', '&:hover': { bgcolor: '#F1F5F9' },
+                                                }}
+                                            >
+                                                <Icon icon="mdi:dots-vertical" width={20} />
+                                            </IconButton>
+                                        </Stack>
                                     </Stack>
 
                                     <Divider sx={{ mb: 1.5, borderColor: '#f8fafc' }} />
@@ -380,22 +398,6 @@ export default function GroupListPage() {
                                             </Typography>
                                         </Grid>
                                     </Grid>
-
-                                    <Stack direction="row" spacing={0.5} justifyContent="flex-end" pt={1} sx={{ borderTop: '1px solid #f8fafc' }}>
-                                        <IconButton size="small" onClick={() => openEdit(g)}
-                                            sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9' } }}>
-                                            <Icon icon="mdi:pencil-outline" width={20} />
-                                        </IconButton>
-                                        <IconButton size="small" onClick={() => handleToggleActive(g)} disabled={togglingId === g.id}
-                                            sx={{ borderRadius: '8px', color: '#64748b' }}>
-                                            <Icon icon={g.isActive ? 'mdi:toggle-switch' : 'mdi:toggle-switch-off-outline'}
-                                                width={22} color={g.isActive ? '#16a34a' : '#cbd5e1'} />
-                                        </IconButton>
-                                        <IconButton size="small" onClick={() => openDelete(g)}
-                                            sx={{ borderRadius: '8px', color: '#94a3b8', '&:hover': { bgcolor: '#fef2f2', color: '#dc2626' } }}>
-                                            <Icon icon="mdi:trash-can-outline" width={20} />
-                                        </IconButton>
-                                    </Stack>
                                 </CardContent>
                             </Card>
                         ))}
@@ -426,6 +428,53 @@ export default function GroupListPage() {
                         </Stack>
                     </Box>
                 )}
+
+                {/* FAB */}
+                <Fab
+                    color="primary"
+                    aria-label="create"
+                    sx={{
+                        position: 'fixed', bottom: 80, right: 20,
+                        bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' },
+                        boxShadow: '0 6px 24px rgba(15,23,42,0.35)',
+                        zIndex: 1200, color: '#fff', width: 56, height: 56,
+                    }}
+                    onClick={openCreate}
+                >
+                    <Icon icon="mdi:plus" width={28} />
+                </Fab>
+
+                {/* Bottom Action Sheet */}
+                <Drawer
+                    anchor="bottom"
+                    open={Boolean(actionSheetGroup)}
+                    onClose={() => setActionSheetGroup(null)}
+                    PaperProps={{ sx: { borderTopLeftRadius: 20, borderTopRightRadius: 20, pb: 3, pt: 1 } }}
+                >
+                    <Box sx={{ width: 40, height: 4, bgcolor: '#e2e8f0', borderRadius: 2, mx: 'auto', mb: 2 }} />
+                    <List sx={{ px: 1 }}>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { setActionSheetGroup(null); openEdit(actionSheetGroup); }} sx={{ borderRadius: '12px', mb: 0.5 }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}><Icon icon="mdi:pencil-outline" width={24} color="#64748b" /></ListItemIcon>
+                                <ListItemText primary="Edit Group" primaryTypographyProps={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 600, color: '#0f172a' }} />
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { setActionSheetGroup(null); handleToggleActive(actionSheetGroup); }} disabled={actionSheetGroup && togglingId === actionSheetGroup.id} sx={{ borderRadius: '12px', mb: 0.5 }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                    <Icon icon={actionSheetGroup?.isActive ? 'mdi:toggle-switch-off-outline' : 'mdi:toggle-switch'} width={24} color={actionSheetGroup?.isActive ? '#cbd5e1' : '#16a34a'} />
+                                </ListItemIcon>
+                                <ListItemText primary={actionSheetGroup?.isActive ? 'Nonaktifkan Group' : 'Aktifkan Group'} primaryTypographyProps={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 600, color: '#0f172a' }} />
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { setActionSheetGroup(null); openDelete(actionSheetGroup); }} sx={{ borderRadius: '12px', '&:hover': { bgcolor: '#FEF2F2' } }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}><Icon icon="mdi:trash-can-outline" width={24} color="#EF4444" /></ListItemIcon>
+                                <ListItemText primary="Delete Group" primaryTypographyProps={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 600, color: '#EF4444' }} />
+                            </ListItemButton>
+                        </ListItem>
+                    </List>
+                </Drawer>
             </Box>
         );
     };
@@ -481,9 +530,9 @@ export default function GroupListPage() {
             {/* ── Stat cards ── */}
             <Box sx={{ display: 'flex', gap: 2 }}>
                 {[
-                    { key: 'ALL',      label: 'Total Group', value: summaries.total },
-                    { key: 'active',   label: 'Aktif',       value: summaries.active },
-                    { key: 'inactive', label: 'Nonaktif',    value: summaries.inactive },
+                    { key: 'ALL', label: 'Total Group', value: summaries.total },
+                    { key: 'active', label: 'Aktif', value: summaries.active },
+                    { key: 'inactive', label: 'Nonaktif', value: summaries.inactive },
                 ].map((s) => (
                     <StatCard
                         key={s.key}

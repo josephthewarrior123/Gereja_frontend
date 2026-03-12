@@ -20,7 +20,7 @@ export default function LoginPage() {
             if (localStorage.getItem('needsOnboarding')) {
                 navigate('/onboarding', { replace: true });
             } else {
-                navigate('/dashboard', { replace: true });
+                navigate('/journal', { replace: true });
             }
         }
     }, [user, isLoading, navigate]);
@@ -47,7 +47,7 @@ export default function LoginPage() {
             localStorage.setItem('needsOnboarding', '1');
             navigate('/onboarding', { replace: true });
         } else {
-            navigate('/dashboard', { replace: true });
+            navigate('/journal', { replace: true });
         }
     };
 
