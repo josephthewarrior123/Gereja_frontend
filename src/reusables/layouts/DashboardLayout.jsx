@@ -10,14 +10,14 @@ import CustomIcon from '../CustomIcon';
 import { useUser } from '../../hooks/UserProvider';
 
 // ─── tokens ───────────────────────────────────────────────────────────────────
-const ACCENT      = '#6366f1';
+const ACCENT = '#6366f1';
 const ACCENT_DARK = '#4f46e5';
 
 // ─── Role pill ────────────────────────────────────────────────────────────────
 const ROLE_CFG = {
   super_admin: { label: 'Super Admin', color: '#7c3aed', bg: '#f5f3ff' },
-  admin:       { label: 'Admin',       color: '#1d4ed8', bg: '#eff6ff' },
-  user:        { label: 'User',        color: '#0f766e', bg: '#f0fdfa' },
+  admin: { label: 'Admin', color: '#1d4ed8', bg: '#eff6ff' },
+  user: { label: 'User', color: '#0f766e', bg: '#f0fdfa' },
 };
 function RolePill({ role }) {
   const cfg = ROLE_CFG[role] || { label: role, color: '#64748b', bg: '#f8fafc' };
@@ -72,7 +72,7 @@ function NavItem({ section, location, navigate, onClose }) {
           position: 'absolute', left: 0, top: '20%', bottom: '20%',
           width: 3, borderRadius: '0 3px 3px 0',
           background: `linear-gradient(180deg, ${ACCENT}, ${ACCENT_DARK})`,
-        }}/>
+        }} />
       )}
       <div style={{
         width: 30, height: 30, borderRadius: 8, flexShrink: 0,
@@ -80,7 +80,7 @@ function NavItem({ section, location, navigate, onClose }) {
         background: isActive ? `${ACCENT}18` : 'transparent',
         transition: 'background .12s',
       }}>
-        <CustomIcon icon={section.icon} sx={{ fontSize: 17, color: isActive ? ACCENT : '#94a3b8' }}/>
+        <CustomIcon icon={section.icon} sx={{ fontSize: 17, color: isActive ? ACCENT : '#94a3b8' }} />
       </div>
       <span style={{
         fontSize: 13.5, fontWeight: isActive ? 600 : 400,
@@ -89,7 +89,7 @@ function NavItem({ section, location, navigate, onClose }) {
       }}>
         {section.label}
       </span>
-      {isActive && <div style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, flexShrink: 0 }}/>}
+      {isActive && <div style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />}
     </button>
   );
 }
@@ -97,17 +97,17 @@ function NavItem({ section, location, navigate, onClose }) {
 // ─── Drawer Content ───────────────────────────────────────────────────────────
 function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
   const filtered = sections.filter((s) => {
-    if (s.superAdminOnly)        return user?.role === 'super_admin';
-    if (s.adminOnly)             return user?.role === 'admin' || user?.role === 'super_admin';
+    if (s.superAdminOnly) return user?.role === 'super_admin';
+    if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     return true;
   });
 
-  const mainNav       = filtered.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
-  const privilegedNav = filtered.filter((s) =>  s.adminOnly ||  s.superAdminOnly ||  s.adminAndSuperAdminOnly);
+  const mainNav = filtered.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
+  const privilegedNav = filtered.filter((s) => s.adminOnly || s.superAdminOnly || s.adminAndSuperAdminOnly);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -137,27 +137,27 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
             }}>
               {user?.username || 'Demo User'}
             </div>
-            <RolePill role={user?.role}/>
+            <RolePill role={user?.role} />
           </div>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0, boxShadow: '0 0 0 2px #fff' }}/>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0, boxShadow: '0 0 0 2px #fff' }} />
         </div>
       </div>
 
       {/* nav */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px 0' }}>
         <NavGroup label="Main">
-          {mainNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose}/>)}
+          {mainNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
         </NavGroup>
         {privilegedNav.length > 0 && (
           <NavGroup label="Admin">
-            {privilegedNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose}/>)}
+            {privilegedNav.map((s) => <NavItem key={s.label} section={s} location={location} navigate={navigate} onClose={onClose} />)}
           </NavGroup>
         )}
       </div>
 
       {/* logout */}
       <div style={{ padding: '8px 10px 22px' }}>
-        <div style={{ height: 1, background: '#f1f5f9', marginBottom: 8 }}/>
+        <div style={{ height: 1, background: '#f1f5f9', marginBottom: 8 }} />
         <button
           onClick={onLogout}
           style={{
@@ -170,7 +170,7 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
         >
           <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CustomIcon icon="heroicons:arrow-left-end-on-rectangle" sx={{ fontSize: 17, color: 'inherit' }}/>
+            <CustomIcon icon="heroicons:arrow-left-end-on-rectangle" sx={{ fontSize: 17, color: 'inherit' }} />
           </div>
           <span style={{ fontSize: 13.5, fontWeight: 400 }}>Logout</span>
         </button>
@@ -183,16 +183,16 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
 export default function DashboardLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { user, logout, isLoading } = useUser();
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const isRegularUser = user?.role === 'user';
 
   const sections = useMemo(() => [
-    { icon: 'heroicons:book-open',  label: 'Journal',     url: '/journal',     title: 'Journal' },
-    { icon: 'heroicons:trophy',     label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
-    { icon: 'heroicons:users',      label: 'Users',       url: '/users',       title: 'User Management',  adminOnly: true },
-    { icon: 'heroicons:user-group', label: 'Groups',      url: '/group',       title: 'Group Management', adminOnly: true },
+    { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
+    { icon: 'heroicons:trophy', label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
+    { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
+    { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
   ], []);
 
   useEffect(() => {
@@ -218,8 +218,8 @@ export default function DashboardLayout() {
   const pageLabel = currentSection?.label || 'Dashboard';
 
   const mobileNavItems = sections.filter((s) => {
-    if (s.superAdminOnly)         return user?.role === 'super_admin';
-    if (s.adminOnly)              return user?.role === 'admin' || user?.role === 'super_admin';
+    if (s.superAdminOnly) return user?.role === 'super_admin';
+    if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     return true;
   });
@@ -238,14 +238,22 @@ export default function DashboardLayout() {
           open={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           ModalProps={{ keepMounted: false, disableScrollLock: true }}
-          className="sm:hidden"
-          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' } }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' }
+          }}
         >
-          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout}/>
+          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout} />
         </Drawer>
-        <Drawer variant="permanent" className="hidden sm:block" open
-          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none', borderRight: '1px solid #f1f5f9' } }}>
-          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout}/>
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none', borderRight: '1px solid #f1f5f9' }
+          }}
+        >
+          <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout} />
         </Drawer>
       </Box>
 
@@ -261,7 +269,7 @@ export default function DashboardLayout() {
           zIndex: 1,
         }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155', borderRadius: '10px' }}>
-            <CustomIcon icon="heroicons:bars-3-solid"/>
+            <CustomIcon icon="heroicons:bars-3-solid" />
           </IconButton>
           <Box sx={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 15, whiteSpace: 'nowrap', fontFamily: '"Outfit", sans-serif' }}>
@@ -295,7 +303,7 @@ export default function DashboardLayout() {
               <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', fontFamily: '"DM Sans", sans-serif' }}>
                 {user?.username || 'Demo User'}
               </div>
-              <div style={{ marginTop: 2 }}><RolePill role={user?.role}/></div>
+              <div style={{ marginTop: 2 }}><RolePill role={user?.role} /></div>
             </div>
             <div style={{
               width: 34, height: 34, borderRadius: 10, flexShrink: 0,
@@ -322,7 +330,7 @@ export default function DashboardLayout() {
           overflow: 'auto',
           bgcolor: '#f8fafc',
         }}>
-          <div className="w-full"><Outlet/></div>
+          <div className="w-full"><Outlet /></div>
         </Box>
 
         {/* ── Mobile Bottom Nav ── */}
@@ -359,7 +367,7 @@ export default function DashboardLayout() {
                     transform: 'translateX(-50%)',
                     width: 28, height: 3, borderRadius: '0 0 4px 4px',
                     background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT_DARK})`,
-                  }}/>
+                  }} />
                 )}
                 <Box sx={{
                   width: 36, height: 36, borderRadius: '10px',

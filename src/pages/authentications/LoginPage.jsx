@@ -292,28 +292,28 @@ export default function LoginPage() {
                         }}>
                             <svg width="104" height="104" viewBox="0 0 104 104" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <ellipse cx="52" cy="82" rx="30" ry="5" fill="rgba(0,0,0,0.18)" />
-                                <path d="M52 22 L20 30 L20 74 L52 70 Z" fill="#5B52CC"/>
-                                <path d="M52 24 L22 31 L22 72 L52 68 Z" fill="#FAFAFA"/>
-                                <line x1="27" y1="41" x2="48" y2="39" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="27" y1="47" x2="48" y2="45" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="27" y1="53" x2="48" y2="51" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="27" y1="59" x2="42" y2="57" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <rect x="27" y="33" width="18" height="4" rx="2" fill="#F5B800" opacity="0.85"/>
-                                <path d="M52 22 L84 30 L84 74 L52 70 Z" fill="#4A42B8"/>
-                                <path d="M52 24 L82 31 L82 72 L52 68 Z" fill="#F3F3F8"/>
-                                <line x1="56" y1="41" x2="77" y2="43" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="56" y1="47" x2="77" y2="49" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="56" y1="53" x2="77" y2="55" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <line x1="56" y1="59" x2="70" y2="61" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                <rect x="56" y="33" width="16" height="4" rx="2" fill="#a89cf8" opacity="0.8"/>
-                                <path d="M52 22 L52 70" stroke="#3D36A0" strokeWidth="2.5" strokeLinecap="round"/>
-                                <path d="M20 74 L52 70 L52 76 L20 80 Z" fill="#4A42B8"/>
-                                <path d="M84 74 L52 70 L52 76 L84 80 Z" fill="#3D36A0"/>
-                                <path d="M72 22 L72 44 L68 41 L64 44 L64 22 Z" fill="#F5B800"/>
-                                <text x="6"  y="28" fontSize="12" fill="white" opacity="0.85">✦</text>
-                                <text x="86" y="22" fontSize="9"  fill="white" opacity="0.65">✦</text>
-                                <text x="10" y="60" fontSize="7"  fill="white" opacity="0.5">•</text>
-                                <text x="89" y="58" fontSize="7"  fill="white" opacity="0.45">•</text>
+                                <path d="M52 22 L20 30 L20 74 L52 70 Z" fill="#5B52CC" />
+                                <path d="M52 24 L22 31 L22 72 L52 68 Z" fill="#FAFAFA" />
+                                <line x1="27" y1="41" x2="48" y2="39" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="27" y1="47" x2="48" y2="45" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="27" y1="53" x2="48" y2="51" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="27" y1="59" x2="42" y2="57" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <rect x="27" y="33" width="18" height="4" rx="2" fill="#F5B800" opacity="0.85" />
+                                <path d="M52 22 L84 30 L84 74 L52 70 Z" fill="#4A42B8" />
+                                <path d="M52 24 L82 31 L82 72 L52 68 Z" fill="#F3F3F8" />
+                                <line x1="56" y1="41" x2="77" y2="43" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="56" y1="47" x2="77" y2="49" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="56" y1="53" x2="77" y2="55" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <line x1="56" y1="59" x2="70" y2="61" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round" />
+                                <rect x="56" y="33" width="16" height="4" rx="2" fill="#a89cf8" opacity="0.8" />
+                                <path d="M52 22 L52 70" stroke="#3D36A0" strokeWidth="2.5" strokeLinecap="round" />
+                                <path d="M20 74 L52 70 L52 76 L20 80 Z" fill="#4A42B8" />
+                                <path d="M84 74 L52 70 L52 76 L84 80 Z" fill="#3D36A0" />
+                                <path d="M72 22 L72 44 L68 41 L64 44 L64 22 Z" fill="#F5B800" />
+                                <text x="6" y="28" fontSize="12" fill="white" opacity="0.85">✦</text>
+                                <text x="86" y="22" fontSize="9" fill="white" opacity="0.65">✦</text>
+                                <text x="10" y="60" fontSize="7" fill="white" opacity="0.5">•</text>
+                                <text x="89" y="58" fontSize="7" fill="white" opacity="0.45">•</text>
                             </svg>
                         </div>
                     </div>
@@ -327,7 +327,7 @@ export default function LoginPage() {
                 padding: '28px 24px 0',
                 flex: 1,
             }}>
-                <form onSubmit={formik.handleSubmit}>
+                <form onSubmit={formik.handleSubmit} autoComplete="off">
                     <div style={{ marginBottom: 16 }}>
                         <label className="lp-label">Username</label>
                         <input
@@ -337,7 +337,10 @@ export default function LoginPage() {
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
                             value={formik.values.username}
-                            autoComplete="username"
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
                         />
                         {formik.touched.username && formik.errors.username && (
                             <div className="lp-err">{formik.errors.username}</div>
@@ -355,7 +358,7 @@ export default function LoginPage() {
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
                                 value={formik.values.password}
-                                autoComplete="current-password"
+                                autoComplete="new-password"
                                 style={{ paddingRight: 48 }}
                             />
                             <button type="button" className="pw-toggle" onClick={() => setShowPassword(v => !v)}>
