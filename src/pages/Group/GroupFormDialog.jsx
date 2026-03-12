@@ -109,7 +109,7 @@ export default function GroupFormDialog({ open, onClose, onSuccess, editTarget }
                         onClick={handleSubmit}
                         disabled={submitting}
                         startIcon={submitting
-                            ? <Icon icon="mdi:loading" className="animate-spin" />
+                            ? <span style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.4)', borderTop: '2.5px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                             : <Icon icon={isEdit ? 'mdi:content-save-outline' : 'mdi:plus'} />
                         }
                         sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#1e40af' } }}
