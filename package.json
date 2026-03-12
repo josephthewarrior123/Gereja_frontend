@@ -21,6 +21,7 @@
     "@mui/x-date-pickers": "^7.27.3",
     "@react-oauth/google": "^0.13.4",
     "@tailwindcss/vite": "^4.0.3",
+    "@vitejs/plugin-react": "^5.1.4",
     "bcryptjs": "^3.0.2",
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
