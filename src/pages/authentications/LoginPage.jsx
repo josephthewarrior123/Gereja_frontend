@@ -14,6 +14,7 @@ export default function LoginPage() {
     const message = useAlert();
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     useEffect(() => {
         if (user && !isLoading) {
@@ -64,9 +65,11 @@ export default function LoginPage() {
         }
     };
 
+    // FIX: useGoogleLogin returns a function — call it directly, don't wrap in onClick arrow
     const handleGoogleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
+                setGoogleLoading(true);
                 loading.start();
                 const result = await UserDAO.loginGoogle(tokenResponse.access_token);
                 applyLoginResult(result, true);
@@ -75,9 +78,14 @@ export default function LoginPage() {
                 message(error.message || 'Google login gagal', 'error');
             } finally {
                 loading.stop();
+                setGoogleLoading(false);
             }
         },
-        onError: () => message('Google login dibatalkan', 'warning'),
+        onError: () => {
+            setGoogleLoading(false);
+            message('Google login dibatalkan', 'warning');
+        },
+        flow: 'implicit', // FIX: explicitly set flow to avoid redirect_uri issues
     });
 
     const formik = useFormik({
@@ -183,11 +191,12 @@ export default function LoginPage() {
                     transition: all 0.2s;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
                 }
-                .lp-google-btn:hover {
+                .lp-google-btn:hover:not(:disabled) {
                     transform: translateY(-2px);
                     box-shadow: 0 6px 20px rgba(0,0,0,0.1);
                     border-color: #d0d0e0;
                 }
+                .lp-google-btn:disabled { opacity: 0.6; cursor: default; }
 
                 .lp-divider {
                     display: flex;
@@ -242,7 +251,7 @@ export default function LoginPage() {
                 .pw-toggle:hover { color: #7c6be0; }
             `}</style>
 
-            {/* TOP HERO — purple bg with book illustration */}
+            {/* TOP HERO */}
             <div className="lp-hero" style={{
                 width: '100%',
                 background: 'linear-gradient(160deg, #6C63E0 0%, #8B80F8 60%, #a89cf8 100%)',
@@ -256,7 +265,6 @@ export default function LoginPage() {
                 position: 'relative',
                 overflow: 'hidden',
             }}>
-                {/* Decorative blobs */}
                 <div style={{
                     position: 'absolute', top: -70, left: -70,
                     width: 220, height: 220, borderRadius: '50%',
@@ -270,9 +278,7 @@ export default function LoginPage() {
                     animation: 'blobPulse 7s ease-in-out infinite',
                 }} />
 
-                {/* Book Illustration floating */}
                 <div style={{ animation: 'floatIllo 4s ease-in-out infinite', position: 'relative', marginBottom: 8 }}>
-                    {/* Outer glow circle */}
                     <div style={{
                         width: 164, height: 164, borderRadius: '50%',
                         background: 'rgba(255,255,255,0.15)',
@@ -285,45 +291,25 @@ export default function LoginPage() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <svg width="104" height="104" viewBox="0 0 104 104" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                {/* Drop shadow */}
                                 <ellipse cx="52" cy="82" rx="30" ry="5" fill="rgba(0,0,0,0.18)" />
-
-                                {/* ── OPEN BOOK ── */}
-                                {/* Left cover */}
                                 <path d="M52 22 L20 30 L20 74 L52 70 Z" fill="#5B52CC"/>
-                                {/* Left page (white) */}
                                 <path d="M52 24 L22 31 L22 72 L52 68 Z" fill="#FAFAFA"/>
-                                {/* Left page lines */}
                                 <line x1="27" y1="41" x2="48" y2="39" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="27" y1="47" x2="48" y2="45" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="27" y1="53" x2="48" y2="51" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="27" y1="59" x2="42" y2="57" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                {/* Left page title bar */}
                                 <rect x="27" y="33" width="18" height="4" rx="2" fill="#F5B800" opacity="0.85"/>
-
-                                {/* Right cover */}
                                 <path d="M52 22 L84 30 L84 74 L52 70 Z" fill="#4A42B8"/>
-                                {/* Right page (white, slightly dimmer) */}
                                 <path d="M52 24 L82 31 L82 72 L52 68 Z" fill="#F3F3F8"/>
-                                {/* Right page lines */}
                                 <line x1="56" y1="41" x2="77" y2="43" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="56" y1="47" x2="77" y2="49" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="56" y1="53" x2="77" y2="55" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
                                 <line x1="56" y1="59" x2="70" y2="61" stroke="#C5C0F0" strokeWidth="1.8" strokeLinecap="round"/>
-                                {/* Right page title bar */}
                                 <rect x="56" y="33" width="16" height="4" rx="2" fill="#a89cf8" opacity="0.8"/>
-
-                                {/* Spine */}
                                 <path d="M52 22 L52 70" stroke="#3D36A0" strokeWidth="2.5" strokeLinecap="round"/>
-
-                                {/* Bottom covers */}
                                 <path d="M20 74 L52 70 L52 76 L20 80 Z" fill="#4A42B8"/>
                                 <path d="M84 74 L52 70 L52 76 L84 80 Z" fill="#3D36A0"/>
-
-                                {/* Bookmark ribbon on right */}
                                 <path d="M72 22 L72 44 L68 41 L64 44 L64 22 Z" fill="#F5B800"/>
-
-                                {/* Floating sparkles */}
                                 <text x="6"  y="28" fontSize="12" fill="white" opacity="0.85">✦</text>
                                 <text x="86" y="22" fontSize="9"  fill="white" opacity="0.65">✦</text>
                                 <text x="10" y="60" fontSize="7"  fill="white" opacity="0.5">•</text>
@@ -342,7 +328,6 @@ export default function LoginPage() {
                 flex: 1,
             }}>
                 <form onSubmit={formik.handleSubmit}>
-                    {/* Username */}
                     <div style={{ marginBottom: 16 }}>
                         <label className="lp-label">Username</label>
                         <input
@@ -359,7 +344,6 @@ export default function LoginPage() {
                         )}
                     </div>
 
-                    {/* Password */}
                     <div style={{ marginBottom: 8 }}>
                         <label className="lp-label">Password</label>
                         <div className="pw-wrap">
@@ -394,7 +378,6 @@ export default function LoginPage() {
                         )}
                     </div>
 
-                    {/* Forgot password */}
                     <div style={{ textAlign: 'right', marginBottom: 24 }}>
                         <button
                             type="button"
@@ -405,7 +388,6 @@ export default function LoginPage() {
                         </button>
                     </div>
 
-                    {/* Submit */}
                     <button type="submit" className="lp-btn-main" disabled={!formik.isValid || formik.isSubmitting}>
                         {formik.isSubmitting ? (
                             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -416,18 +398,26 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Divider */}
                 <div className="lp-divider"><span>Or</span></div>
 
-                {/* Google only */}
-                <button type="button" className="lp-google-btn" onClick={() => handleGoogleLogin()}>
-                    <svg width="20" height="20" viewBox="0 0 48 48">
-                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                    </svg>
-                    Continue with Google
+                {/* FIX: Call handleGoogleLogin() directly — no arrow wrapper needed */}
+                <button
+                    type="button"
+                    className="lp-google-btn"
+                    onClick={handleGoogleLogin}
+                    disabled={googleLoading}
+                >
+                    {googleLoading ? (
+                        <span style={{ width: 18, height: 18, border: '2.5px solid #e8e8f0', borderTop: '2.5px solid #6C63E0', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
+                    )}
+                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
                 </button>
 
                 <div style={{ height: 32 }} />

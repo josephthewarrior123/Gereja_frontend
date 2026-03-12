@@ -113,7 +113,6 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
 
-
       {/* user card */}
       <div style={{ padding: '12px 14px 8px' }}>
         <div style={{
@@ -201,6 +200,11 @@ export default function DashboardLayout() {
     if (user && isRegularUser && location.pathname === '/dashboard') navigate('/journal', { replace: true });
   }, [user, isLoading, navigate, isRegularUser, location.pathname]);
 
+  // FIX: Close drawer on route change (handles case where nav doesn't trigger onClose)
+  useEffect(() => {
+    setIsDrawerOpen(false);
+  }, [location.pathname]);
+
   useEffect(() => {
     const matched = sections.find((s) => s.url === location.pathname);
     if (matched?.title) document.title = matched.title;
@@ -213,7 +217,6 @@ export default function DashboardLayout() {
   );
   const pageLabel = currentSection?.label || 'Dashboard';
 
-  // mobile bottom nav: filter by role, same logic as sidebar
   const mobileNavItems = sections.filter((s) => {
     if (s.superAdminOnly)         return user?.role === 'super_admin';
     if (s.adminOnly)              return user?.role === 'admin' || user?.role === 'super_admin';
@@ -221,7 +224,6 @@ export default function DashboardLayout() {
     return true;
   });
 
-  // bottom nav height scales with item count
   const BOTTOM_NAV_H = 64;
 
   return (
@@ -230,9 +232,15 @@ export default function DashboardLayout() {
 
       {/* sidebar */}
       <Box component="nav" sx={{ width: { sm: Constants.NAVIGATION_DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>
-        <Drawer variant="temporary" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}
-          ModalProps={{ keepMounted: true }} className="sm:hidden"
-          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' } }}>
+        {/* FIX: keepMounted false so backdrop is properly unmounted, disableScrollLock prevents body scroll lock issues */}
+        <Drawer
+          variant="temporary"
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          ModalProps={{ keepMounted: false, disableScrollLock: true }}
+          className="sm:hidden"
+          sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: Constants.NAVIGATION_DRAWER_WIDTH, border: 'none' } }}
+        >
           <DrawerContent sections={sections} onClose={() => setIsDrawerOpen(false)} user={user} onLogout={handleLogout}/>
         </Drawer>
         <Drawer variant="permanent" className="hidden sm:block" open
@@ -249,6 +257,8 @@ export default function DashboardLayout() {
           justifyContent: 'space-between', alignItems: 'center',
           px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`,
           bgcolor: '#fff', borderBottom: '1px solid #f1f5f9', position: 'relative',
+          // FIX: ensure header is above drawer backdrop
+          zIndex: 1,
         }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155', borderRadius: '10px' }}>
             <CustomIcon icon="heroicons:bars-3-solid"/>
@@ -343,7 +353,6 @@ export default function DashboardLayout() {
                   '&:active': { opacity: 0.7 },
                 }}
               >
-                {/* active pill indicator */}
                 {isActive && (
                   <Box sx={{
                     position: 'absolute', top: 0, left: '50%',
@@ -352,8 +361,6 @@ export default function DashboardLayout() {
                     background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT_DARK})`,
                   }}/>
                 )}
-
-                {/* icon container */}
                 <Box sx={{
                   width: 36, height: 36, borderRadius: '10px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -365,7 +372,6 @@ export default function DashboardLayout() {
                     sx={{ fontSize: '20px', color: isActive ? ACCENT : '#94a3b8' }}
                   />
                 </Box>
-
                 <Typography sx={{
                   fontSize: '0.58rem', fontWeight: isActive ? 700 : 400,
                   color: isActive ? ACCENT : '#94a3b8',
