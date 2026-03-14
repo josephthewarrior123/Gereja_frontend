@@ -11,7 +11,6 @@ import {
     InputAdornment,
     Card,
     CardContent,
-    Grid,
     useMediaQuery,
     useTheme,
     Divider,
@@ -22,9 +21,6 @@ import {
     MenuItem,
     Drawer,
     Fab,
-    SpeedDial,
-    SpeedDialAction,
-    SpeedDialIcon,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -35,7 +31,6 @@ import UserDAO from '../../daos/UserDAO';
 import AdminDAO from '../../daos/AdminDao';
 import { CustomDatatable } from '../../reusables';
 
-// ─── design tokens ────────────────────────────────────────────────────────────
 const ROLE_CONFIG = {
     super_admin: { label: 'Super Admin', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
     admin: { label: 'Admin', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
@@ -117,6 +112,15 @@ export default function UserListPage() {
         if (user && user.role === 'user') { message('Access denied', 'error'); navigate('/dashboard', { replace: true }); }
     }, [user]);
 
+    // Load SheetJS
+    useEffect(() => {
+        if (window.XLSX) return;
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.async = true;
+        document.head.appendChild(script);
+    }, []);
+
     const [allUsers, setAllUsers] = useState([]);
     const [dataSource, setDataSource] = useState([]);
     const [selectedRole, setSelectedRole] = useState('ALL');
@@ -128,7 +132,6 @@ export default function UserListPage() {
     const [updatingRole, setUpdatingRole] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
-    const [actionSheetUser, setActionSheetUser] = useState(null);
     const [kebabUser, setKebabUser] = useState(null);
     const [kebabOpen, setKebabOpen] = useState(false);
     const [fabDrawerOpen, setFabDrawerOpen] = useState(false);
@@ -178,6 +181,7 @@ export default function UserListPage() {
                 role: u.role || 'user', groups: u.groups || [], managedGroups: u.managedGroups || [],
                 permissions: u.permissions || {},
                 isActive: u.isActive !== false, createdAt: u.createdAt || null,
+                total_points: u.total_points || 0, entry_count: u.entry_count || 0,
             }));
             setAllUsers(users);
             applyFilters(users, selectedRole, dataSourceOptions);
@@ -212,7 +216,32 @@ export default function UserListPage() {
     const closeDeleteDialog = () => { setIsDeleteDialogOpen(false); setUserToDelete(null); };
     const sortedSummaries = [...summaries].sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
 
-    // ── helper: can current user delete target user? ──────────────────────────
+    const exportXLSX = () => {
+        if (!window.XLSX) { message('Library belum siap, coba lagi sebentar', 'warning'); return; }
+        const XLSX = window.XLSX;
+        const rows = allUsers.map((u) => ({
+            'Username': u.username,
+            'Full Name': u.fullName,
+            'Email': u.email,
+            'Phone': u.phone_number || '-',
+            'Role': u.role,
+            'Groups': (u.groups || []).join('; '),
+            'Managed Groups': (u.managedGroups || []).join('; '),
+            'Active': u.isActive ? 'Yes' : 'No',
+            'Total Points': u.total_points || 0,
+            'Entry Count': u.entry_count || 0,
+            'Created At': u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+        }));
+        const ws = window.XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [
+            { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 14 },
+            { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 },
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Users');
+        XLSX.writeFile(wb, 'users_export_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+    };
+
     const canDelete = (targetUser) => {
         if (!targetUser) return false;
         if (user?.role === 'super_admin') return targetUser.role !== 'super_admin';
@@ -277,18 +306,30 @@ export default function UserListPage() {
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%', pb: 12 }}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
 
-                {/* Search */}
-                <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
-                    onChange={(e) => setMobileSearchInput(e.target.value)}
-                    onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                        startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
-                        sx: { borderRadius: '12px', bgcolor: '#fff', fontSize: 14, fontFamily: '"DM Sans", sans-serif', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } },
-                    }}
-                />
+                {/* Search + Download row */}
+                <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                    <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
+                        onChange={(e) => setMobileSearchInput(e.target.value)}
+                        onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
+                            sx: { borderRadius: '12px', bgcolor: '#fff', fontSize: 14, fontFamily: '"DM Sans", sans-serif', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } },
+                        }}
+                    />
+                    {/* Download button — always visible for admin & super_admin */}
+                    <IconButton
+                        onClick={exportXLSX}
+                        sx={{
+                            width: 48, height: 48, borderRadius: '12px', flexShrink: 0,
+                            bgcolor: '#fff', border: '1px solid #E2E8F0', color: '#64748b',
+                            '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' },
+                        }}
+                    >
+                        <Icon icon="mdi:download" width={22} />
+                    </IconButton>
+                </Stack>
 
-                {/* Role filter pills */}
+                {/* Role filter pills — super_admin only */}
                 {user?.role === 'super_admin' && (
                     <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
                         {sortedSummaries.map((s) => {
@@ -331,14 +372,9 @@ export default function UserListPage() {
                                                 </Stack>
                                             </Box>
                                         </Stack>
-
                                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                                             <RoleBadge role={u.role} />
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => { setKebabUser(u); setKebabOpen(true); }}
-                                                sx={{ width: 32, height: 32, borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#F1F5F9' } }}
-                                            >
+                                            <IconButton size="small" onClick={() => { setKebabUser(u); setKebabOpen(true); }} sx={{ width: 32, height: 32, borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#F1F5F9' } }}>
                                                 <Icon icon="mdi:dots-vertical" width={20} />
                                             </IconButton>
                                         </Stack>
@@ -363,7 +399,7 @@ export default function UserListPage() {
                     </Box>
                 )}
 
-                {/* ── FAB ── */}
+                {/* FAB — super_admin buka drawer, admin langsung create */}
                 <Fab
                     onClick={() => user?.role === 'super_admin' ? setFabDrawerOpen(true) : navigate('/users/create')}
                     sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#0f172a', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(15,23,42,0.35)', '&:hover': { bgcolor: '#1e293b' }, zIndex: 1200 }}
@@ -371,9 +407,8 @@ export default function UserListPage() {
                     <Icon icon="mdi:plus" width={28} />
                 </Fab>
 
-                {/* ── FAB Drawer ── */}
-                <Drawer anchor="bottom" open={fabDrawerOpen} onClose={() => setFabDrawerOpen(false)}
-                    PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
+                {/* FAB Drawer — super_admin only */}
+                <Drawer anchor="bottom" open={fabDrawerOpen} onClose={() => setFabDrawerOpen(false)} PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
                     <Box sx={{ px: 2, pt: 2.5 }}>
                         <Box sx={{ width: 36, height: 4, bgcolor: '#E2E8F0', borderRadius: 99, mx: 'auto', mb: 2.5 }} />
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>Create</Typography>
@@ -394,9 +429,8 @@ export default function UserListPage() {
                     </Box>
                 </Drawer>
 
-                {/* ── Kebab Bottom Sheet ── */}
-                <Drawer anchor="bottom" open={kebabOpen} onClose={() => setKebabOpen(false)}
-                    PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
+                {/* Kebab Bottom Sheet */}
+                <Drawer anchor="bottom" open={kebabOpen} onClose={() => setKebabOpen(false)} PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
                     {kebabUser && (
                         <Box sx={{ px: 2, pt: 2.5 }}>
                             <Box sx={{ width: 36, height: 4, bgcolor: '#E2E8F0', borderRadius: 99, mx: 'auto', mb: 2.5 }} />
@@ -443,6 +477,7 @@ export default function UserListPage() {
                     <Typography sx={{ fontSize: 26, fontWeight: 800, color: '#0f172a', fontFamily: '"Outfit", sans-serif', letterSpacing: '-0.02em', lineHeight: 1 }}>Users</Typography>
                 </Box>
                 <Stack direction="row" spacing={1.5}>
+                    <Button variant="outlined" startIcon={<Icon icon="mdi:download" />} onClick={exportXLSX} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#e2e8f0', color: '#0f172a', '&:hover': { borderColor: '#0f172a', bgcolor: '#f8fafc' } }}>Export</Button>
                     <Button variant="contained" startIcon={<Icon icon="mdi:account-plus-outline" />} onClick={() => navigate('/users/create')} sx={{ textTransform: 'none', borderRadius: '12px', bgcolor: '#0f172a', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, boxShadow: '0 2px 8px rgba(15,23,42,0.2)', '&:hover': { bgcolor: '#1e293b' } }}>Create User</Button>
                     {user?.role === 'super_admin' && (
                         <Button variant="outlined" startIcon={<Icon icon="mdi:shield-plus-outline" />} onClick={() => navigate('/users/create-admin')} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#e2e8f0', color: '#0f172a', '&:hover': { borderColor: '#0f172a', bgcolor: '#f8fafc' } }}>Create Admin</Button>
@@ -498,8 +533,7 @@ export default function UserListPage() {
             </Menu>
 
             {/* Role drawer — mobile */}
-            <Drawer anchor="bottom" open={roleDrawerOpen} onClose={() => { setRoleDrawerOpen(false); handleRoleMenuClose(); }}
-                PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
+            <Drawer anchor="bottom" open={roleDrawerOpen} onClose={() => { setRoleDrawerOpen(false); handleRoleMenuClose(); }} PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
                 <Box sx={{ px: 2, pt: 2.5 }}>
                     <Box sx={{ width: 36, height: 4, bgcolor: '#E2E8F0', borderRadius: 99, mx: 'auto', mb: 2.5 }} />
                     {selectedUser && (
@@ -567,7 +601,6 @@ export default function UserListPage() {
                     </Stack>
                 </Box>
             </Dialog>
-
         </>
     );
 }
