@@ -307,27 +307,31 @@ export default function UserListPage() {
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
 
                 {/* Search + Download row */}
-                <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                    <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
-                        onChange={(e) => setMobileSearchInput(e.target.value)}
-                        onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
-                        InputProps={{
-                            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
-                            sx: { borderRadius: '12px', bgcolor: '#fff', fontSize: 14, fontFamily: '"DM Sans", sans-serif', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } },
-                        }}
-                    />
-                    {/* Download button — always visible for admin & super_admin */}
-                    <IconButton
-                        onClick={exportXLSX}
-                        sx={{
-                            width: 48, height: 48, borderRadius: '12px', flexShrink: 0,
-                            bgcolor: '#fff', border: '1px solid #E2E8F0', color: '#64748b',
-                            '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' },
-                        }}
-                    >
-                        <Icon icon="mdi:download" width={22} />
-                    </IconButton>
-                </Stack>
+<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+    <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
+        onChange={(e) => setMobileSearchInput(e.target.value)}
+        onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
+        InputProps={{
+            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
+            sx: { 
+                borderRadius: '12px', bgcolor: '#fff', fontSize: 14, 
+                fontFamily: '"DM Sans", sans-serif', height: 48,
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } 
+            },
+        }}
+        inputProps={{ style: { height: 48, padding: '0 14px 0 0', boxSizing: 'border-box' } }}
+    />
+    <IconButton
+        onClick={exportXLSX}
+        sx={{
+            width: 48, height: 48, borderRadius: '12px', flexShrink: 0,
+            bgcolor: '#fff', border: '1px solid #E2E8F0', color: '#64748b',
+            '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' },
+        }}
+    >
+        <Icon icon="mdi:download" width={22} />
+    </IconButton>
+</Stack>
 
                 {/* Role filter pills — super_admin only */}
                 {user?.role === 'super_admin' && (
