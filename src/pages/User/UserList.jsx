@@ -39,15 +39,17 @@ import { CustomDatatable } from '../../reusables';
 const ROLE_CONFIG = {
     super_admin: { label: 'Super Admin', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
     admin: { label: 'Admin', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+    gembala: { label: 'Gembala', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
     user: { label: 'User', color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4' },
 };
-const roleColors = { super_admin: '#7C3AED', admin: '#1D4ED8', user: '#0F766E' };
-const roleLabels = { ALL: 'All', super_admin: 'Super Admin', admin: 'Admin', user: 'User' };
-const roleOrder = { ALL: 0, super_admin: 1, admin: 2, user: 3 };
+const roleColors = { super_admin: '#7C3AED', admin: '#1D4ED8', gembala: '#B45309', user: '#0F766E' };
+const roleLabels = { ALL: 'All', super_admin: 'Super Admin', admin: 'Admin', gembala: 'Gembala', user: 'User' };
+const roleOrder = { ALL: 0, super_admin: 1, admin: 2, gembala: 3, user: 4 };
 const STAT_ACCENT = {
     ALL: { from: '#6366f1', to: '#8b5cf6' },
     super_admin: { from: '#7C3AED', to: '#a855f7' },
     admin: { from: '#1D4ED8', to: '#3b82f6' },
+    gembala: { from: '#B45309', to: '#f59e0b' },
     user: { from: '#0F766E', to: '#14b8a6' },
 };
 
@@ -148,6 +150,7 @@ export default function UserListPage() {
             { role: 'ALL', total: users.length },
             { role: 'super_admin', total: users.filter((u) => u.role === 'super_admin').length },
             { role: 'admin', total: users.filter((u) => u.role === 'admin').length },
+            { role: 'gembala', total: users.filter((u) => u.role === 'gembala').length },
             { role: 'user', total: users.filter((u) => u.role === 'user').length },
         ]);
         const start = options.page * options.limit;
@@ -172,6 +175,7 @@ export default function UserListPage() {
                 id: u.username, username: u.username, fullName: u.fullName || '-',
                 email: u.email || '-', phone_number: u.phone_number || '-',
                 role: u.role || 'user', groups: u.groups || [], managedGroups: u.managedGroups || [],
+                permissions: u.permissions || {},
                 isActive: u.isActive !== false, createdAt: u.createdAt || null,
             }));
             setAllUsers(users);
@@ -231,6 +235,7 @@ export default function UserListPage() {
                 return <Stack direction="row" spacing={0.5} flexWrap="wrap">{list.map((g) => <Box key={g} sx={{ px: 1.2, py: 0.3, borderRadius: '6px', bgcolor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: 11, color: '#475569', fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{g}</Box>)}</Stack>;
             },
         },
+
         { title: 'Role', dataIndex: 'role', key: 'role', sortable: true, render: (value, row) => <RoleBadge role={value} onClick={(e) => handleRoleMenuOpen(e, row)} /> },
         { title: 'Joined', dataIndex: 'createdAt', key: 'createdAt', sortable: false, render: (value) => <Typography sx={{ fontSize: 12, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>{formatDate(value)}</Typography> },
         {
@@ -316,6 +321,7 @@ export default function UserListPage() {
                                                     ))}
                                                     {!(u.role === 'user' ? u.groups : u.managedGroups).length && <Typography sx={{ fontSize: 11, color: '#cbd5e1', fontFamily: '"DM Sans", sans-serif' }}>—</Typography>}
                                                 </Stack>
+
                                             </Box>
                                         </Stack>
 
@@ -382,6 +388,10 @@ export default function UserListPage() {
                                 <ListItemIcon><Icon icon="mdi:shield-plus-outline" width={22} color="#7C3AED" /></ListItemIcon>
                                 <ListItemText primary="Create Admin" secondary="Add an admin account" primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 700, fontFamily: '"Outfit", sans-serif' } }} secondaryTypographyProps={{ sx: { fontSize: 12, color: '#94a3b8' } }} />
                             </MenuItem>
+                            <MenuItem onClick={() => { setFabDrawerOpen(false); navigate('/users/create-gembala'); }} sx={{ borderRadius: '12px', border: '1px solid #F1F5F9', py: 1.5 }}>
+                                <ListItemIcon><Icon icon="mdi:account-heart-outline" width={22} color="#B45309" /></ListItemIcon>
+                                <ListItemText primary="Promote Gembala" secondary="Promote user jadi gembala" primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 700, fontFamily: '"Outfit", sans-serif' } }} secondaryTypographyProps={{ sx: { fontSize: 12, color: '#94a3b8' } }} />
+                            </MenuItem>
                         </Stack>
                     </Box>
                 </Drawer>
@@ -439,6 +449,9 @@ export default function UserListPage() {
                     {user?.role === 'super_admin' && (
                         <Button variant="outlined" startIcon={<Icon icon="mdi:shield-plus-outline" />} onClick={() => navigate('/users/create-admin')} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#e2e8f0', color: '#0f172a', '&:hover': { borderColor: '#0f172a', bgcolor: '#f8fafc' } }}>Create Admin</Button>
                     )}
+                    {user?.role === 'super_admin' && (
+                        <Button variant="outlined" startIcon={<Icon icon="mdi:account-heart-outline" />} onClick={() => navigate('/users/create-gembala')} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#FDE68A', color: '#B45309', '&:hover': { borderColor: '#B45309', bgcolor: '#FFFBEB' } }}>Promote Gembala</Button>
+                    )}
                 </Stack>
             </Box>
             <Box sx={{ maxWidth: 380 }}>
@@ -472,6 +485,12 @@ export default function UserListPage() {
                     <ListItemIcon><Icon icon="mdi:shield-outline" color={roleColors.admin} width={18} /></ListItemIcon>
                     <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Admin" />
                 </MenuItem>
+                {user?.role === 'super_admin' && (
+                    <MenuItem onClick={() => handleRoleUpdate('gembala')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
+                        <ListItemIcon><Icon icon="mdi:account-heart-outline" color={roleColors.gembala} width={18} /></ListItemIcon>
+                        <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Gembala" />
+                    </MenuItem>
+                )}
                 {user?.role === 'super_admin' && (
                     <MenuItem onClick={() => handleRoleUpdate('super_admin')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
                         <ListItemIcon><Icon icon="mdi:shield-crown-outline" color={roleColors.super_admin} width={18} /></ListItemIcon>

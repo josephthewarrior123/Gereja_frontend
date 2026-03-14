@@ -84,6 +84,8 @@ export default function SignUpPage() {
                 role: result.user.role || 'user',
                 email: result.user.email || '',
                 groups: result.user.groups || [],
+                managedGroups: result.user.managedGroups || [],
+                permissions: result.user.permissions || {},
             });
             message('Account created successfully! Welcome aboard! 🎉', 'success');
             navigate('/', { replace: true });
@@ -109,6 +111,7 @@ export default function SignUpPage() {
                     email: result.user.email || '',
                     groups: result.user.groups || [],
                     managedGroups: result.user.managedGroups || [],
+                    permissions: result.user.permissions || {},
                 };
                 login(userData);
                 if (userData.groups.length === 0) {

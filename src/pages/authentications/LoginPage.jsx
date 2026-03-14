@@ -42,6 +42,7 @@ export default function LoginPage() {
             email: result.user.email || '',
             groups: result.user.groups || [],
             managedGroups: result.user.managedGroups || [],
+            permissions: result.user.permissions || {},
         };
         login(userData);
         if (isGoogle && userData.groups.length === 0) {

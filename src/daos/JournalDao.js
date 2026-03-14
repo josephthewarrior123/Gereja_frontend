@@ -24,12 +24,23 @@ export default class JournalDAO {
     };
 
     // GET /api/journal/my-entries — entries milik user sendiri
-    static getMyEntries = async () => {
-        return await ApiRequest.set('/api/journal/my-entries', ApiRequest.HTTP_METHOD.GET);
+    static getMyEntries = async ({ limit, cursor } = {}) => {
+        const params = new URLSearchParams();
+        if (limit) params.set('limit', limit);
+        if (cursor) params.set('cursor', cursor);
+        const qs = params.toString();
+        return await ApiRequest.set(`/api/journal/my-entries${qs ? `?${qs}` : ''}`, ApiRequest.HTTP_METHOD.GET);
     };
 
     // GET /api/journal/groups/:group/entries — entries per group (admin/super_admin)
     static getGroupEntries = async (group) => {
         return await ApiRequest.set(`/api/journal/groups/${group}/entries`, ApiRequest.HTTP_METHOD.GET);
+    };
+
+    // POST /api/journal/bulk-award — bulk award poin ke banyak user sekaligus
+    // body: { activity_id, usernames: string[], data?: {}, note?: string, timestamp?: number }
+    // role: admin, super_admin, gembala
+    static bulkAward = async (body) => {
+        return await ApiRequest.set('/api/journal/bulk-award', ApiRequest.HTTP_METHOD.POST, body);
     };
 }

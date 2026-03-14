@@ -93,6 +93,8 @@ export default function EditUserPage() {
         if (currentUser) loadGroups();
     }, [currentUser]);
 
+
+
     // Load user data
     useEffect(() => {
         const loadUser = async () => {
@@ -138,6 +140,8 @@ export default function EditUserPage() {
                 : [...prev[field], id],
         }));
     };
+
+
 
     const handleRoleChange = (newRole) => {
         setForm((prev) => ({
@@ -314,6 +318,8 @@ export default function EditUserPage() {
                         </Stack>
                     )}
                 </Box>
+
+
 
                 {/* Submit */}
                 <Box onClick={!submitting ? handleSubmit : undefined}

@@ -17,6 +17,7 @@ const ACCENT_DARK = '#4f46e5';
 const ROLE_CFG = {
   super_admin: { label: 'Super Admin', color: '#7c3aed', bg: '#f5f3ff' },
   admin: { label: 'Admin', color: '#1d4ed8', bg: '#eff6ff' },
+  gembala: { label: 'Gembala', color: '#b45309', bg: '#fffbeb' },
   user: { label: 'User', color: '#0f766e', bg: '#f0fdfa' },
 };
 function RolePill({ role }) {
@@ -99,15 +100,19 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isGembala = user?.role === 'gembala';
+  const isAdminOrAbove = user?.role === 'admin' || user?.role === 'super_admin';
+
   const filtered = sections.filter((s) => {
     if (s.superAdminOnly) return user?.role === 'super_admin';
-    if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
-    if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
+    if (s.adminOnly) return isAdminOrAbove;
+    if (s.adminAndSuperAdminOnly) return isAdminOrAbove;
+    if (s.bulkAwardAllowed) return isAdminOrAbove || isGembala;
     return true;
   });
 
-  const mainNav = filtered.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly);
-  const privilegedNav = filtered.filter((s) => s.adminOnly || s.superAdminOnly || s.adminAndSuperAdminOnly);
+  const mainNav = filtered.filter((s) => !s.adminOnly && !s.superAdminOnly && !s.adminAndSuperAdminOnly && !s.bulkAwardAllowed);
+  const privilegedNav = filtered.filter((s) => s.adminOnly || s.superAdminOnly || s.adminAndSuperAdminOnly || s.bulkAwardAllowed);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -187,18 +192,17 @@ export default function DashboardLayout() {
   const location = useLocation();
 
   const isRegularUser = user?.role === 'user';
-
   const sections = useMemo(() => [
     { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
     { icon: 'heroicons:trophy', label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
+    { icon: 'heroicons:bolt', label: 'Bulk Award', url: '/bulk-award', title: 'Bulk Award', bulkAwardAllowed: true },
     { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
     { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
   ], []);
 
   useEffect(() => {
     if (!user && !isLoading) { navigate('/login', { replace: true }); return; }
-    if (user && isRegularUser && location.pathname === '/dashboard') navigate('/journal', { replace: true });
-  }, [user, isLoading, navigate, isRegularUser, location.pathname]);
+  }, [user, isLoading, navigate, location.pathname]);
 
   // FIX: Close drawer on route change (handles case where nav doesn't trigger onClose)
   useEffect(() => {
@@ -221,6 +225,7 @@ export default function DashboardLayout() {
     if (s.superAdminOnly) return user?.role === 'super_admin';
     if (s.adminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
     if (s.adminAndSuperAdminOnly) return user?.role === 'admin' || user?.role === 'super_admin';
+    if (s.bulkAwardAllowed) return user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'gembala';
     return true;
   });
 

@@ -38,4 +38,26 @@ export default class SuperAdminDAO {
             body,
         );
     };
+
+    // POST /api/super-admin/gembala — promote user jadi gembala
+    // butuh auth, role: super_admin
+    static createOrPromoteGembala = async (body) => {
+        // body: { username, managed_groups? }
+        return await ApiRequest.set(
+            '/api/super-admin/gembala',
+            ApiRequest.HTTP_METHOD.POST,
+            body,
+        );
+    };
+
+    // PATCH /api/super-admin/gembala/:uid/permissions — update permission gembala
+    // butuh auth, role: super_admin
+    static setGembalaPermissions = async (uid, body) => {
+        // body: { managed_groups, is_active? }
+        return await ApiRequest.set(
+            `/api/super-admin/gembala/${uid}/permissions`,
+            ApiRequest.HTTP_METHOD.PATCH,
+            body,
+        );
+    };
 }

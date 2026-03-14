@@ -24,22 +24,22 @@ function formatDate(ts) {
     return `${date}, ${time}`;
 }
 
-const GROUP_COLORS = [BLUE,'#0ea5e9','#f97316','#10b981','#ec4899',BLUE_LIGHT,'#14b8a6','#f59e0b'];
+const GROUP_COLORS = [BLUE, '#0ea5e9', '#f97316', '#10b981', '#ec4899', BLUE_LIGHT, '#14b8a6', '#f59e0b'];
 const groupColor = (name = '') => GROUP_COLORS[name.charCodeAt(0) % GROUP_COLORS.length];
 
 function EmptyJournalSVG() {
     return (
         <svg width="120" height="110" viewBox="0 0 120 110" fill="none">
-            <rect x="20" y="15" width="70" height="85" rx="10" fill="#F1F5F9" stroke="#E2E8F0" strokeWidth="1.5"/>
-            <rect x="28" y="28" width="40" height="5" rx="2.5" fill="#CBD5E1"/>
-            <rect x="28" y="39" width="55" height="4" rx="2" fill="#E2E8F0"/>
-            <rect x="28" y="49" width="48" height="4" rx="2" fill="#E2E8F0"/>
-            <rect x="28" y="59" width="52" height="4" rx="2" fill="#E2E8F0"/>
-            <rect x="28" y="69" width="36" height="4" rx="2" fill="#E2E8F0"/>
-            <rect x="76" y="62" width="8" height="22" rx="2" transform="rotate(-35 76 62)" fill="#BFDBFE"/>
-            <path d="M88 52 L94 58 L76 76 L70 70 Z" fill="#2563EB"/>
-            <path d="M70 70 L68 78 L76 76 Z" fill="#1D4ED8"/>
-            <rect x="90" y="48" width="8" height="6" rx="1" transform="rotate(-35 90 48)" fill="#93C5FD"/>
+            <rect x="20" y="15" width="70" height="85" rx="10" fill="#F1F5F9" stroke="#E2E8F0" strokeWidth="1.5" />
+            <rect x="28" y="28" width="40" height="5" rx="2.5" fill="#CBD5E1" />
+            <rect x="28" y="39" width="55" height="4" rx="2" fill="#E2E8F0" />
+            <rect x="28" y="49" width="48" height="4" rx="2" fill="#E2E8F0" />
+            <rect x="28" y="59" width="52" height="4" rx="2" fill="#E2E8F0" />
+            <rect x="28" y="69" width="36" height="4" rx="2" fill="#E2E8F0" />
+            <rect x="76" y="62" width="8" height="22" rx="2" transform="rotate(-35 76 62)" fill="#BFDBFE" />
+            <path d="M88 52 L94 58 L76 76 L70 70 Z" fill="#2563EB" />
+            <path d="M70 70 L68 78 L76 76 Z" fill="#1D4ED8" />
+            <rect x="90" y="48" width="8" height="6" rx="1" transform="rotate(-35 90 48)" fill="#93C5FD" />
         </svg>
     );
 }
@@ -47,10 +47,10 @@ function EmptyJournalSVG() {
 function EmptyActivitySVG() {
     return (
         <svg width="120" height="110" viewBox="0 0 120 110" fill="none">
-            <circle cx="60" cy="55" r="38" fill="#F1F5F9" stroke="#E2E8F0" strokeWidth="1.5"/>
-            <path d="M42 55 L54 67 L78 43" stroke="#CBD5E1" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="88" cy="28" r="16" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5"/>
-            <path d="M88 20 V28 H96" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="60" cy="55" r="38" fill="#F1F5F9" stroke="#E2E8F0" strokeWidth="1.5" />
+            <path d="M42 55 L54 67 L78 43" stroke="#CBD5E1" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="88" cy="28" r="16" fill="#EFF6FF" stroke="#BFDBFE" strokeWidth="1.5" />
+            <path d="M88 20 V28 H96" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
@@ -63,7 +63,7 @@ function PointsBadge({ points }) {
             bgcolor: '#fffbeb', border: '1.5px solid #fde68a',
         }}>
             <svg width="10" height="10" viewBox="0 0 10 10">
-                <path d="M5 1 L6.2 3.8 L9.5 4.1 L7.2 6.2 L7.9 9.5 L5 8 L2.1 9.5 L2.8 6.2 L0.5 4.1 L3.8 3.8 Z" fill="#f59e0b"/>
+                <path d="M5 1 L6.2 3.8 L9.5 4.1 L7.2 6.2 L7.9 9.5 L5 8 L2.1 9.5 L2.8 6.2 L0.5 4.1 L3.8 3.8 Z" fill="#f59e0b" />
             </svg>
             <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#d97706', fontFamily: '"DM Mono", monospace' }}>
                 {points} pts
@@ -98,7 +98,7 @@ function StatCard({ label, value, icon, accent }) {
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                 background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
                 borderRadius: '16px 16px 0 0',
-            }}/>
+            }} />
             <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
                     <Typography sx={{
@@ -206,7 +206,7 @@ function ActivityCard({ activity, onEdit, isAdmin }) {
                             fontSize: 10, fontWeight: 700, fontFamily: '"DM Sans", sans-serif',
                             color: isActive ? '#16a34a' : '#dc2626',
                         }}>
-                            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: isActive ? '#16a34a' : '#dc2626' }}/>
+                            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: isActive ? '#16a34a' : '#dc2626' }} />
                             {isActive ? 'Active' : 'Inactive'}
                         </Box>
                     </Stack>
@@ -317,7 +317,8 @@ export default function JournalPage() {
     const message = useAlert();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'gembala';
+    const canManageActivities = user?.role === 'admin' || user?.role === 'super_admin';
 
     const [tab, setTab] = useState('entries');
     const [entries, setEntries] = useState([]);
@@ -339,7 +340,7 @@ export default function JournalPage() {
                     setHasMore(!!res.next_cursor);
                 } else { message(res.error || 'Gagal memuat entries', 'error'); }
             } else {
-                const res = isAdmin ? await AdminDAO.listAdminActivities() : await JournalDAO.listActivities();
+                const res = canManageActivities ? await AdminDAO.listAdminActivities() : await JournalDAO.listActivities();
                 if (res.success) setActivities(res.data || []);
                 else message(res.error || 'Gagal memuat activities', 'error');
             }
@@ -356,7 +357,7 @@ export default function JournalPage() {
     const totalPoints = entries.reduce((s, e) => s + (e.points_awarded || 0), 0);
 
     const showEntryFAB = tab === 'entries';
-    const showActivityFAB = tab === 'activities' && isAdmin;
+    const showActivityFAB = tab === 'activities' && canManageActivities;
 
     return (
         <Box sx={{ bgcolor: '#f8fafc', minHeight: '100vh', position: 'relative' }}>
@@ -401,7 +402,7 @@ export default function JournalPage() {
             <Box sx={{ px: { xs: 2, sm: 0 }, mb: 2.5 }}>
                 <Stack direction="row" spacing={1}>
                     <TabButton active={tab === 'entries'} label="My Entries" icon="mdi:book-open-outline" onClick={() => setTab('entries')} />
-                    {isAdmin && (
+                    {(isAdmin) && (
                         <TabButton active={tab === 'activities'} label="Activities" icon="mdi:lightning-bolt-outline" onClick={() => setTab('activities')} />
                     )}
                 </Stack>
