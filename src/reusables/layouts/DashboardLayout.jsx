@@ -81,7 +81,7 @@ function NavItem({ section, location, navigate, onClose }) {
         background: isActive ? `${ACCENT}18` : 'transparent',
         transition: 'background .12s',
       }}>
-        <CustomIcon icon={section.icon} sx={{ fontSize: 17, color: isActive ? ACCENT : '#94a3b8' }} />
+        <CustomIcon icon={isActive ? (section.activeIcon || section.icon) : section.icon} sx={{ fontSize: 17, color: isActive ? ACCENT : '#94a3b8' }} />
       </div>
       <span style={{
         fontSize: 13.5, fontWeight: isActive ? 600 : 400,
@@ -193,18 +193,17 @@ export default function DashboardLayout() {
 
   const isRegularUser = user?.role === 'user';
   const sections = useMemo(() => [
-    { icon: 'heroicons:book-open', label: 'Journal', url: '/journal', title: 'Journal' },
-    { icon: 'heroicons:trophy', label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
-    { icon: 'heroicons:bolt', label: 'Bulk Award', url: '/bulk-award', title: 'Bulk Award', bulkAwardAllowed: true },
-    { icon: 'heroicons:users', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
-    { icon: 'heroicons:user-group', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
+    { icon: 'heroicons:book-open', activeIcon: 'heroicons:book-open-solid', label: 'Journal', url: '/journal', title: 'Journal' },
+    { icon: 'heroicons:trophy', activeIcon: 'heroicons:trophy-solid', label: 'Leaderboard', url: '/leaderboard', title: 'Leaderboard' },
+    { icon: 'mdi:medal-outline', activeIcon: 'mdi:medal-outline', label: 'Awards', url: '/bulk-award', title: 'Awards', bulkAwardAllowed: true },
+    { icon: 'heroicons:users', activeIcon: 'heroicons:users-solid', label: 'Users', url: '/users', title: 'User Management', adminOnly: true },
+    { icon: 'heroicons:user-group', activeIcon: 'heroicons:user-group-solid', label: 'Groups', url: '/group', title: 'Group Management', adminOnly: true },
   ], []);
 
   useEffect(() => {
     if (!user && !isLoading) { navigate('/login', { replace: true }); return; }
   }, [user, isLoading, navigate, location.pathname]);
 
-  // FIX: Close drawer on route change (handles case where nav doesn't trigger onClose)
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [location.pathname]);
@@ -237,7 +236,6 @@ export default function DashboardLayout() {
 
       {/* sidebar */}
       <Box component="nav" sx={{ width: { sm: Constants.NAVIGATION_DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>
-        {/* FIX: keepMounted false so backdrop is properly unmounted, disableScrollLock prevents body scroll lock issues */}
         <Drawer
           variant="temporary"
           open={isDrawerOpen}
@@ -270,7 +268,6 @@ export default function DashboardLayout() {
           justifyContent: 'space-between', alignItems: 'center',
           px: 2, height: `${Constants.HEADER_MOBILE_HEIGHT}px`,
           bgcolor: '#fff', borderBottom: '1px solid #f1f5f9', position: 'relative',
-          // FIX: ensure header is above drawer backdrop
           zIndex: 1,
         }}>
           <IconButton onClick={() => setIsDrawerOpen(true)} sx={{ color: '#334155', borderRadius: '10px' }}>
@@ -338,7 +335,7 @@ export default function DashboardLayout() {
           <div className="w-full"><Outlet /></div>
         </Box>
 
-        {/* ── Mobile Bottom Nav ── */}
+        {/* Mobile Bottom Nav */}
         <Box sx={{
           display: { xs: 'flex', sm: 'none' },
           position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -381,7 +378,7 @@ export default function DashboardLayout() {
                   transition: 'background .15s',
                 }}>
                   <CustomIcon
-                    icon={isActive ? `${item.icon}-solid` : item.icon}
+                    icon={isActive ? (item.activeIcon || item.icon) : item.icon}
                     sx={{ fontSize: '20px', color: isActive ? ACCENT : '#94a3b8' }}
                   />
                 </Box>

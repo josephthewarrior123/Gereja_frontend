@@ -390,7 +390,7 @@ export default function BulkAwardPage() {
     useEffect(() => {
         const fetchAll = async () => {
             try {
-                const actRes = await AdminDAO.listAdminActivities();
+                const actRes = await JournalDAO.listActivities();
                 if (actRes.success) setActivities((actRes.data || []).filter(a => a.is_active));
 
                 const usrRes = await AdminDAO.listUsers();

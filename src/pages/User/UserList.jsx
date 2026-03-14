@@ -132,6 +132,7 @@ export default function UserListPage() {
     const [kebabUser, setKebabUser] = useState(null);
     const [kebabOpen, setKebabOpen] = useState(false);
     const [fabDrawerOpen, setFabDrawerOpen] = useState(false);
+    const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
 
     const applyFilters = (users, role, options) => {
         let filtered = [...users];
@@ -211,6 +212,14 @@ export default function UserListPage() {
     const closeDeleteDialog = () => { setIsDeleteDialogOpen(false); setUserToDelete(null); };
     const sortedSummaries = [...summaries].sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
 
+    // ── helper: can current user delete target user? ──────────────────────────
+    const canDelete = (targetUser) => {
+        if (!targetUser) return false;
+        if (user?.role === 'super_admin') return targetUser.role !== 'super_admin';
+        if (user?.role === 'admin') return ['user', 'gembala'].includes(targetUser.role);
+        return false;
+    };
+
     const columns = [
         {
             title: 'User', dataIndex: 'fullName', key: 'fullName', sortable: true,
@@ -235,7 +244,6 @@ export default function UserListPage() {
                 return <Stack direction="row" spacing={0.5} flexWrap="wrap">{list.map((g) => <Box key={g} sx={{ px: 1.2, py: 0.3, borderRadius: '6px', bgcolor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: 11, color: '#475569', fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>{g}</Box>)}</Stack>;
             },
         },
-
         { title: 'Role', dataIndex: 'role', key: 'role', sortable: true, render: (value, row) => <RoleBadge role={value} onClick={(e) => handleRoleMenuOpen(e, row)} /> },
         { title: 'Joined', dataIndex: 'createdAt', key: 'createdAt', sortable: false, render: (value) => <Typography sx={{ fontSize: 12, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif', fontWeight: 500 }}>{formatDate(value)}</Typography> },
         {
@@ -244,7 +252,7 @@ export default function UserListPage() {
                 <Stack direction="row" spacing={0.5}>
                     <IconButton size="small" onClick={() => navigate(`/users/${row.username}/edit`)} sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' } }}><Icon icon="mdi:pencil-outline" width={17} /></IconButton>
                     <IconButton size="small" onClick={(e) => handleRoleMenuOpen(e, row)} sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' } }}><Icon icon="mdi:shield-account-outline" width={17} /></IconButton>
-                    {((user?.role === 'super_admin' && row.role !== 'super_admin') || (user?.role === 'admin' && row.role === 'user')) && (
+                    {canDelete(row) && (
                         <IconButton size="small" onClick={() => openDeleteDialog(row)} sx={{ borderRadius: '8px', color: '#94a3b8', '&:hover': { bgcolor: '#FEF2F2', color: '#EF4444' } }}><Icon icon="mdi:trash-can-outline" width={17} /></IconButton>
                     )}
                 </Stack>
@@ -321,7 +329,6 @@ export default function UserListPage() {
                                                     ))}
                                                     {!(u.role === 'user' ? u.groups : u.managedGroups).length && <Typography sx={{ fontSize: 11, color: '#cbd5e1', fontFamily: '"DM Sans", sans-serif' }}>—</Typography>}
                                                 </Stack>
-
                                             </Box>
                                         </Stack>
 
@@ -330,10 +337,7 @@ export default function UserListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => { setKebabUser(u); setKebabOpen(true); }}
-                                                sx={{
-                                                    width: 32, height: 32, borderRadius: '8px',
-                                                    color: '#64748b', '&:hover': { bgcolor: '#F1F5F9' },
-                                                }}
+                                                sx={{ width: 32, height: 32, borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#F1F5F9' } }}
                                             >
                                                 <Icon icon="mdi:dots-vertical" width={20} />
                                             </IconButton>
@@ -353,8 +357,8 @@ export default function UserListPage() {
                             <Typography sx={{ fontSize: 12, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>Page {dataSourceOptions.page + 1} / {Math.ceil(total / mobileLimit)}</Typography>
                         </Stack>
                         <Stack direction="row" spacing={1.5}>
-                            <Button fullWidth variant="outlined" disabled={dataSourceOptions.page === 0} onClick={() => setDataSourceOptions((prev) => ({ ...prev, page: prev.page - 1 }))} sx={{ borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontFamily: '"DM Sans", sans-serif', borderColor: '#e2e8f0', color: '#64748b' }}>Previous</Button>
-                            <Button fullWidth variant="contained" disabled={(startIndex + mobileLimit) >= total} onClick={() => setDataSourceOptions((prev) => ({ ...prev, page: prev.page + 1 }))} sx={{ borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontFamily: '"DM Sans", sans-serif', bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' } }}>Next</Button>
+                            <Button fullWidth variant="outlined" disabled={dataSourceOptions.page === 0} onClick={() => setDataSourceOptions((prev) => ({ ...prev, page: prev.page - 1 }))} sx={{ borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontFamily: '"DM Sans", sans-serif', borderColor: '#e2e8f0', color: '#64748b', '&.Mui-disabled': { bgcolor: '#f8fafc', borderColor: '#e2e8f0', color: '#cbd5e1' } }}>Previous</Button>
+                            <Button fullWidth variant="contained" disabled={(startIndex + mobileLimit) >= total} onClick={() => setDataSourceOptions((prev) => ({ ...prev, page: prev.page + 1 }))} sx={{ borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontFamily: '"DM Sans", sans-serif', bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' }, '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8', boxShadow: 'none' } }}>Next</Button>
                         </Stack>
                     </Box>
                 )}
@@ -362,18 +366,12 @@ export default function UserListPage() {
                 {/* ── FAB ── */}
                 <Fab
                     onClick={() => user?.role === 'super_admin' ? setFabDrawerOpen(true) : navigate('/users/create')}
-                    sx={{
-                        position: 'fixed', bottom: 80, right: 20,
-                        bgcolor: '#0f172a', color: '#fff', width: 56, height: 56,
-                        boxShadow: '0 6px 24px rgba(15,23,42,0.35)',
-                        '&:hover': { bgcolor: '#1e293b' },
-                        zIndex: 1200,
-                    }}
+                    sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#0f172a', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(15,23,42,0.35)', '&:hover': { bgcolor: '#1e293b' }, zIndex: 1200 }}
                 >
                     <Icon icon="mdi:plus" width={28} />
                 </Fab>
 
-                {/* ── FAB Drawer (super_admin: choose create user / admin) ── */}
+                {/* ── FAB Drawer ── */}
                 <Drawer anchor="bottom" open={fabDrawerOpen} onClose={() => setFabDrawerOpen(false)}
                     PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
                     <Box sx={{ px: 2, pt: 2.5 }}>
@@ -417,11 +415,11 @@ export default function UserListPage() {
                                     <ListItemIcon><Icon icon="mdi:pencil-outline" width={20} color="#64748b" /></ListItemIcon>
                                     <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Edit User" />
                                 </MenuItem>
-                                <MenuItem onClick={() => { setKebabOpen(false); setSelectedUser(kebabUser); setRoleMenuAnchor(document.body); }} sx={{ borderRadius: '10px', py: 1.2 }}>
+                                <MenuItem onClick={() => { setKebabOpen(false); setSelectedUser(kebabUser); setRoleDrawerOpen(true); }} sx={{ borderRadius: '10px', py: 1.2 }}>
                                     <ListItemIcon><Icon icon="mdi:shield-account-outline" width={20} color="#64748b" /></ListItemIcon>
                                     <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Change Role" />
                                 </MenuItem>
-                                {((user?.role === 'super_admin' && kebabUser.role !== 'super_admin') || (user?.role === 'admin' && kebabUser.role === 'user')) && (
+                                {canDelete(kebabUser) && (
                                     <MenuItem onClick={() => { setKebabOpen(false); openDeleteDialog(kebabUser); }} sx={{ borderRadius: '10px', py: 1.2 }}>
                                         <ListItemIcon><Icon icon="mdi:trash-can-outline" width={20} color="#EF4444" /></ListItemIcon>
                                         <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, color: '#EF4444', fontFamily: '"DM Sans", sans-serif' } }} primary="Delete User" />
@@ -473,7 +471,7 @@ export default function UserListPage() {
         <>
             {isMobile ? renderMobileView() : renderDesktopView()}
 
-            {/* Role menu */}
+            {/* Role menu — desktop */}
             <Menu anchorEl={roleMenuAnchor} open={Boolean(roleMenuAnchor)} onClose={handleRoleMenuClose}
                 PaperProps={{ sx: { borderRadius: '14px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)', minWidth: 190, border: '1px solid #f1f5f9' } }}>
                 <Typography sx={{ px: 2, pt: 1.5, pb: 0.5, fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: '"DM Sans", sans-serif' }}>Change Role</Typography>
@@ -485,7 +483,7 @@ export default function UserListPage() {
                     <ListItemIcon><Icon icon="mdi:shield-outline" color={roleColors.admin} width={18} /></ListItemIcon>
                     <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Admin" />
                 </MenuItem>
-                {user?.role === 'super_admin' && (
+                {['super_admin', 'admin'].includes(user?.role) && (
                     <MenuItem onClick={() => handleRoleUpdate('gembala')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
                         <ListItemIcon><Icon icon="mdi:account-heart-outline" color={roleColors.gembala} width={18} /></ListItemIcon>
                         <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Gembala" />
@@ -498,6 +496,41 @@ export default function UserListPage() {
                     </MenuItem>
                 )}
             </Menu>
+
+            {/* Role drawer — mobile */}
+            <Drawer anchor="bottom" open={roleDrawerOpen} onClose={() => { setRoleDrawerOpen(false); handleRoleMenuClose(); }}
+                PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
+                <Box sx={{ px: 2, pt: 2.5 }}>
+                    <Box sx={{ width: 36, height: 4, bgcolor: '#E2E8F0', borderRadius: 99, mx: 'auto', mb: 2.5 }} />
+                    {selectedUser && (
+                        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, px: 1 }}>
+                            <Avatar sx={{ width: 36, height: 36, bgcolor: roleColors[selectedUser.role] || '#64748B', fontWeight: 800, fontFamily: '"Outfit", sans-serif', fontSize: 14 }}>
+                                {selectedUser.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                            </Avatar>
+                            <Box>
+                                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: '"Outfit", sans-serif' }}>{selectedUser.fullName}</Typography>
+                                <Typography sx={{ fontSize: 11, color: '#94a3b8' }}>@{selectedUser.username}</Typography>
+                            </Box>
+                        </Stack>
+                    )}
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5, px: 1, fontFamily: '"DM Sans", sans-serif' }}>Change Role</Typography>
+                    <Stack spacing={0.5}>
+                        {[
+                            { role: 'user', icon: 'mdi:account-outline', label: 'User' },
+                            { role: 'admin', icon: 'mdi:shield-outline', label: 'Admin' },
+                            ...(['super_admin', 'admin'].includes(user?.role) ? [{ role: 'gembala', icon: 'mdi:account-heart-outline', label: 'Gembala' }] : []),
+                            ...(user?.role === 'super_admin' ? [{ role: 'super_admin', icon: 'mdi:shield-crown-outline', label: 'Super Admin' }] : []),
+                        ].map(({ role, icon, label }) => (
+                            <MenuItem key={role} disabled={updatingRole} onClick={() => { setRoleDrawerOpen(false); handleRoleUpdate(role); }}
+                                sx={{ borderRadius: '10px', py: 1.2, bgcolor: selectedUser?.role === role ? '#f8fafc' : 'transparent', border: selectedUser?.role === role ? '1.5px solid #e2e8f0' : '1.5px solid transparent' }}>
+                                <ListItemIcon><Icon icon={icon} color={roleColors[role]} width={20} /></ListItemIcon>
+                                <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, fontFamily: '"DM Sans", sans-serif', color: roleColors[role] } }} primary={label} />
+                                {selectedUser?.role === role && <Icon icon="mdi:check" color={roleColors[role]} width={18} />}
+                            </MenuItem>
+                        ))}
+                    </Stack>
+                </Box>
+            </Drawer>
 
             {/* Delete dialog */}
             <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog} maxWidth="xs" fullWidth fullScreen={isMobile}
@@ -534,6 +567,7 @@ export default function UserListPage() {
                     </Stack>
                 </Box>
             </Dialog>
+
         </>
     );
 }
