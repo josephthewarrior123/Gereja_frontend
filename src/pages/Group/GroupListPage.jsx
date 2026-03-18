@@ -431,12 +431,11 @@ export default function GroupListPage() {
 
                 {/* FAB */}
                 <Fab
-                    color="primary"
                     aria-label="create"
                     sx={{
                         position: 'fixed', bottom: 80, right: 20,
-                        bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' },
-                        boxShadow: '0 6px 24px rgba(15,23,42,0.35)',
+                        bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' },
+                        boxShadow: '0 6px 24px rgba(37,99,235,0.4)',
                         zIndex: 1200, color: '#fff', width: 56, height: 56,
                     }}
                     onClick={openCreate}

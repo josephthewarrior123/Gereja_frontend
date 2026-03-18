@@ -402,7 +402,7 @@ export default function UserListPage() {
                     </Box>
                 )}
 
-                <Fab onClick={() => navigate('/users/create')} sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#0f172a', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(15,23,42,0.35)', '&:hover': { bgcolor: '#1e293b' }, zIndex: 1200 }}>
+                <Fab onClick={() => navigate('/users/create')} sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#2563EB', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(37,99,235,0.4)', '&:hover': { bgcolor: '#1D4ED8' }, zIndex: 1200 }}>
                     <Icon icon="mdi:plus" width={28} />
                 </Fab>
 
