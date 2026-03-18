@@ -16,8 +16,11 @@ export default function SignUpPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
+    // Jangan redirect ke / kalau user baru signup & perlu onboarding
     useEffect(() => {
-        if (user && !isLoading) navigate('/', { replace: true });
+        if (!user || isLoading) return;
+        if (localStorage.getItem('needsOnboarding')) return; // biar navigate('/onboarding') di handleSubmit yang jalan
+        navigate('/', { replace: true });
     }, [user, isLoading, navigate]);
 
     const validationSchema = Yup.object({
