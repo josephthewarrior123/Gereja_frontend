@@ -95,7 +95,8 @@ function UserStatsPanel({ currentUser, entries, myStats }) {
     { label: 'Group',   value: myEntry?.groups?.[0]  ?? myStats?.groups?.[0]  ?? currentUser?.groups?.[0] ?? '—' },
   ];
   return (
-    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: '1.5px solid #F1F5F9', overflow: 'hidden', position: 'sticky', top: 24 }}>
+    <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: '1.5px solid #F1F5F9', overflow: 'hidden', position: { xs: 'static', lg: 'sticky' }, top: 24 }}>
+
       <Box sx={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', px: 3, pt: 3, pb: 5, textAlign: 'center' }}>
         <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 0.5 }}>Your Stats</Typography>
         <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#fff', fontFamily: '"Nunito", sans-serif' }}>{currentUser?.fullName || currentUser?.username || 'Guest'}</Typography>
@@ -476,7 +477,7 @@ export default function LeaderboardList() {
       </Box>
 
       {/* ── Body ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 260px' }, gap: 3, p: { xs: 2, md: 4 }, maxWidth: 1060, mx: 'auto' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 260px' }, gap: 3, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, maxWidth: 1060, mx: 'auto' }}>
         <Box sx={{ bgcolor: '#fff', borderRadius: '20px', border: '1.5px solid #F1F5F9', p: { xs: 1.5, md: 2 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', px: 2.5, mb: 1.5, gap: 2 }}>
             <Typography sx={{ fontSize: 10, fontWeight: 700, color: '#CBD5E1', textTransform: 'uppercase', letterSpacing: '0.1em', width: 28 }}>#</Typography>
