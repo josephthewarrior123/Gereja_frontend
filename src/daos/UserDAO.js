@@ -1,33 +1,31 @@
+// src/daos/UserDAO.js
 import ApiRequest from '../utils/ApiRequest';
 
 export default class UserDAO {
     // Login user
     static login = async (body) => {
-    return await ApiRequest.set(
-        '/api/users/login',
-        ApiRequest.HTTP_METHOD.POST,
-        body,
-    );
-};
+        return await ApiRequest.set(
+            '/api/users/login',
+            ApiRequest.HTTP_METHOD.POST,
+            body,
+        );
+    };
 
-// ← tambah ini
-static loginGoogle = async (accessToken) => {
-    return await ApiRequest.set(
-        '/api/auth/google',
-        ApiRequest.HTTP_METHOD.POST,
-        { accessToken },
-    );
-};
+    static loginGoogle = async (accessToken) => {
+        return await ApiRequest.set(
+            '/api/auth/google',
+            ApiRequest.HTTP_METHOD.POST,
+            { accessToken },
+        );
+    };
 
-static updateGroups = async (username, groups) => {
-    return await ApiRequest.set(
-        `/api/users/me/groups`,
-        ApiRequest.HTTP_METHOD.PATCH,
-        { groups },
-    );
-};
-
-    
+    static updateGroups = async (username, groups) => {
+        return await ApiRequest.set(
+            `/api/users/me/groups`,
+            ApiRequest.HTTP_METHOD.PATCH,
+            { groups },
+        );
+    };
 
     // Sign up new user
     static signUp = async (body) => {
@@ -78,6 +76,27 @@ static updateGroups = async (username, groups) => {
             `/api/users/${username}/role`,
             ApiRequest.HTTP_METHOD.PUT,
             body,
+        );
+    };
+
+    // Get current user stats (total_points, entry_count) — all time
+    static getMyStats = async () => {
+        return await ApiRequest.set(
+            '/api/users/me/stats',
+            ApiRequest.HTTP_METHOD.GET,
+        );
+    };
+
+    // Get current user monthly stats — filter by year & month
+    // year dan month opsional, default ke bulan/tahun sekarang di backend
+    static getMyMonthlyStats = async (year, month) => {
+        const params = new URLSearchParams();
+        if (year) params.append('year', year);
+        if (month) params.append('month', month);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return await ApiRequest.set(
+            `/api/users/me/monthly-stats${query}`,
+            ApiRequest.HTTP_METHOD.GET,
         );
     };
 

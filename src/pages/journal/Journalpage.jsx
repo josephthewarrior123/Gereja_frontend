@@ -10,6 +10,7 @@ import { useAlert } from '../../hooks/SnackbarProvider';
 import { useUser } from '../../hooks/UserProvider';
 import JournalDAO from '../../daos/JournalDao';
 import AdminDAO from '../../daos/AdminDao';
+import UserDAO from '../../daos/UserDAO';
 
 const BLUE = '#2563EB';
 const BLUE_LIGHT = '#3B82F6';
@@ -82,48 +83,6 @@ function GroupTag({ name }) {
             fontFamily: '"DM Sans", sans-serif',
         }}>
             {name}
-        </Box>
-    );
-}
-
-function StatCard({ label, value, icon, accent }) {
-    return (
-        <Box sx={{
-            flex: 1, bgcolor: '#fff', borderRadius: '16px',
-            border: '1.5px solid #F1F5F9',
-            boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
-            p: 2.5, position: 'relative', overflow: 'hidden',
-        }}>
-            <Box sx={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`,
-                borderRadius: '16px 16px 0 0',
-            }} />
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                    <Typography sx={{
-                        fontSize: 10, fontWeight: 700, color: '#94a3b8',
-                        textTransform: 'uppercase', letterSpacing: '0.1em',
-                        mb: 1.5, fontFamily: '"DM Sans", sans-serif',
-                    }}>
-                        {label}
-                    </Typography>
-                    <Typography sx={{
-                        fontSize: 32, fontWeight: 800, color: '#0f172a', lineHeight: 1,
-                        letterSpacing: '-0.03em', fontFamily: '"Outfit", sans-serif',
-                    }}>
-                        {value}
-                    </Typography>
-                </Box>
-                <Box sx={{
-                    width: 40, height: 40, borderRadius: '12px',
-                    background: `linear-gradient(135deg, ${accent.from}18, ${accent.to}28)`,
-                    border: `1.5px solid ${accent.from}25`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                    <Icon icon={icon} color={accent.from} width={20} />
-                </Box>
-            </Stack>
         </Box>
     );
 }
@@ -324,37 +283,52 @@ export default function JournalPage() {
     const [entries, setEntries] = useState([]);
     const [activities, setActivities] = useState([]);
     const [fetching, setFetching] = useState(false);
-    const [cursor, setCursor] = useState(null);
-    const [hasMore, setHasMore] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
 
-    const load = async (reset = true) => {
+    // ── Stats bulan ini (fixed, no filter) ──
+    const [stats, setStats] = useState({ total_points: 0, entry_count: 0 });
+    const [statsLoading, setStatsLoading] = useState(true);
+
+    useEffect(() => {
+        const now = new Date();
+        UserDAO.getMyMonthlyStats(now.getFullYear(), now.getMonth() + 1)
+            .then((res) => {
+                if (res.success && res.data) setStats({
+                    total_points: res.data.total_points ?? 0,
+                    entry_count: res.data.entry_count ?? 0,
+                });
+            })
+            .catch(() => {})
+            .finally(() => setStatsLoading(false));
+    }, []);
+
+    const load = async () => {
         try {
-            if (reset) setFetching(true);
-            else setLoadingMore(true);
+            setFetching(true);
             if (tab === 'entries') {
-                const res = await JournalDAO.getMyEntries({ limit: 20, cursor: reset ? undefined : cursor });
+                const res = await JournalDAO.getMyEntries({ limit: 10 });
                 if (res.success) {
-                    setEntries((prev) => reset ? (res.data || []) : [...prev, ...(res.data || [])]);
-                    setCursor(res.next_cursor || null);
-                    setHasMore(!!res.next_cursor);
-                } else { message(res.error || 'Gagal memuat entries', 'error'); }
+                    setEntries(res.data || []);
+                } else {
+                    message(res.error || 'Gagal memuat entries', 'error');
+                }
             } else {
-                const res = canManageActivities ? await AdminDAO.listAdminActivities() : await JournalDAO.listActivities();
+                const res = canManageActivities
+                    ? await AdminDAO.listAdminActivities()
+                    : await JournalDAO.listActivities();
                 if (res.success) setActivities(res.data || []);
                 else message(res.error || 'Gagal memuat activities', 'error');
             }
         } catch (e) {
             message(e.message || 'Terjadi kesalahan', 'error');
-        } finally { setFetching(false); setLoadingMore(false); }
+        } finally {
+            setFetching(false);
+        }
     };
 
     useEffect(() => {
-        setCursor(null); setHasMore(false); setEntries([]);
-        load(true);
+        setEntries([]);
+        load();
     }, [tab]);
-
-    const totalPoints = entries.reduce((s, e) => s + (e.points_awarded || 0), 0);
 
     const showEntryFAB = tab === 'entries';
     const showActivityFAB = tab === 'activities' && canManageActivities;
@@ -380,21 +354,37 @@ export default function JournalPage() {
                 </Typography>
             </Box>
 
-            {/* ── Stat cards ── */}
-            <Box sx={{ px: { xs: 2, sm: 0 }, pt: { xs: 2, sm: 0 }, pb: 3 }}>
+            {/* ── Stat cards bulan ini ── */}
+            <Box sx={{ px: { xs: 2, sm: 0 }, pb: 3, pt: { xs: 2, sm: 0 } }}>
                 <Stack direction="row" spacing={2}>
-                    <StatCard
-                        label="My Points"
-                        value={totalPoints.toLocaleString()}
-                        icon="mdi:star-four-points"
-                        accent={{ from: '#f59e0b', to: '#f97316' }}
-                    />
-                    <StatCard
-                        label="Total Entries"
-                        value={entries.length}
-                        icon="mdi:book-edit-outline"
-                        accent={{ from: BLUE, to: BLUE_LIGHT }}
-                    />
+                    <Box sx={{ flex: 1, bgcolor: '#fff', borderRadius: '16px', border: '1.5px solid #F1F5F9', boxShadow: '0 1px 8px rgba(0,0,0,0.04)', p: 2.5, position: 'relative', overflow: 'hidden' }}>
+                        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #f59e0b, #f97316)', borderRadius: '16px 16px 0 0' }} />
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Box>
+                                <Typography sx={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>Poin Bulan Ini</Typography>
+                                {statsLoading ? <CircularProgress size={20} sx={{ color: '#f59e0b' }} /> : (
+                                    <Typography sx={{ fontSize: 32, fontWeight: 800, color: '#0f172a', lineHeight: 1, letterSpacing: '-0.03em', fontFamily: '"Outfit", sans-serif' }}>{stats.total_points.toLocaleString()}</Typography>
+                                )}
+                            </Box>
+                            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg, #f59e0b18, #f9731628)', border: '1.5px solid #f59e0b25', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Icon icon="mdi:star-four-points" color="#f59e0b" width={20} />
+                            </Box>
+                        </Stack>
+                    </Box>
+                    <Box sx={{ flex: 1, bgcolor: '#fff', borderRadius: '16px', border: '1.5px solid #F1F5F9', boxShadow: '0 1px 8px rgba(0,0,0,0.04)', p: 2.5, position: 'relative', overflow: 'hidden' }}>
+                        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${BLUE}, ${BLUE_LIGHT})`, borderRadius: '16px 16px 0 0' }} />
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Box>
+                                <Typography sx={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>Entri Bulan Ini</Typography>
+                                {statsLoading ? <CircularProgress size={20} sx={{ color: BLUE }} /> : (
+                                    <Typography sx={{ fontSize: 32, fontWeight: 800, color: '#0f172a', lineHeight: 1, letterSpacing: '-0.03em', fontFamily: '"Outfit", sans-serif' }}>{stats.entry_count}</Typography>
+                                )}
+                            </Box>
+                            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: `linear-gradient(135deg, ${BLUE}18, ${BLUE_LIGHT}28)`, border: `1.5px solid ${BLUE}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Icon icon="mdi:book-edit-outline" color={BLUE} width={20} />
+                            </Box>
+                        </Stack>
+                    </Box>
                 </Stack>
             </Box>
 
@@ -402,7 +392,7 @@ export default function JournalPage() {
             <Box sx={{ px: { xs: 2, sm: 0 }, mb: 2.5 }}>
                 <Stack direction="row" spacing={1}>
                     <TabButton active={tab === 'entries'} label="My Entries" icon="mdi:book-open-outline" onClick={() => setTab('entries')} />
-                    {(isAdmin) && (
+                    {isAdmin && (
                         <TabButton active={tab === 'activities'} label="Activities" icon="mdi:lightning-bolt-outline" onClick={() => setTab('activities')} />
                     )}
                 </Stack>
@@ -420,23 +410,6 @@ export default function JournalPage() {
                     ) : (
                         <Stack spacing={1.5}>
                             {entries.map((e) => <EntryCard key={e.id} entry={e} />)}
-                            {hasMore && (
-                                <Box onClick={() => !loadingMore && load(false)} sx={{
-                                    py: 1.5, borderRadius: '12px',
-                                    border: `1.5px solid ${BLUE_BORDER}`, bgcolor: '#fff',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    gap: 1, cursor: loadingMore ? 'default' : 'pointer',
-                                    color: BLUE, fontWeight: 600, fontSize: 13,
-                                    fontFamily: '"DM Sans", sans-serif',
-                                    transition: 'all .15s',
-                                    '&:hover': { bgcolor: loadingMore ? '#fff' : BLUE_BG },
-                                }}>
-                                    {loadingMore
-                                        ? <><CircularProgress size={14} sx={{ color: BLUE }} /> Memuat...</>
-                                        : <><Icon icon="mdi:chevron-down" width={18} /> Lihat lebih banyak</>
-                                    }
-                                </Box>
-                            )}
                         </Stack>
                     )
                 ) : (

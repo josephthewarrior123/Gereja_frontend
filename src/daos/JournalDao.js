@@ -1,3 +1,4 @@
+// src/daos/JournalDao.js
 import ApiRequest from '../utils/ApiRequest';
 
 export default class JournalDAO {
@@ -7,7 +8,6 @@ export default class JournalDAO {
     };
 
     // POST /api/admin/activities — buat activity (admin/super_admin)
-    // body: { name, points, fields, groups, is_active }
     static createActivity = async (body) => {
         return await ApiRequest.set('/api/admin/activities', ApiRequest.HTTP_METHOD.POST, body);
     };
@@ -18,12 +18,11 @@ export default class JournalDAO {
     };
 
     // POST /api/journal/entries — submit entry
-    // body: { activity_id, data, timestamp? }
     static submitEntry = async (body) => {
         return await ApiRequest.set('/api/journal/entries', ApiRequest.HTTP_METHOD.POST, body);
     };
 
-    // GET /api/journal/my-entries — entries milik user sendiri
+    // GET /api/journal/my-entries
     static getMyEntries = async ({ limit, cursor } = {}) => {
         const params = new URLSearchParams();
         if (limit) params.set('limit', limit);
@@ -37,10 +36,20 @@ export default class JournalDAO {
         return await ApiRequest.set(`/api/journal/groups/${group}/entries`, ApiRequest.HTTP_METHOD.GET);
     };
 
-    // POST /api/journal/bulk-award — bulk award poin ke banyak user sekaligus
-    // body: { activity_id, usernames: string[], data?: {}, note?: string, timestamp?: number }
-    // role: admin, super_admin, gembala
+    // POST /api/journal/bulk-award
     static bulkAward = async (body) => {
         return await ApiRequest.set('/api/journal/bulk-award', ApiRequest.HTTP_METHOD.POST, body);
+    };
+
+    // GET /api/journal/groups/:group/monthly-report?year=&month=
+    static getGroupMonthlyReport = async (group, year, month) => {
+        const params = new URLSearchParams();
+        if (year) params.append('year', year);
+        if (month) params.append('month', month);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return await ApiRequest.set(
+            `/api/journal/groups/${group}/monthly-report${query}`,
+            ApiRequest.HTTP_METHOD.GET,
+        );
     };
 }
