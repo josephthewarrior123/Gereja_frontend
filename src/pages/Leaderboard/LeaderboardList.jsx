@@ -350,7 +350,7 @@ export default function LeaderboardList() {
   const [filter, setFilter] = useState('');
   const [isTop3, setIsTop3] = useState(true);
 
-  const [mode, setMode] = useState('alltime');
+  const [mode, setMode] = useState('monthly');
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [modalOpen, setModalOpen] = useState(false);
