@@ -1,26 +1,11 @@
 // src/pages/User/UserListPage.jsx
 import { Icon } from '@iconify/react';
 import {
-    Box,
-    Dialog,
-    IconButton,
-    Typography,
-    Button,
-    Avatar,
-    TextField,
-    InputAdornment,
-    Card,
-    CardContent,
-    useMediaQuery,
-    useTheme,
-    Divider,
-    Stack,
-    Menu,
-    ListItemIcon,
-    ListItemText,
-    MenuItem,
-    Drawer,
-    Fab,
+    Box, Dialog, IconButton, Typography, Button, Avatar,
+    TextField, InputAdornment, Card, CardContent,
+    useMediaQuery, useTheme, Divider, Stack,
+    Menu, ListItemIcon, ListItemText, MenuItem,
+    Drawer, Fab, CircularProgress,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -33,19 +18,19 @@ import { CustomDatatable } from '../../reusables';
 
 const ROLE_CONFIG = {
     super_admin: { label: 'Super Admin', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
-    admin: { label: 'Admin', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
-    gembala: { label: 'Gembala', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
-    user: { label: 'User', color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4' },
+    admin:       { label: 'Admin',       color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+    gembala:     { label: 'Gembala',     color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
+    user:        { label: 'User',        color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4' },
 };
-const roleColors = { super_admin: '#7C3AED', admin: '#1D4ED8', gembala: '#B45309', user: '#0F766E' };
-const roleLabels = { ALL: 'All', super_admin: 'Super Admin', admin: 'Admin', gembala: 'Gembala', user: 'User' };
-const roleOrder = { ALL: 0, super_admin: 1, admin: 2, gembala: 3, user: 4 };
+const roleColors  = { super_admin: '#7C3AED', admin: '#1D4ED8', gembala: '#B45309', user: '#0F766E' };
+const roleLabels  = { ALL: 'All', super_admin: 'Super Admin', admin: 'Admin', gembala: 'Gembala', user: 'User' };
+const roleOrder   = { ALL: 0, super_admin: 1, admin: 2, gembala: 3, user: 4 };
 const STAT_ACCENT = {
-    ALL: { from: '#6366f1', to: '#8b5cf6' },
+    ALL:         { from: '#6366f1', to: '#8b5cf6' },
     super_admin: { from: '#7C3AED', to: '#a855f7' },
-    admin: { from: '#1D4ED8', to: '#3b82f6' },
-    gembala: { from: '#B45309', to: '#f59e0b' },
-    user: { from: '#0F766E', to: '#14b8a6' },
+    admin:       { from: '#1D4ED8', to: '#3b82f6' },
+    gembala:     { from: '#B45309', to: '#f59e0b' },
+    user:        { from: '#0F766E', to: '#14b8a6' },
 };
 
 function EmptyIllustration() {
@@ -72,7 +57,7 @@ function StatCard({ role, total, selected, onClick }) {
             bgcolor: '#fff', p: 2.5, cursor: 'pointer', transition: 'all .18s ease',
             boxShadow: isSelected ? `0 4px 20px ${accent.from}28` : '0 1px 4px rgba(0,0,0,0.04)',
             position: 'relative', overflow: 'hidden',
-            '&:hover': { borderColor: accent.from, boxShadow: `0 4px 20px ${accent.from}22`, transform: 'translateY(-2px)' },
+            '&:hover': { borderColor: accent.from, transform: 'translateY(-2px)' },
         }}>
             <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: isSelected ? `linear-gradient(90deg, ${accent.from}, ${accent.to})` : 'transparent', borderRadius: '16px 16px 0 0', transition: 'background .18s' }} />
             <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#94a3b8', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>{roleLabels[role]}</Typography>
@@ -112,7 +97,6 @@ export default function UserListPage() {
         if (user && user.role === 'user') { message('Access denied', 'error'); navigate('/dashboard', { replace: true }); }
     }, [user]);
 
-    // Load SheetJS
     useEffect(() => {
         if (window.XLSX) return;
         const script = document.createElement('script');
@@ -134,8 +118,38 @@ export default function UserListPage() {
     const [userToDelete, setUserToDelete] = useState(null);
     const [kebabUser, setKebabUser] = useState(null);
     const [kebabOpen, setKebabOpen] = useState(false);
-    const [fabDrawerOpen, setFabDrawerOpen] = useState(false);
     const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
+
+    // ── Reset password state ──
+    const [resetPasswordUser, setResetPasswordUser] = useState(null);
+    const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [resettingPassword, setResettingPassword] = useState(false);
+
+    const openResetPassword = (userRow) => { setResetPasswordUser(userRow); setNewPassword(''); setResetPasswordOpen(true); };
+    const closeResetPassword = () => { setResetPasswordOpen(false); setResetPasswordUser(null); setNewPassword(''); };
+
+    const handleResetPassword = async () => {
+        if (!newPassword || newPassword.length < 6) { message('Password minimal 6 karakter', 'error'); return; }
+        try {
+            setResettingPassword(true);
+            loading.start();
+            const res = await AdminDAO.resetUserPassword(resetPasswordUser.username, newPassword);
+            if (!res.success) throw new Error(res.error);
+            message(`Password @${resetPasswordUser.username} berhasil direset`, 'success');
+            closeResetPassword();
+        } catch (e) { message(e.message || 'Gagal reset password', 'error'); }
+        finally { setResettingPassword(false); loading.stop(); }
+    };
+
+    // ── can reset password ──
+    const canResetPassword = (targetUser) => {
+        if (!targetUser) return false;
+        if (targetUser.role === 'super_admin') return false;
+        if (user?.role === 'super_admin') return true;
+        if (user?.role === 'admin') return ['user', 'gembala'].includes(targetUser.role);
+        return false;
+    };
 
     const applyFilters = (users, role, options) => {
         let filtered = [...users];
@@ -151,11 +165,11 @@ export default function UserListPage() {
             });
         }
         setSummaries([
-            { role: 'ALL', total: users.length },
+            { role: 'ALL',         total: users.length },
             { role: 'super_admin', total: users.filter((u) => u.role === 'super_admin').length },
-            { role: 'admin', total: users.filter((u) => u.role === 'admin').length },
-            { role: 'gembala', total: users.filter((u) => u.role === 'gembala').length },
-            { role: 'user', total: users.filter((u) => u.role === 'user').length },
+            { role: 'admin',       total: users.filter((u) => u.role === 'admin').length },
+            { role: 'gembala',     total: users.filter((u) => u.role === 'gembala').length },
+            { role: 'user',        total: users.filter((u) => u.role === 'user').length },
         ]);
         const start = options.page * options.limit;
         setDataSource(filtered.slice(start, start + options.limit));
@@ -179,7 +193,6 @@ export default function UserListPage() {
                 id: u.username, username: u.username, fullName: u.fullName || '-',
                 email: u.email || '-', phone_number: u.phone_number || '-',
                 role: u.role || 'user', groups: u.groups || [], managedGroups: u.managedGroups || [],
-                permissions: u.permissions || {},
                 isActive: u.isActive !== false, createdAt: u.createdAt || null,
                 total_points: u.total_points || 0, entry_count: u.entry_count || 0,
             }));
@@ -201,52 +214,50 @@ export default function UserListPage() {
     const formatDate = (ts) => !ts ? '-' : new Date(ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     const handleRoleMenuOpen = (e, userRow) => { e?.stopPropagation?.(); setRoleMenuAnchor(e?.currentTarget || null); setSelectedUser(userRow); };
     const handleRoleMenuClose = () => { setRoleMenuAnchor(null); setSelectedUser(null); };
+
     const handleRoleUpdate = async (newRole) => {
         if (!selectedUser) return;
         if (user.role === 'admin' && newRole === 'super_admin') { message('Admin tidak bisa set super_admin', 'error'); handleRoleMenuClose(); return; }
         try {
             setUpdatingRole(true); loading.start();
-            const response = await UserDAO.setUserRole(selectedUser.username, { role: newRole, groups: newRole === 'user' ? selectedUser.groups : [], managedGroups: newRole !== 'user' ? selectedUser.managedGroups : [] });
+            const response = await UserDAO.setUserRole(selectedUser.username, {
+                role: newRole,
+                groups: newRole === 'user' ? selectedUser.groups : [],
+                managedGroups: newRole !== 'user' ? selectedUser.managedGroups : [],
+            });
             if (!response.success) throw new Error(response.error);
             message('Role berhasil diupdate', 'success'); fetchUsers();
         } catch (error) { message(error.message || 'Gagal update role', 'error'); }
         finally { loading.stop(); setUpdatingRole(false); handleRoleMenuClose(); }
     };
+
     const openDeleteDialog = (userRow) => { setUserToDelete(userRow); setIsDeleteDialogOpen(true); };
     const closeDeleteDialog = () => { setIsDeleteDialogOpen(false); setUserToDelete(null); };
     const sortedSummaries = [...summaries].sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
-
-    const exportXLSX = () => {
-        if (!window.XLSX) { message('Library belum siap, coba lagi sebentar', 'warning'); return; }
-        const XLSX = window.XLSX;
-        const rows = allUsers.map((u) => ({
-            'Username': u.username,
-            'Full Name': u.fullName,
-            'Email': u.email,
-            'Phone': u.phone_number || '-',
-            'Role': u.role,
-            'Groups': (u.groups || []).join('; '),
-            'Managed Groups': (u.managedGroups || []).join('; '),
-            'Active': u.isActive ? 'Yes' : 'No',
-            'Total Points': u.total_points || 0,
-            'Entry Count': u.entry_count || 0,
-            'Created At': u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
-        }));
-        const ws = window.XLSX.utils.json_to_sheet(rows);
-        ws['!cols'] = [
-            { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 14 },
-            { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 },
-        ];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Users');
-        XLSX.writeFile(wb, 'users_export_' + new Date().toISOString().slice(0, 10) + '.xlsx');
-    };
 
     const canDelete = (targetUser) => {
         if (!targetUser) return false;
         if (user?.role === 'super_admin') return targetUser.role !== 'super_admin';
         if (user?.role === 'admin') return ['user', 'gembala'].includes(targetUser.role);
         return false;
+    };
+
+    const exportXLSX = () => {
+        if (!window.XLSX) { message('Library belum siap, coba lagi sebentar', 'warning'); return; }
+        const XLSX = window.XLSX;
+        const rows = allUsers.map((u) => ({
+            'Username': u.username, 'Full Name': u.fullName, 'Email': u.email,
+            'Phone': u.phone_number || '-', 'Role': u.role,
+            'Groups': (u.groups || []).join('; '), 'Managed Groups': (u.managedGroups || []).join('; '),
+            'Active': u.isActive ? 'Yes' : 'No', 'Total Points': u.total_points || 0,
+            'Entry Count': u.entry_count || 0,
+            'Created At': u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+        }));
+        const ws = window.XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 14 }, { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Users');
+        XLSX.writeFile(wb, 'users_export_' + new Date().toISOString().slice(0, 10) + '.xlsx');
     };
 
     const columns = [
@@ -281,6 +292,9 @@ export default function UserListPage() {
                 <Stack direction="row" spacing={0.5}>
                     <IconButton size="small" onClick={() => navigate(`/users/${row.username}/edit`)} sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' } }}><Icon icon="mdi:pencil-outline" width={17} /></IconButton>
                     <IconButton size="small" onClick={(e) => handleRoleMenuOpen(e, row)} sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' } }}><Icon icon="mdi:shield-account-outline" width={17} /></IconButton>
+                    {canResetPassword(row) && (
+                        <IconButton size="small" onClick={() => openResetPassword(row)} sx={{ borderRadius: '8px', color: '#64748b', '&:hover': { bgcolor: '#FFF7ED', color: '#B45309' } }}><Icon icon="mdi:lock-reset" width={17} /></IconButton>
+                    )}
                     {canDelete(row) && (
                         <IconButton size="small" onClick={() => openDeleteDialog(row)} sx={{ borderRadius: '8px', color: '#94a3b8', '&:hover': { bgcolor: '#FEF2F2', color: '#EF4444' } }}><Icon icon="mdi:trash-can-outline" width={17} /></IconButton>
                     )}
@@ -306,34 +320,21 @@ export default function UserListPage() {
             <Box sx={{ p: 2, bgcolor: '#F8FAFC', minHeight: '100%', pb: 12 }}>
                 <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
 
-                {/* Search + Download row */}
-<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-    <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
-        onChange={(e) => setMobileSearchInput(e.target.value)}
-        onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
-        InputProps={{
-            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
-            sx: { 
-                borderRadius: '12px', bgcolor: '#fff', fontSize: 14, 
-                fontFamily: '"DM Sans", sans-serif', height: 48,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } 
-            },
-        }}
-        inputProps={{ style: { height: 48, padding: '0 14px 0 0', boxSizing: 'border-box' } }}
-    />
-    <IconButton
-        onClick={exportXLSX}
-        sx={{
-            width: 48, height: 48, borderRadius: '12px', flexShrink: 0,
-            bgcolor: '#fff', border: '1px solid #E2E8F0', color: '#64748b',
-            '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' },
-        }}
-    >
-        <Icon icon="mdi:download" width={22} />
-    </IconButton>
-</Stack>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                    <TextField fullWidth placeholder="Search users..." value={mobileSearchInput}
+                        onChange={(e) => setMobileSearchInput(e.target.value)}
+                        onKeyPress={(e) => { if (e.key === 'Enter') handleFilterChange('keyword', mobileSearchInput); }}
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start"><Icon icon="mdi:magnify" color="#94A3B8" /></InputAdornment>,
+                            sx: { borderRadius: '12px', bgcolor: '#fff', fontSize: 14, fontFamily: '"DM Sans", sans-serif', height: 48, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' } },
+                        }}
+                        inputProps={{ style: { height: 48, padding: '0 14px 0 0', boxSizing: 'border-box' } }}
+                    />
+                    <IconButton onClick={exportXLSX} sx={{ width: 48, height: 48, borderRadius: '12px', flexShrink: 0, bgcolor: '#fff', border: '1px solid #E2E8F0', color: '#64748b', '&:hover': { bgcolor: '#f1f5f9', color: '#0f172a' } }}>
+                        <Icon icon="mdi:download" width={22} />
+                    </IconButton>
+                </Stack>
 
-                {/* Role filter pills — super_admin only */}
                 {user?.role === 'super_admin' && (
                     <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 2, mb: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
                         {sortedSummaries.map((s) => {
@@ -353,7 +354,6 @@ export default function UserListPage() {
                     </Box>
                 )}
 
-                {/* Cards */}
                 {paginated.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 8 }}><EmptyIllustration /><Typography sx={{ mt: 2, color: '#94A3B8', fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>No users found</Typography></Box>
                 ) : (
@@ -389,7 +389,6 @@ export default function UserListPage() {
                     </Stack>
                 )}
 
-                {/* Pagination */}
                 {total > 0 && (
                     <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E2E8F0' }}>
                         <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
@@ -403,35 +402,9 @@ export default function UserListPage() {
                     </Box>
                 )}
 
-                {/* FAB — super_admin buka drawer, admin langsung create */}
-                <Fab
-                    onClick={() => user?.role === 'super_admin' ? setFabDrawerOpen(true) : navigate('/users/create')}
-                    sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#0f172a', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(15,23,42,0.35)', '&:hover': { bgcolor: '#1e293b' }, zIndex: 1200 }}
-                >
+                <Fab onClick={() => navigate('/users/create')} sx={{ position: 'fixed', bottom: 80, right: 20, bgcolor: '#0f172a', color: '#fff', width: 56, height: 56, boxShadow: '0 6px 24px rgba(15,23,42,0.35)', '&:hover': { bgcolor: '#1e293b' }, zIndex: 1200 }}>
                     <Icon icon="mdi:plus" width={28} />
                 </Fab>
-
-                {/* FAB Drawer — super_admin only */}
-                <Drawer anchor="bottom" open={fabDrawerOpen} onClose={() => setFabDrawerOpen(false)} PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
-                    <Box sx={{ px: 2, pt: 2.5 }}>
-                        <Box sx={{ width: 36, height: 4, bgcolor: '#E2E8F0', borderRadius: 99, mx: 'auto', mb: 2.5 }} />
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5, fontFamily: '"DM Sans", sans-serif' }}>Create</Typography>
-                        <Stack spacing={1}>
-                            <MenuItem onClick={() => { setFabDrawerOpen(false); navigate('/users/create'); }} sx={{ borderRadius: '12px', border: '1px solid #F1F5F9', py: 1.5 }}>
-                                <ListItemIcon><Icon icon="mdi:account-plus-outline" width={22} color="#0f172a" /></ListItemIcon>
-                                <ListItemText primary="Create User" secondary="Add a regular user account" primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 700, fontFamily: '"Outfit", sans-serif' } }} secondaryTypographyProps={{ sx: { fontSize: 12, color: '#94a3b8' } }} />
-                            </MenuItem>
-                            <MenuItem onClick={() => { setFabDrawerOpen(false); navigate('/users/create-admin'); }} sx={{ borderRadius: '12px', border: '1px solid #F1F5F9', py: 1.5 }}>
-                                <ListItemIcon><Icon icon="mdi:shield-plus-outline" width={22} color="#7C3AED" /></ListItemIcon>
-                                <ListItemText primary="Create Admin" secondary="Add an admin account" primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 700, fontFamily: '"Outfit", sans-serif' } }} secondaryTypographyProps={{ sx: { fontSize: 12, color: '#94a3b8' } }} />
-                            </MenuItem>
-                            <MenuItem onClick={() => { setFabDrawerOpen(false); navigate('/users/create-gembala'); }} sx={{ borderRadius: '12px', border: '1px solid #F1F5F9', py: 1.5 }}>
-                                <ListItemIcon><Icon icon="mdi:account-heart-outline" width={22} color="#B45309" /></ListItemIcon>
-                                <ListItemText primary="Promote Gembala" secondary="Promote user jadi gembala" primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 700, fontFamily: '"Outfit", sans-serif' } }} secondaryTypographyProps={{ sx: { fontSize: 12, color: '#94a3b8' } }} />
-                            </MenuItem>
-                        </Stack>
-                    </Box>
-                </Drawer>
 
                 {/* Kebab Bottom Sheet */}
                 <Drawer anchor="bottom" open={kebabOpen} onClose={() => setKebabOpen(false)} PaperProps={{ sx: { borderRadius: '20px 20px 0 0', pb: 3 } }}>
@@ -457,6 +430,12 @@ export default function UserListPage() {
                                     <ListItemIcon><Icon icon="mdi:shield-account-outline" width={20} color="#64748b" /></ListItemIcon>
                                     <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Change Role" />
                                 </MenuItem>
+                                {canResetPassword(kebabUser) && (
+                                    <MenuItem onClick={() => { setKebabOpen(false); openResetPassword(kebabUser); }} sx={{ borderRadius: '10px', py: 1.2 }}>
+                                        <ListItemIcon><Icon icon="mdi:lock-reset" width={20} color="#B45309" /></ListItemIcon>
+                                        <ListItemText primaryTypographyProps={{ sx: { fontSize: 14, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Reset Password" />
+                                    </MenuItem>
+                                )}
                                 {canDelete(kebabUser) && (
                                     <MenuItem onClick={() => { setKebabOpen(false); openDeleteDialog(kebabUser); }} sx={{ borderRadius: '10px', py: 1.2 }}>
                                         <ListItemIcon><Icon icon="mdi:trash-can-outline" width={20} color="#EF4444" /></ListItemIcon>
@@ -483,12 +462,6 @@ export default function UserListPage() {
                 <Stack direction="row" spacing={1.5}>
                     <Button variant="outlined" startIcon={<Icon icon="mdi:download" />} onClick={exportXLSX} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#e2e8f0', color: '#0f172a', '&:hover': { borderColor: '#0f172a', bgcolor: '#f8fafc' } }}>Export</Button>
                     <Button variant="contained" startIcon={<Icon icon="mdi:account-plus-outline" />} onClick={() => navigate('/users/create')} sx={{ textTransform: 'none', borderRadius: '12px', bgcolor: '#0f172a', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, boxShadow: '0 2px 8px rgba(15,23,42,0.2)', '&:hover': { bgcolor: '#1e293b' } }}>Create User</Button>
-                    {user?.role === 'super_admin' && (
-                        <Button variant="outlined" startIcon={<Icon icon="mdi:shield-plus-outline" />} onClick={() => navigate('/users/create-admin')} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#e2e8f0', color: '#0f172a', '&:hover': { borderColor: '#0f172a', bgcolor: '#f8fafc' } }}>Create Admin</Button>
-                    )}
-                    {user?.role === 'super_admin' && (
-                        <Button variant="outlined" startIcon={<Icon icon="mdi:account-heart-outline" />} onClick={() => navigate('/users/create-gembala')} sx={{ textTransform: 'none', borderRadius: '12px', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, px: 2.5, py: 1.1, fontSize: 13, borderColor: '#FDE68A', color: '#B45309', '&:hover': { borderColor: '#B45309', bgcolor: '#FFFBEB' } }}>Promote Gembala</Button>
-                    )}
                 </Stack>
             </Box>
             <Box sx={{ maxWidth: 380 }}>
@@ -514,20 +487,12 @@ export default function UserListPage() {
             <Menu anchorEl={roleMenuAnchor} open={Boolean(roleMenuAnchor)} onClose={handleRoleMenuClose}
                 PaperProps={{ sx: { borderRadius: '14px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)', minWidth: 190, border: '1px solid #f1f5f9' } }}>
                 <Typography sx={{ px: 2, pt: 1.5, pb: 0.5, fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: '"DM Sans", sans-serif' }}>Change Role</Typography>
-                <MenuItem onClick={() => handleRoleUpdate('user')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
-                    <ListItemIcon><Icon icon="mdi:account-outline" color={roleColors.user} width={18} /></ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="User" />
-                </MenuItem>
-                <MenuItem onClick={() => handleRoleUpdate('admin')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
-                    <ListItemIcon><Icon icon="mdi:shield-outline" color={roleColors.admin} width={18} /></ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Admin" />
-                </MenuItem>
-                {['super_admin', 'admin'].includes(user?.role) && (
-                    <MenuItem onClick={() => handleRoleUpdate('gembala')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
-                        <ListItemIcon><Icon icon="mdi:account-heart-outline" color={roleColors.gembala} width={18} /></ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary="Gembala" />
+                {['user', 'gembala', 'admin'].map(r => (
+                    <MenuItem key={r} onClick={() => handleRoleUpdate(r)} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
+                        <ListItemIcon><Icon icon={r === 'user' ? 'mdi:account-outline' : r === 'gembala' ? 'mdi:account-heart-outline' : 'mdi:shield-outline'} color={roleColors[r]} width={18} /></ListItemIcon>
+                        <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, fontWeight: 600, fontFamily: '"DM Sans", sans-serif' } }} primary={roleLabels[r]} />
                     </MenuItem>
-                )}
+                ))}
                 {user?.role === 'super_admin' && (
                     <MenuItem onClick={() => handleRoleUpdate('super_admin')} disabled={updatingRole} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
                         <ListItemIcon><Icon icon="mdi:shield-crown-outline" color={roleColors.super_admin} width={18} /></ListItemIcon>
@@ -555,8 +520,8 @@ export default function UserListPage() {
                     <Stack spacing={0.5}>
                         {[
                             { role: 'user', icon: 'mdi:account-outline', label: 'User' },
+                            { role: 'gembala', icon: 'mdi:account-heart-outline', label: 'Gembala' },
                             { role: 'admin', icon: 'mdi:shield-outline', label: 'Admin' },
-                            ...(['super_admin', 'admin'].includes(user?.role) ? [{ role: 'gembala', icon: 'mdi:account-heart-outline', label: 'Gembala' }] : []),
                             ...(user?.role === 'super_admin' ? [{ role: 'super_admin', icon: 'mdi:shield-crown-outline', label: 'Super Admin' }] : []),
                         ].map(({ role, icon, label }) => (
                             <MenuItem key={role} disabled={updatingRole} onClick={() => { setRoleDrawerOpen(false); handleRoleUpdate(role); }}
@@ -570,9 +535,40 @@ export default function UserListPage() {
                 </Box>
             </Drawer>
 
-            {/* Delete dialog */}
-            <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog} maxWidth="xs" fullWidth fullScreen={isMobile}
-                PaperProps={{ sx: { borderRadius: isMobile ? 0 : '20px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
+            {/* ── Reset Password Dialog ── */}
+            <Dialog open={resetPasswordOpen} onClose={closeResetPassword} maxWidth="xs" fullWidth
+                PaperProps={{ sx: { borderRadius: '20px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
+                <Box sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
+                        <Box>
+                            <Typography sx={{ fontSize: 17, fontWeight: 800, color: '#0f172a', fontFamily: '"Outfit", sans-serif', mb: 0.3 }}>Reset Password</Typography>
+                            <Typography sx={{ fontSize: 12, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>@{resetPasswordUser?.username}</Typography>
+                        </Box>
+                        <IconButton onClick={closeResetPassword} size="small" sx={{ borderRadius: '8px', color: '#94a3b8' }}><Icon icon="mdi:close" width={18} /></IconButton>
+                    </Box>
+                    <TextField
+                        fullWidth type="password" label="Password Baru"
+                        placeholder="Min. 6 karakter"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        onKeyPress={(e) => { if (e.key === 'Enter') handleResetPassword(); }}
+                        sx={{ mb: 2.5 }}
+                        InputProps={{ sx: { borderRadius: '10px', fontFamily: '"DM Sans", sans-serif', fontSize: 14 } }}
+                    />
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button variant="outlined" onClick={closeResetPassword} sx={{ borderRadius: '10px', textTransform: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, borderColor: '#e2e8f0', color: '#64748b' }}>Batal</Button>
+                        <Button variant="contained" onClick={handleResetPassword} disabled={resettingPassword}
+                            startIcon={resettingPassword ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Icon icon="mdi:lock-reset" width={16} />}
+                            sx={{ borderRadius: '10px', textTransform: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, bgcolor: '#B45309', boxShadow: '0 2px 8px rgba(180,83,9,0.3)', '&:hover': { bgcolor: '#92400e' } }}>
+                            Reset Password
+                        </Button>
+                    </Stack>
+                </Box>
+            </Dialog>
+
+            {/* ── Delete Dialog ── */}
+            <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog} maxWidth="xs" fullWidth
+                PaperProps={{ sx: { borderRadius: '20px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
                 <Box sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Box>
@@ -586,9 +582,10 @@ export default function UserListPage() {
                             Yakin mau hapus <strong>{userToDelete?.fullName}</strong> (@{userToDelete?.username})?
                         </Typography>
                     </Box>
-                    <Stack direction={isMobile ? 'column' : 'row'} spacing={1} justifyContent="flex-end">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <Button variant="outlined" onClick={closeDeleteDialog} sx={{ borderRadius: '10px', textTransform: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, borderColor: '#e2e8f0', color: '#64748b' }}>Batal</Button>
-                        <Button variant="contained" color="error" startIcon={<Icon icon="mdi:delete" />}
+                        <Button variant="contained" color="error"
+                            startIcon={<Icon icon="mdi:delete" />}
                             sx={{ borderRadius: '10px', textTransform: 'none', fontFamily: '"DM Sans", sans-serif', fontWeight: 600, bgcolor: '#ef4444', boxShadow: '0 2px 8px rgba(239,68,68,0.3)', '&:hover': { bgcolor: '#dc2626' } }}
                             onClick={async () => {
                                 try {

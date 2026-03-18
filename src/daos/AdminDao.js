@@ -1,3 +1,4 @@
+// src/daos/AdminDao.js
 import ApiRequest from '../utils/ApiRequest';
 
 export default class AdminDAO {
@@ -5,8 +6,7 @@ export default class AdminDAO {
     // USERS
     // ─────────────────────────────────────────
 
-    // GET /api/admin/users — list users (filtered by managedGroups untuk admin biasa)
-    // butuh auth, role: admin / super_admin
+    // GET /api/admin/users
     static listUsers = async () => {
         return await ApiRequest.set(
             '/api/admin/users',
@@ -15,10 +15,7 @@ export default class AdminDAO {
     };
 
     // POST /api/admin/users — buat atau update user
-    // butuh auth, role: admin / super_admin
     static upsertUser = async (body) => {
-        // body: { username, fullName?, email?, phone_number?, groups?, role?, is_active?, password? }
-        // username wajib; password wajib hanya untuk create user baru (super_admin only)
         return await ApiRequest.set(
             '/api/admin/users',
             ApiRequest.HTTP_METHOD.POST,
@@ -26,7 +23,7 @@ export default class AdminDAO {
         );
     };
 
-    // DELETE /api/admin/users/:username — hapus user (super_admin only)
+    // DELETE /api/admin/users/:username
     static deleteUser = async (username) => {
         return await ApiRequest.set(
             `/api/admin/users/${username}`,
@@ -34,12 +31,31 @@ export default class AdminDAO {
         );
     };
 
+    // PATCH /api/admin/users/:username/password — reset password user
+    // body: { password }
+    // super_admin: bisa reset siapa aja kecuali super_admin lain
+    // admin: hanya user di managedGroups-nya, tidak bisa reset admin/gembala lain
+    static resetUserPassword = async (username, password) => {
+        return await ApiRequest.set(
+            `/api/admin/users/${username}/password`,
+            ApiRequest.HTTP_METHOD.PATCH,
+            { password },
+        );
+    };
+
+    // GET /api/admin/users/:username/stats
+    static getUserStats = async (username) => {
+        return await ApiRequest.set(
+            `/api/admin/users/${username}/stats`,
+            ApiRequest.HTTP_METHOD.GET,
+        );
+    };
+
     // ─────────────────────────────────────────
     // ACTIVITIES
     // ─────────────────────────────────────────
 
-    // GET /api/admin/activities — list semua activities (filtered by managedGroups untuk admin biasa)
-    // butuh auth, role: admin / super_admin
+    // GET /api/admin/activities
     static listAdminActivities = async () => {
         return await ApiRequest.set(
             '/api/admin/activities',
@@ -47,11 +63,8 @@ export default class AdminDAO {
         );
     };
 
-    // POST /api/admin/activities — buat activity baru
-    // butuh auth, role: admin / super_admin
+    // POST /api/admin/activities
     static createActivity = async (body) => {
-        // body: { name, points, fields?, groups, is_active? }
-        // fields contoh: [{ key: 'book', type: 'string', required: true }]
         return await ApiRequest.set(
             '/api/admin/activities',
             ApiRequest.HTTP_METHOD.POST,
@@ -59,14 +72,20 @@ export default class AdminDAO {
         );
     };
 
-    // PATCH /api/admin/activities/:activityId — update activity
-    // butuh auth, role: admin / super_admin
+    // PATCH /api/admin/activities/:activityId
     static updateActivity = async (activityId, body) => {
-        // body: { name?, points?, fields?, groups?, is_active? }
         return await ApiRequest.set(
             `/api/admin/activities/${activityId}`,
             ApiRequest.HTTP_METHOD.PATCH,
             body,
+        );
+    };
+
+    // DELETE /api/admin/activities/:activityId
+    static deleteActivity = async (activityId) => {
+        return await ApiRequest.set(
+            `/api/admin/activities/${activityId}`,
+            ApiRequest.HTTP_METHOD.DELETE,
         );
     };
 }

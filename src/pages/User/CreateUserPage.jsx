@@ -1,14 +1,10 @@
+// src/pages/User/CreateUserPage.jsx
 import { Icon } from '@iconify/react';
 import {
-    Box,
-    Button,
-    Chip,
-    CircularProgress,
-    TextField,
-    Typography,
-    Avatar,
+    Box, Button, CircularProgress,
+    Stack, TextField, Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import GroupDAO from '../../daos/GroupDao';
 import UserDAO from '../../daos/UserDAO';
@@ -17,64 +13,105 @@ import { useLoading } from '../../hooks/LoadingProvider';
 import { useUser } from '../../hooks/UserProvider';
 
 const ROLES = [
-    {
-        key: 'user',
-        label: 'User',
-        desc: 'Anggota biasa, bisa submit journal',
-        icon: 'mdi:account-outline',
-        color: '#0F766E',
-        bg: '#F0FDF9',
-        border: '#99F6E4',
-    },
-    {
-        key: 'admin',
-        label: 'Admin',
-        desc: 'Kelola aktivitas & user di group tertentu',
-        icon: 'mdi:shield-outline',
-        color: '#1D4ED8',
-        bg: '#EFF6FF',
-        border: '#BFDBFE',
-    },
-    {
-        key: 'super_admin',
-        label: 'Super Admin',
-        desc: 'Akses penuh ke semua fitur & group',
-        icon: 'mdi:shield-crown-outline',
-        color: '#7C3AED',
-        bg: '#F5F3FF',
-        border: '#DDD6FE',
-    },
+    { key: 'user',        label: 'User',        icon: 'mdi:account-outline',      color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4', desc: 'Anggota biasa, bisa submit journal' },
+    { key: 'gembala',     label: 'Gembala',     icon: 'mdi:account-heart-outline', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', desc: 'Bisa bulk award di group nya' },
+    { key: 'admin',       label: 'Admin',       icon: 'mdi:shield-outline',        color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE', desc: 'Kelola aktivitas & user di group' },
+    { key: 'super_admin', label: 'Super Admin', icon: 'mdi:shield-crown-outline',  color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', desc: 'Akses penuh ke semua fitur' },
 ];
 
-const STEPS = ['Info Akun', 'Role & Group', 'Konfirmasi'];
+// ─── Role Dropdown ────────────────────────────────────────────────────────────
+function RoleDropdown({ value, onChange, availableRoles }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    const selected = ROLES.find(r => r.key === value);
 
-function StepIndicator({ steps, activeStep }) {
+    useEffect(() => {
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
     return (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', mb: 4 }}>
-            {/* connecting line */}
-            <Box sx={{ position: 'absolute', top: 16, left: 32, right: 32, height: '1px', bgcolor: '#E2E8F0', zIndex: 0 }} />
-            {steps.map((step, i) => {
-                const done = i < activeStep;
-                const active = i === activeStep;
+        <Box ref={ref} sx={{ position: 'relative' }}>
+            <Box onClick={() => setOpen(o => !o)} sx={{
+                border: `1.5px solid ${open ? selected?.color || '#2563EB' : '#E2E8F0'}`,
+                borderRadius: '12px', p: '10px 14px', cursor: 'pointer', bgcolor: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                transition: 'border-color .15s', '&:hover': { borderColor: selected?.color || '#2563EB' },
+            }}>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: selected?.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon icon={selected?.icon || 'mdi:account'} color={selected?.color} width={18} />
+                    </Box>
+                    <Box>
+                        <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: '"DM Sans", sans-serif', lineHeight: 1.2 }}>{selected?.label}</Typography>
+                        <Typography sx={{ fontSize: 11, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>{selected?.desc}</Typography>
+                    </Box>
+                </Stack>
+                <Box sx={{ transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>
+                    <Icon icon="mdi:chevron-down" color="#94a3b8" width={20} />
+                </Box>
+            </Box>
+
+            {open && (
+                <Box sx={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 100, bgcolor: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                    {availableRoles.map((r, i) => {
+                        const isSelected = r.key === value;
+                        return (
+                            <Box key={r.key} onClick={() => { onChange(r.key); setOpen(false); }} sx={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                px: 2, py: 1.5, cursor: 'pointer',
+                                bgcolor: isSelected ? r.bg : '#fff',
+                                borderBottom: i < availableRoles.length - 1 ? '1px solid #F8FAFC' : 'none',
+                                '&:hover': { bgcolor: r.bg }, transition: 'background .1s',
+                            }}>
+                                <Stack direction="row" alignItems="center" spacing={1.5}>
+                                    <Box sx={{ width: 32, height: 32, borderRadius: '9px', bgcolor: isSelected ? r.color : r.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
+                                        <Icon icon={r.icon} color={isSelected ? '#fff' : r.color} width={17} />
+                                    </Box>
+                                    <Box>
+                                        <Typography sx={{ fontSize: 13, fontWeight: 700, color: isSelected ? r.color : '#0f172a', fontFamily: '"DM Sans", sans-serif' }}>{r.label}</Typography>
+                                        <Typography sx={{ fontSize: 11, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>{r.desc}</Typography>
+                                    </Box>
+                                </Stack>
+                                {isSelected && <Icon icon="mdi:check-circle" color={r.color} width={18} />}
+                            </Box>
+                        );
+                    })}
+                </Box>
+            )}
+        </Box>
+    );
+}
+
+// ─── Group Picker (single select) ────────────────────────────────────────────
+function GroupPicker({ groups, value, onChange, loading: loadingGroups }) {
+    if (loadingGroups) return (
+        <Stack direction="row" alignItems="center" spacing={1}>
+            <CircularProgress size={14} sx={{ color: '#2563EB' }} />
+            <Typography sx={{ fontSize: 13, color: '#94a3b8', fontFamily: '"DM Sans", sans-serif' }}>Memuat group...</Typography>
+        </Stack>
+    );
+    if (groups.length === 0) return (
+        <Box sx={{ p: 2, borderRadius: '10px', bgcolor: '#fffbeb', border: '1px solid #fde68a' }}>
+            <Typography sx={{ fontSize: 13, color: '#92400e', fontFamily: '"DM Sans", sans-serif' }}>Belum ada group. Buat dulu dari menu Groups.</Typography>
+        </Box>
+    );
+    return (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {groups.map(g => {
+                const active = value === g.id;
                 return (
-                    <Box key={step} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, position: 'relative', zIndex: 1, bgcolor: '#fff', px: 1 }}>
-                        <Box sx={{
-                            width: 32, height: 32, borderRadius: '50%',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 13, fontWeight: 700,
-                            bgcolor: done || active ? '#1E3A8A' : '#F1F5F9',
-                            color: done || active ? '#fff' : '#94A3B8',
-                            boxShadow: active ? '0 0 0 4px rgba(30,58,138,0.15)' : 'none',
-                            transition: 'all 0.2s',
-                        }}>
-                            {done ? <Icon icon="mdi:check" width={14} /> : i + 1}
-                        </Box>
-                        <Typography sx={{
-                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, whiteSpace: 'nowrap',
-                            color: active ? '#1E3A8A' : done ? '#64748B' : '#CBD5E1',
-                        }}>
-                            {step}
-                        </Typography>
+                    <Box key={g.id} onClick={() => onChange(active ? '' : g.id)} sx={{
+                        px: 2, py: 0.9, borderRadius: '10px', cursor: 'pointer',
+                        border: '1.5px solid', transition: 'all .15s',
+                        fontWeight: 700, fontSize: 13, fontFamily: '"DM Sans", sans-serif',
+                        borderColor: active ? '#1E3A8A' : '#E2E8F0',
+                        bgcolor: active ? '#1E3A8A' : '#fff',
+                        color: active ? '#fff' : '#64748b',
+                        '&:hover': { borderColor: '#1E3A8A', color: active ? '#fff' : '#1E3A8A' },
+                    }}>
+                        {g.name}
                     </Box>
                 );
             })}
@@ -82,40 +119,52 @@ function StepIndicator({ steps, activeStep }) {
     );
 }
 
+// ─── Field ────────────────────────────────────────────────────────────────────
+function Field({ label, required, error, children }) {
+    return (
+        <Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', mb: 0.75, fontFamily: '"DM Sans", sans-serif' }}>
+                {label}{required && <span style={{ color: '#ef4444' }}> *</span>}
+            </Typography>
+            {children}
+            {error && (
+                <Typography sx={{ fontSize: 11, color: '#ef4444', mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5, fontFamily: '"DM Sans", sans-serif' }}>
+                    <Icon icon="mdi:alert-circle-outline" width={13} />{error}
+                </Typography>
+            )}
+        </Box>
+    );
+}
+
+const inputSx = { borderRadius: '10px', fontFamily: '"DM Sans", sans-serif', fontSize: 14, bgcolor: '#fff' };
+
+// ─── MAIN ────────────────────────────────────────────────────────────────────
 export default function CreateUserPage() {
     const navigate = useNavigate();
     const message = useAlert();
     const loading = useLoading();
     const { user } = useUser();
 
-    const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
-
     const [allGroups, setAllGroups] = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(false);
-
-    const [form, setForm] = useState({
-        fullName: '',
-        username: '',
-        password: '',
-        email: '',
-        phone_number: '',
-    });
-
     const [selectedRole, setSelectedRole] = useState('user');
-    const [selectedGroups, setSelectedGroups] = useState([]);
+    const [selectedGroup, setSelectedGroup] = useState('');
+    const [form, setForm] = useState({ fullName: '', username: '', password: '', email: '', phone_number: '' });
 
-    const availableRoles = ROLES.filter((r) => {
-        if (user?.role === 'admin') return r.key === 'user';
-        return true;
+    const availableRoles = ROLES.filter(r => {
+        if (user?.role === 'super_admin') return true; // semua role
+        if (user?.role === 'admin') return ['user', 'gembala'].includes(r.key); // admin bisa buat user & gembala
+        if (user?.role === 'gembala') return r.key === 'user'; // gembala cuma bisa buat user
+        return false;
     });
+
+    const needsGroup = selectedRole !== 'super_admin';
+    const isPromote = false; // semua role dibuat langsung
 
     useEffect(() => {
-        if (user && user.role === 'user') {
-            message('Access denied', 'error');
-            navigate('/dashboard', { replace: true });
-        }
+        if (user && user.role === 'user') { message('Access denied', 'error'); navigate('/dashboard', { replace: true }); }
     }, [user]);
 
     useEffect(() => {
@@ -125,397 +174,187 @@ export default function CreateUserPage() {
                 const res = await GroupDAO.listGroups();
                 const raw = res?.groups ?? res?.data?.groups ?? res?.data ?? [];
                 const normalized = (Array.isArray(raw) ? raw : [])
-                    .map((g) => {
-                        if (typeof g === 'string') return { id: g, name: g };
-                        const id = g.id || g.code;
-                        const name = g.name || g.id;
-                        if (!id) return null;
-                        return { id, name };
-                    })
-                    .filter(Boolean);
-                setAllGroups(normalized);
-            } catch (e) {
-                console.error('Gagal load groups:', e);
-                setAllGroups([]);
-                message('Gagal memuat daftar group', 'warning');
-            } finally {
-                setLoadingGroups(false);
-            }
+                    .map(g => typeof g === 'string' ? { id: g, name: g } : { id: g.id || g.code, name: g.name || g.id })
+                    .filter(g => g.id);
+                // admin only sees managedGroups
+                const filtered = user?.role === 'admin'
+                    ? normalized.filter(g => (user.managedGroups || []).includes(g.id))
+                    : normalized;
+                setAllGroups(filtered);
+            } catch { message('Gagal memuat group', 'warning'); }
+            finally { setLoadingGroups(false); }
         };
         fetchGroups();
-    }, []);
+    }, [user]);
 
-    useEffect(() => {
-        if (selectedRole === 'super_admin') {
-            setSelectedGroups(allGroups.map((g) => g.id));
-        } else {
-            setSelectedGroups([]);
-        }
-    }, [selectedRole, allGroups]);
+    // reset group when role changes
+    useEffect(() => { setSelectedGroup(''); }, [selectedRole]);
 
-    const handleChange = (e) => {
+    const handleChange = e => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+        setForm(p => ({ ...p, [name]: value }));
+        if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
     };
 
-    const toggleGroup = (groupId) => {
-        if (selectedRole === 'super_admin') return;
-        setSelectedGroups((prev) =>
-            prev.includes(groupId) ? prev.filter((g) => g !== groupId) : [...prev, groupId]
-        );
-        if (errors.groups) setErrors((prev) => ({ ...prev, groups: '' }));
-    };
-
-    const validateStep = () => {
-        const newErrors = {};
-        if (step === 0) {
-            if (!form.fullName.trim()) newErrors.fullName = 'Nama lengkap wajib diisi';
-            if (!form.username.trim()) newErrors.username = 'Username wajib diisi';
-            if (form.username && !/^[a-zA-Z0-9_]+$/.test(form.username))
-                newErrors.username = 'Username hanya boleh huruf, angka, dan underscore';
-            if (!form.password) newErrors.password = 'Password wajib diisi';
-            if (form.password && form.password.length < 6) newErrors.password = 'Password minimal 6 karakter';
+    const validate = () => {
+        const e = {};
+        if (!isPromote) {
+            if (!form.fullName.trim()) e.fullName = 'Nama lengkap wajib diisi';
+            if (!form.username.trim()) e.username = 'Username wajib diisi';
+            if (!form.password) e.password = 'Password wajib diisi';
+            else if (form.password.length < 6) e.password = 'Password minimal 6 karakter';
+        } else {
+            if (!form.username.trim()) e.username = 'Username wajib diisi';
         }
-        if (step === 1 && selectedRole !== 'super_admin') {
-            if (selectedGroups.length === 0)
-                newErrors.groups = selectedRole === 'user'
-                    ? 'Pilih minimal 1 group untuk user'
-                    : 'Pilih minimal 1 group yang dikelola admin';
-        }
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        if (needsGroup && !selectedGroup) e.group = 'Pilih 1 group';
+        setErrors(e);
+        return Object.keys(e).length === 0;
     };
-
-    const handleNext = () => {
-        if (!validateStep()) return;
-        if (step < STEPS.length - 1) setStep((s) => s + 1);
-        else handleSubmit();
-    };
-
-    const handleBack = () => setStep((s) => s - 1);
 
     const handleSubmit = async () => {
+        if (!validate()) return;
         try {
             setSubmitting(true);
             loading.start();
 
-            const username = form.username.trim();
-
+            // signup dulu
             const signupRes = await UserDAO.signUp({
                 fullName: form.fullName.trim(),
-                username,
+                username: form.username.trim(),
                 password: form.password,
                 email: form.email.trim(),
                 phone_number: form.phone_number.trim(),
-                groups: selectedRole === 'user' ? selectedGroups : [],
+                groups: selectedRole === 'user' ? [selectedGroup] : [],
             });
             if (!signupRes.success) throw new Error(signupRes.error || 'Gagal membuat akun');
 
+            // set role kalau bukan user biasa
             if (selectedRole !== 'user') {
-                const roleRes = await UserDAO.setUserRole(username, {
+                const roleRes = await UserDAO.setUserRole(form.username.trim(), {
                     role: selectedRole,
                     groups: [],
-                    managedGroups: selectedGroups,
+                    managedGroups: selectedRole !== 'super_admin' ? [selectedGroup] : [],
                 });
-                if (!roleRes.success) throw new Error(roleRes.error || 'Gagal set role');
+                if (!roleRes.success) throw new Error(roleRes.error || 'Gagal assign role');
             }
 
-            const roleLabel = ROLES.find((r) => r.key === selectedRole)?.label;
-            message(`${roleLabel} berhasil dibuat!`, 'success');
+            message('Akun berhasil dibuat!', 'success');
             navigate('/users');
-        } catch (err) {
-            message(err.message || 'Terjadi kesalahan', 'error');
+        } catch (e) {
+            message(e.message || 'Terjadi kesalahan', 'error');
         } finally {
-            loading.stop();
             setSubmitting(false);
+            loading.stop();
         }
     };
 
-    const roleInfo = ROLES.find((r) => r.key === selectedRole);
-
-    const renderStep0 = () => (
-        <Box sx={{ display: 'grid', gap: 2 }}>
-            <TextField
-                label="Nama Lengkap"
-                name="fullName"
-                value={form.fullName}
-                onChange={handleChange}
-                error={!!errors.fullName}
-                helperText={errors.fullName}
-                required
-                fullWidth
-            />
-            <TextField
-                label="Username"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                error={!!errors.username}
-                helperText={errors.username}
-                required
-                fullWidth
-                InputProps={{
-                    startAdornment: <Typography sx={{ color: '#94a3b8', mr: 0.5, fontSize: 15 }}>@</Typography>
-                }}
-            />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                <TextField
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    fullWidth
-                />
-                <TextField
-                    label="No. Telepon"
-                    name="phone_number"
-                    value={form.phone_number}
-                    onChange={handleChange}
-                    fullWidth
-                />
-            </Box>
-            <TextField
-                label="Password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                error={!!errors.password}
-                helperText={errors.password || 'Minimal 6 karakter'}
-                required
-                fullWidth
-            />
-        </Box>
-    );
-
-    const renderStep1 = () => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, mb: 1.5 }}>
-                    Pilih Role
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    {availableRoles.map((r) => {
-                        const active = selectedRole === r.key;
-                        return (
-                            <Box
-                                key={r.key}
-                                onClick={() => setSelectedRole(r.key)}
-                                sx={{
-                                    display: 'flex', alignItems: 'center', gap: 2,
-                                    p: 2, borderRadius: 3, cursor: 'pointer',
-                                    border: '2px solid',
-                                    borderColor: active ? r.color : '#E2E8F0',
-                                    bgcolor: active ? r.bg : '#fff',
-                                    transition: 'all 0.15s',
-                                    '&:hover': { borderColor: r.color, opacity: 0.9 },
-                                }}
-                            >
-                                <Box sx={{
-                                    width: 40, height: 40, borderRadius: 2.5, flexShrink: 0,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    bgcolor: active ? r.color : '#F1F5F9',
-                                }}>
-                                    <Icon icon={r.icon} width={20} color={active ? '#fff' : '#94A3B8'} />
-                                </Box>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: active ? r.color : '#1E293B' }}>
-                                        {r.label}
-                                    </Typography>
-                                    <Typography sx={{ fontSize: 12, color: '#64748b', mt: 0.25 }}>
-                                        {r.desc}
-                                    </Typography>
-                                </Box>
-                                <Box sx={{
-                                    width: 20, height: 20, borderRadius: '50%', border: '2px solid', flexShrink: 0,
-                                    borderColor: active ? r.color : '#CBD5E1',
-                                    bgcolor: active ? r.color : 'transparent',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    {active && <Icon icon="mdi:check" width={12} color="#fff" />}
-                                </Box>
-                            </Box>
-                        );
-                    })}
-                </Box>
-            </Box>
-
-            <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, mb: 1.5 }}>
-                    {selectedRole === 'user' ? 'Assign ke Group' : 'Group yang Dikelola'}
-                    {selectedRole !== 'super_admin' && <span style={{ color: '#ef4444' }}> *</span>}
-                </Typography>
-
-                {selectedRole === 'super_admin' ? (
-                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#F5F3FF', border: '1px solid #DDD6FE', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Icon icon="mdi:information-outline" color="#7C3AED" width={16} />
-                        <Typography sx={{ fontSize: 12, color: '#6D28D9', fontWeight: 500 }}>
-                            Super Admin otomatis punya akses ke semua group
-                        </Typography>
-                    </Box>
-                ) : loadingGroups ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
-                        <CircularProgress size={14} />
-                        <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>Memuat group...</Typography>
-                    </Box>
-                ) : allGroups.length === 0 ? (
-                    <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#fffbeb', border: '1px solid #fde68a' }}>
-                        <Typography sx={{ fontSize: 13, color: '#92400e' }}>
-                            Belum ada group tersedia. Buat group dulu dari menu Groups.
-                        </Typography>
-                    </Box>
-                ) : (
-                    <Box>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {allGroups.map((g) => {
-                                const active = selectedGroups.includes(g.id);
-                                return (
-                                    <Chip
-                                        key={g.id}
-                                        label={g.name}
-                                        onClick={() => toggleGroup(g.id)}
-                                        icon={<Icon icon={active ? 'mdi:check-circle' : 'mdi:circle-outline'} width={16} />}
-                                        sx={{
-                                            fontWeight: 600, fontSize: 13,
-                                            border: '2px solid',
-                                            borderColor: active ? '#1E3A8A' : '#e2e8f0',
-                                            bgcolor: active ? '#1E3A8A' : '#fff',
-                                            color: active ? '#fff' : '#64748b',
-                                            cursor: 'pointer', transition: 'all 0.15s',
-                                            '& .MuiChip-icon': { color: active ? '#fff' : '#94a3b8' },
-                                            '&:hover': { opacity: 0.85 },
-                                        }}
-                                    />
-                                );
-                            })}
-                        </Box>
-                        {errors.groups && (
-                            <Typography sx={{ fontSize: 12, color: '#ef4444', mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Icon icon="mdi:alert-circle-outline" width={14} />
-                                {errors.groups}
-                            </Typography>
-                        )}
-                        {selectedGroups.length > 0 && (
-                            <Typography sx={{ fontSize: 12, color: '#64748b', mt: 1 }}>
-                                Dipilih: <b>{selectedGroups.map((id) => allGroups.find((g) => g.id === id)?.name || id).join(', ')}</b>
-                            </Typography>
-                        )}
-                    </Box>
-                )}
-            </Box>
-        </Box>
-    );
-
-    const renderStep2 = () => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{
-                p: 2.5, borderRadius: 3, border: '2px solid',
-                borderColor: roleInfo?.border, bgcolor: roleInfo?.bg,
-                display: 'flex', alignItems: 'center', gap: 2,
-            }}>
-                <Avatar sx={{ width: 52, height: 52, bgcolor: roleInfo?.color, fontSize: 20, fontWeight: 700 }}>
-                    {form.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                </Avatar>
-                <Box>
-                    <Typography sx={{ fontWeight: 700, color: '#1e293b' }}>{form.fullName || '-'}</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#64748b' }}>@{form.username || '-'}</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
-                        <Icon icon={roleInfo?.icon || 'mdi:account'} width={14} color={roleInfo?.color} />
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: roleInfo?.color }}>
-                            {roleInfo?.label}
-                        </Typography>
-                    </Box>
-                </Box>
-            </Box>
-
-            <Box sx={{ borderRadius: 3, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                {[
-                    { label: 'Email', value: form.email || '-', icon: 'mdi:email-outline' },
-                    { label: 'No. Telepon', value: form.phone_number || '-', icon: 'mdi:phone-outline' },
-                    {
-                        label: selectedRole === 'user' ? 'Groups' : 'Managed Groups',
-                        value: selectedRole === 'super_admin'
-                            ? 'Semua group'
-                            : selectedGroups.length > 0
-                                ? selectedGroups.map((id) => allGroups.find((g) => g.id === id)?.name || id).join(', ')
-                                : '-',
-                        icon: 'mdi:account-group-outline',
-                    },
-                ].map((item, i, arr) => (
-                    <Box key={item.label} sx={{
-                        display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5,
-                        borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none',
-                    }}>
-                        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Icon icon={item.icon} width={16} color="#64748B" />
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                            <Typography sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{item.label}</Typography>
-                            <Typography sx={{ fontSize: 13, color: '#334155', fontWeight: 600, textTransform: 'capitalize' }}>{item.value}</Typography>
-                        </Box>
-                    </Box>
-                ))}
-            </Box>
-
-            <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <Icon icon="mdi:information-outline" color="#D97706" width={16} style={{ marginTop: 1, flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 12, color: '#92400e' }}>
-                    Pastikan data sudah benar. Password tidak bisa dilihat setelah dibuat.
-                </Typography>
-            </Box>
-        </Box>
-    );
+    const roleInfo = ROLES.find(r => r.key === selectedRole);
 
     return (
-        // ✅ FIX: tambah mx: 'auto' agar konten center di tengah halaman
-        <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 560, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 520, mx: 'auto', p: { xs: 2, sm: 4 }, pb: 8 }}>
+            <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+
             {/* Header */}
-            <Box sx={{ mb: 4 }}>
-                <Typography sx={{ fontSize: 26, fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
-                    Tambah Akun Baru
-                </Typography>
-                <Typography sx={{ fontSize: 14, color: '#64748b' }}>
-                    Buat user, admin, atau super admin dan assign ke group.
-                </Typography>
-            </Box>
+            <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
+                <Box onClick={() => navigate('/users')} sx={{ cursor: 'pointer', color: '#94a3b8', '&:hover': { color: '#0f172a' }, display: 'flex' }}>
+                    <Icon icon="mdi:arrow-left" width={22} />
+                </Box>
+                <Box>
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2563EB', fontFamily: '"DM Sans", sans-serif', mb: 0.2 }}>
+                        User Management
+                    </Typography>
+                    <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#0f172a', fontFamily: '"DM Sans", sans-serif', lineHeight: 1 }}>
+                        Buat Akun Baru
+                    </Typography>
+                </Box>
+            </Stack>
 
-            {/* Stepper */}
-            <StepIndicator steps={STEPS} activeStep={step} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-            {/* Content */}
-            <Box sx={{ mb: 3 }}>
-                {step === 0 && renderStep0()}
-                {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-            </Box>
+                {/* Role */}
+                <Box sx={{ bgcolor: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', p: 2.5 }}>
+                    <Field label="Role" required>
+                        <RoleDropdown value={selectedRole} onChange={setSelectedRole} availableRoles={availableRoles} />
+                    </Field>
+                </Box>
 
-            {/* Footer buttons */}
-            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between' }}>
-                <Button
-                    variant="outlined"
-                    onClick={step === 0 ? () => navigate('/users') : handleBack}
-                    disabled={submitting}
-                    sx={{ borderRadius: 2.5, px: 3, fontWeight: 700, borderColor: '#E2E8F0', color: '#64748b' }}
-                >
-                    {step === 0 ? 'Batal' : '← Kembali'}
-                </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleNext}
-                    disabled={submitting || (step === 1 && loadingGroups)}
-                    startIcon={
-                        submitting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> :
-                        step === STEPS.length - 1 ? <Icon icon="mdi:check" width={18} /> : null
+
+
+                {/* Info super_admin = no group */}
+                {selectedRole === 'super_admin' && (
+                    <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F5F3FF', border: '1.5px solid #DDD6FE', display: 'flex', gap: 1.5 }}>
+                        <Icon icon="mdi:information-outline" color="#7C3AED" width={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <Typography sx={{ fontSize: 12.5, color: '#6D28D9', lineHeight: 1.6, fontFamily: '"DM Sans", sans-serif' }}>
+                            Super Admin otomatis punya akses ke <strong>semua group</strong>.
+                        </Typography>
+                    </Box>
+                )}
+
+                {/* Form fields */}
+                <Box sx={{ bgcolor: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', p: 2.5 }}>
+                    <Stack spacing={2}>
+                        <Field label="Nama Lengkap" required error={errors.fullName}>
+                                <TextField fullWidth size="small" name="fullName" placeholder="Nama lengkap"
+                                    value={form.fullName} onChange={handleChange}
+                                    error={!!errors.fullName}
+                                    InputProps={{ sx: inputSx }} />
+                            </Field>
+                        <Field label="Username" required error={errors.username}>
+                            <TextField fullWidth size="small" name="username" placeholder="Username"
+                                value={form.username} onChange={handleChange}
+                                error={!!errors.username}
+                                InputProps={{ sx: inputSx }} />
+                        </Field>
+                        <Field label="Password" required error={errors.password}>
+                            <TextField fullWidth size="small" name="password" type="password" placeholder="Min. 6 karakter"
+                                value={form.password} onChange={handleChange}
+                                error={!!errors.password}
+                                InputProps={{ sx: inputSx }} />
+                        </Field>
+                        <Field label="Email">
+                            <TextField fullWidth size="small" name="email" type="email" placeholder="email@example.com"
+                                value={form.email} onChange={handleChange}
+                                InputProps={{ sx: inputSx }} />
+                        </Field>
+                        <Field label="No. Telepon">
+                            <TextField fullWidth size="small" name="phone_number" placeholder="+62..."
+                                value={form.phone_number} onChange={handleChange}
+                                InputProps={{ sx: inputSx }} />
+                        </Field>
+                    </Stack>
+                </Box>
+
+                {/* Group picker — hanya kalau bukan super_admin */}
+                {needsGroup && (
+                    <Box sx={{ bgcolor: '#fff', border: `1px solid ${errors.group ? '#fecaca' : '#e2e8f0'}`, borderRadius: '16px', p: 2.5 }}>
+                        <Field label={selectedRole === 'user' ? 'Group' : 'Managed Group'} required error={errors.group}>
+                            <Box mt={0.5}>
+                                <GroupPicker
+                                    groups={allGroups}
+                                    value={selectedGroup}
+                                    onChange={setSelectedGroup}
+                                    loading={loadingGroups}
+                                />
+                            </Box>
+                        </Field>
+                    </Box>
+                )}
+
+                {/* Submit */}
+                <Box onClick={!submitting ? handleSubmit : undefined} sx={{
+                    py: 1.5, borderRadius: '12px', textAlign: 'center', cursor: submitting ? 'default' : 'pointer',
+                    background: `linear-gradient(135deg, ${roleInfo?.color || '#1E3A8A'}, ${roleInfo?.color || '#1E3A8A'}cc)`,
+                    color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: '"DM Sans", sans-serif',
+                    boxShadow: `0 4px 14px ${roleInfo?.color || '#1E3A8A'}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+                    opacity: submitting ? 0.75 : 1, transition: 'all .15s',
+                    '&:hover': { opacity: submitting ? 0.75 : 0.9, transform: submitting ? 'none' : 'translateY(-1px)' },
+                }}>
+                    {submitting
+                        ? <><CircularProgress size={16} sx={{ color: '#fff' }} /> Menyimpan...</>
+                        : <><Icon icon={roleInfo?.icon || 'mdi:account-plus'} width={18} /> Buat Akun</>
                     }
-                    sx={{
-                        borderRadius: 2.5, px: 4, fontWeight: 700,
-                        bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#1e40af' },
-                    }}
-                >
-                    {submitting ? 'Menyimpan...' : step === STEPS.length - 1 ? 'Buat Akun' : 'Lanjut →'}
-                </Button>
+                </Box>
             </Box>
         </Box>
     );
