@@ -13,12 +13,21 @@ import JournalDAO from '../../daos/JournalDao';
 
 /* ─── palette ─── */
 const C = {
-    blue: '#2563EB', blueBg: '#EFF6FF', blueBorder: '#BFDBFE',
+    blue: '#2563EB', blueBg: '#EFF6FF', blueBorder: '#BFDBFE', blueHover: '#1D4ED8',
     green: '#16a34a', greenBg: '#f0fdf4', greenBorder: '#bbf7d0',
     red: '#dc2626', redBg: '#fef2f2', redBorder: '#fecaca',
     ink: '#0f172a', slate: '#475569', muted: '#94a3b8',
     border: '#e2e8f0', surface: '#f8fafc',
 };
+
+const StepLabel = ({ step, children, required }) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <Box sx={{ width: 24, height: 24, borderRadius: '6px', bgcolor: C.blue, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, fontFamily: '"DM Sans", sans-serif' }}>{step}</Box>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.slate, fontFamily: '"DM Sans", sans-serif', letterSpacing: '0.02em' }}>
+            {children}{required && <span style={{ color: C.red }}> *</span>}
+        </Typography>
+    </Box>
+);
 
 const Label = ({ children, required }) => (
     <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.slate, mb: 1, fontFamily: '"DM Sans", sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -26,8 +35,8 @@ const Label = ({ children, required }) => (
     </Typography>
 );
 
-const Card = ({ children, sx = {} }) => (
-    <Box sx={{ bgcolor: '#fff', border: `1px solid ${C.border}`, borderRadius: '16px', p: 3, ...sx }}>
+const Section = ({ children, sx = {} }) => (
+    <Box sx={{ bgcolor: '#fff', border: `1px solid ${C.border}`, borderRadius: '12px', p: 2.5, ...sx }}>
         {children}
     </Box>
 );
@@ -308,50 +317,55 @@ export default function BulkAwardPage() {
     const skippedCount = result?.skipped?.length ?? 0;
 
     return (
-        <Box sx={{ maxWidth: 600, mx: 'auto', p: { xs: 2, sm: 4 } }}>
+        <Box sx={{ maxWidth: 560, mx: 'auto', p: { xs: 2, sm: 4 } }}>
             <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+
+            {/* ── Page header — desktop only ── */}
+            <Box sx={{ mb: 3.5, display: { xs: 'none', md: 'block' } }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.blue, letterSpacing: '0.12em', textTransform: 'uppercase', mb: 0.5, fontFamily: '"DM Sans", sans-serif' }}>
+                    Points
+                </Typography>
+                <Typography sx={{ fontSize: 24, fontWeight: 800, color: C.ink, fontFamily: '"DM Sans", sans-serif', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    Bulk Award
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: C.muted, mt: 0.5, fontFamily: '"DM Sans", sans-serif' }}>
+                    Beri poin ke banyak user sekaligus
+                </Typography>
+            </Box>
 
             {/* ── SUCCESS MODAL ── */}
             {result && (
-                <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'rgba(2,6,23,0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <Box sx={{ width: '100%', maxWidth: 520, bgcolor: '#fff', borderRadius: '28px 28px 0 0', overflow: 'hidden', boxShadow: '0 -20px 60px rgba(0,0,0,.18)' }}>
-                        <Box sx={{ height: 4, width: '100%', background: awardedCount > 0 ? 'linear-gradient(90deg, #4ade80, #22c55e, #86efac)' : 'linear-gradient(90deg, #f87171, #ef4444)' }} />
-                        <Box sx={{ p: '20px 24px 28px' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                                <Box sx={{ width: 32, height: 3, borderRadius: 4, bgcolor: '#e2e8f0' }} />
-                                <Box onClick={handleReset} sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', '&:hover': { bgcolor: '#e2e8f0' } }}>
-                                    <Icon icon="mdi:close" color="#64748b" width={15} />
+                <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <Box sx={{ width: '100%', maxWidth: 480, bgcolor: '#fff', borderRadius: '20px 20px 0 0', overflow: 'hidden', boxShadow: '0 -12px 40px rgba(0,0,0,0.12)' }}>
+                        <Box sx={{ height: 3, width: 48, mx: 'auto', mt: 2, mb: 1, borderRadius: 2, bgcolor: C.border }} />
+                        <Box sx={{ p: '0 24px 24px' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
+                                <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.ink, fontFamily: '"DM Sans", sans-serif' }}>
+                                    {awardedCount > 0 ? 'Selesai' : 'Tidak ada yang awarded'}
+                                </Typography>
+                                <Box onClick={handleReset} sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', '&:hover': { bgcolor: C.border } }}>
+                                    <Icon icon="mdi:close" color={C.slate} width={18} />
                                 </Box>
                             </Box>
-                            <Box sx={{ mb: 3 }}>
-                                <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#0f172a', fontFamily: '"DM Sans", sans-serif', lineHeight: 1.15, mb: 0.5 }}>
-                                    {awardedCount > 0 ? 'Award selesai 🎉' : 'Tidak ada yang awarded'}
-                                </Typography>
-                                <Typography sx={{ fontSize: 13, color: '#64748b', fontFamily: '"DM Sans", sans-serif' }}>
-                                    {awardedCount} berhasil · {skippedCount} dilewati
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                                <Box sx={{ flex: 1, borderRadius: '16px', p: '14px 16px', bgcolor: '#f0fdf4', position: 'relative', overflow: 'hidden' }}>
-                                    <Box sx={{ position: 'absolute', right: -8, top: -8, width: 52, height: 52, borderRadius: '50%', bgcolor: '#bbf7d0', opacity: 0.6 }} />
-                                    <Typography sx={{ fontSize: 32, fontWeight: 900, color: '#15803d', fontFamily: '"DM Sans", sans-serif', lineHeight: 1 }}>{awardedCount}</Typography>
-                                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#15803d', fontFamily: '"DM Sans", sans-serif', mt: 0.4, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Awarded</Typography>
+                            <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5 }}>
+                                <Box sx={{ flex: 1, borderRadius: '12px', p: 2, bgcolor: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
+                                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: C.green, fontFamily: '"DM Sans", sans-serif', lineHeight: 1 }}>{awardedCount}</Typography>
+                                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.green, fontFamily: '"DM Sans", sans-serif', mt: 0.5, opacity: 0.9 }}>Awarded</Typography>
                                 </Box>
-                                <Box sx={{ flex: 1, borderRadius: '16px', p: '14px 16px', bgcolor: skippedCount > 0 ? '#fef2f2' : '#f8fafc', position: 'relative', overflow: 'hidden' }}>
-                                    <Box sx={{ position: 'absolute', right: -8, top: -8, width: 52, height: 52, borderRadius: '50%', bgcolor: skippedCount > 0 ? '#fecaca' : '#e2e8f0', opacity: 0.5 }} />
-                                    <Typography sx={{ fontSize: 32, fontWeight: 900, color: skippedCount > 0 ? '#b91c1c' : '#94a3b8', fontFamily: '"DM Sans", sans-serif', lineHeight: 1 }}>{skippedCount}</Typography>
-                                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: skippedCount > 0 ? '#b91c1c' : '#94a3b8', fontFamily: '"DM Sans", sans-serif', mt: 0.4, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dilewati</Typography>
+                                <Box sx={{ flex: 1, borderRadius: '12px', p: 2, bgcolor: skippedCount > 0 ? C.redBg : C.surface, border: `1px solid ${skippedCount > 0 ? C.redBorder : C.border}` }}>
+                                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: skippedCount > 0 ? C.red : C.muted, fontFamily: '"DM Sans", sans-serif', lineHeight: 1 }}>{skippedCount}</Typography>
+                                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: skippedCount > 0 ? C.red : C.muted, fontFamily: '"DM Sans", sans-serif', mt: 0.5, opacity: 0.9 }}>Dilewati</Typography>
                                 </Box>
                             </Box>
                             {(awardedCount > 0 || skippedCount > 0) && (
-                                <Box sx={{ maxHeight: 220, overflowY: 'auto', mb: 3, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#e2e8f0', borderRadius: 4 } }}>
+                                <Box sx={{ maxHeight: 200, overflowY: 'auto', mb: 2.5, borderRadius: '10px', border: `1px solid ${C.border}`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: C.border, borderRadius: 4 } }}>
                                     {result.awarded?.map(item => <ResultRow key={item.username} item={item} success />)}
                                     {result.skipped?.map(item => <ResultRow key={item.username} item={item} success={false} />)}
                                 </Box>
                             )}
-                            <Box onClick={handleReset} sx={{ py: 1.4, borderRadius: '14px', bgcolor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, cursor: 'pointer', '&:hover': { bgcolor: '#1e293b' }, transition: 'all .15s' }}>
+                            <Box onClick={handleReset} sx={{ py: 1.35, borderRadius: '12px', bgcolor: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, cursor: 'pointer', '&:hover': { bgcolor: C.blueHover }, transition: 'background .15s' }}>
                                 <Icon icon="mdi:refresh" color="#fff" width={16} />
-                                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: '"DM Sans", sans-serif' }}>Award Lagi</Typography>
+                                <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: '"DM Sans", sans-serif' }}>Award Lagi</Typography>
                             </Box>
                         </Box>
                     </Box>
@@ -362,21 +376,25 @@ export default function BulkAwardPage() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
                 {/* 1. Activity */}
-                <Card>
-                    <Label>1. Pilih Activity</Label>
-                    {/* Trigger button */}
+                <Section>
+                    <StepLabel step={1}>Pilih Activity</StepLabel>
                     <Box onClick={() => setActivityModalOpen(true)} sx={{
                         border: `1.5px solid ${activityObj ? C.blue : C.border}`,
-                        borderRadius: '12px', p: '10px 14px', cursor: 'pointer', bgcolor: '#fff',
+                        borderRadius: '10px', p: '12px 14px', cursor: 'pointer', bgcolor: activityObj ? C.blueBg : C.surface,
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        transition: 'border-color .15s', '&:hover': { borderColor: C.blue },
+                        transition: 'all .12s', '&:hover': { borderColor: C.blue, bgcolor: C.blueBg },
                     }}>
                         {activityObj ? (
-                            <Box>
-                                <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.ink, fontFamily: '"DM Sans", sans-serif' }}>{activityObj.name}</Typography>
-                                <Typography sx={{ fontSize: 11, color: C.muted, fontFamily: '"DM Sans", sans-serif' }}>
-                                    +{activityObj.points} pts{(activityObj.groups || []).length > 0 && ` · ${activityObj.groups.join(', ')}`}
-                                </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box sx={{ width: 36, height: 36, borderRadius: '8px', bgcolor: C.blue, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, fontFamily: '"DM Sans", sans-serif' }}>
+                                    +{activityObj.points}
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.ink, fontFamily: '"DM Sans", sans-serif' }}>{activityObj.name}</Typography>
+                                    <Typography sx={{ fontSize: 11, color: C.muted, fontFamily: '"DM Sans", sans-serif' }}>
+                                        {(activityObj.groups || []).length > 0 ? activityObj.groups.join(', ') : 'Semua group'}
+                                    </Typography>
+                                </Box>
                             </Box>
                         ) : (
                             <Typography sx={{ fontSize: 13, color: C.muted, fontFamily: '"DM Sans", sans-serif' }}>Pilih activity…</Typography>
@@ -384,9 +402,8 @@ export default function BulkAwardPage() {
                         <Icon icon="mdi:chevron-right" color={C.muted} width={20} />
                     </Box>
 
-                    {/* Extra fields */}
                     {activityObj?.fields?.length > 0 && (
-                        <Box mt={2.5}>
+                        <Box sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${C.border}` }}>
                             <Label>Data Tambahan</Label>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                 {activityObj.fields.map(f => (
@@ -399,48 +416,46 @@ export default function BulkAwardPage() {
                                             placeholder={`Masukkan ${f.key}…`}
                                             value={fields[f.key] || ''}
                                             onChange={e => handleFieldChange(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                                            InputProps={{ sx: { borderRadius: '10px', fontFamily: '"DM Sans", sans-serif', fontSize: 13 } }}
+                                            InputProps={{ sx: { borderRadius: '8px', fontFamily: '"DM Sans", sans-serif', fontSize: 13, bgcolor: '#fff' } }}
                                         />
                                     </Box>
                                 ))}
                             </Box>
                         </Box>
                     )}
-                </Card>
+                </Section>
 
                 {/* 2. User */}
-                <Card>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Label>2. Pilih User</Label>
+                <Section>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <StepLabel step={2}>Pilih User</StepLabel>
                         {selectedUsernames.length > 0 && (
-                            <Box sx={{ px: 1.5, py: 0.3, borderRadius: '20px', bgcolor: C.blueBg, border: `1px solid ${C.blueBorder}` }}>
-                                <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.blue, fontFamily: '"DM Sans", sans-serif' }}>{selectedUsernames.length} dipilih</Typography>
+                            <Box sx={{ px: 1.25, py: 0.25, borderRadius: '6px', bgcolor: C.blue, color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: '"DM Sans", sans-serif' }}>
+                                {selectedUsernames.length} dipilih
                             </Box>
                         )}
                     </Box>
-
-                    {/* Trigger button */}
                     <Box onClick={() => setUserModalOpen(true)} sx={{
                         border: `1.5px solid ${selectedUsernames.length > 0 ? C.blue : C.border}`,
-                        borderRadius: '12px', p: '10px 14px', cursor: 'pointer', bgcolor: '#fff',
+                        borderRadius: '10px', p: '12px 14px', cursor: 'pointer', bgcolor: selectedUsernames.length > 0 ? C.blueBg : C.surface,
                         display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap',
-                        transition: 'border-color .15s', '&:hover': { borderColor: C.blue },
-                        minHeight: 46,
+                        transition: 'all .12s', '&:hover': { borderColor: C.blue, bgcolor: C.blueBg },
+                        minHeight: 48,
                     }}>
                         {selectedUsernames.length === 0 ? (
                             <Typography sx={{ fontSize: 13, color: C.muted, fontFamily: '"DM Sans", sans-serif', flex: 1 }}>Pilih user…</Typography>
                         ) : (
                             <>
                                 {selectedUserObjs.slice(0, 3).map(u => (
-                                    <Box key={u.username} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: '6px', px: 1, py: 0.3 }}>
+                                    <Box key={u.username} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff', border: `1px solid ${C.blueBorder}`, borderRadius: '6px', px: 1, py: 0.4 }}>
                                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: C.blue, fontFamily: '"DM Sans", sans-serif' }}>{u.fullName || u.username}</Typography>
-                                        <Icon icon="mdi:close" width={13} color={C.blue} style={{ cursor: 'pointer' }}
+                                        <Icon icon="mdi:close" width={12} color={C.blue} style={{ cursor: 'pointer' }}
                                             onClick={(e) => { e.stopPropagation(); setSelectedUsernames(prev => prev.filter(n => n !== u.username)); }}
                                         />
                                     </Box>
                                 ))}
                                 {selectedUsernames.length > 3 && (
-                                    <Box sx={{ bgcolor: C.surface, border: `1px solid ${C.border}`, borderRadius: '6px', px: 1, py: 0.3 }}>
+                                    <Box sx={{ bgcolor: '#fff', border: `1px solid ${C.border}`, borderRadius: '6px', px: 1, py: 0.4, display: 'flex', alignItems: 'center' }}>
                                         <Typography sx={{ fontSize: 12, fontWeight: 600, color: C.slate, fontFamily: '"DM Sans", sans-serif' }}>+{selectedUsernames.length - 3} lainnya</Typography>
                                     </Box>
                                 )}
@@ -448,40 +463,40 @@ export default function BulkAwardPage() {
                         )}
                         <Box sx={{ ml: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             {selectedUsernames.length > 0 && (
-                                <Box onClick={(e) => { e.stopPropagation(); setSelectedUsernames([]); }} sx={{ display: 'flex', p: 0.25, borderRadius: '4px', '&:hover': { bgcolor: C.surface } }}>
-                                    <Icon icon="mdi:close-circle" color={C.muted} width={16} />
+                                <Box onClick={(e) => { e.stopPropagation(); setSelectedUsernames([]); }} sx={{ p: 0.25, borderRadius: '4px', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(0,0,0,0.06)' }}}>
+                                    <Icon icon="mdi:close-circle-outline" color={C.muted} width={18} />
                                 </Box>
                             )}
                             <Icon icon="mdi:chevron-right" color={C.muted} width={20} />
                         </Box>
                     </Box>
-                </Card>
+                </Section>
 
                 {/* 3. Note */}
-                <Card>
-                    <Label>3. Catatan (opsional)</Label>
+                <Section>
+                    <StepLabel step={3}>Catatan (opsional)</StepLabel>
                     <TextField fullWidth size="small"
                         placeholder="e.g. Hadir ibadah minggu 14 Maret"
                         value={note} onChange={e => setNote(e.target.value)}
-                        InputProps={{ sx: { borderRadius: '10px', fontFamily: '"DM Sans", sans-serif', fontSize: 13 } }}
+                        InputProps={{ sx: { borderRadius: '8px', fontFamily: '"DM Sans", sans-serif', fontSize: 13, bgcolor: C.surface } }}
                     />
-                </Card>
+                </Section>
 
                 {/* Submit */}
-                <Button variant="contained" fullWidth size="large" onClick={handleSubmit}
-                    disabled={loading || !selectedActivity || selectedUsernames.length === 0}
-                    startIcon={loading ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <Icon icon="mdi:send-outline" width={18} />}
-                    sx={{
-                        borderRadius: '12px', textTransform: 'none',
-                        fontFamily: '"DM Sans", sans-serif', fontWeight: 700, fontSize: 14, py: 1.4,
-                        bgcolor: C.blue, boxShadow: `0 4px 14px ${C.blue}33`,
-                        '&:hover': { bgcolor: '#1D4ED8', boxShadow: `0 6px 20px ${C.blue}44`, transform: 'translateY(-1px)' },
-                        '&:disabled': { bgcolor: C.border, boxShadow: 'none' },
-                        transition: 'all .15s',
-                    }}
-                >
-                    {loading ? 'Memproses…' : `Award ke ${selectedUsernames.length} User`}
-                </Button>
+                <Box onClick={!(loading || !selectedActivity || selectedUsernames.length === 0) ? handleSubmit : undefined} sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+                    py: 1.5, borderRadius: '12px', width: '100%',
+                    bgcolor: (loading || !selectedActivity || selectedUsernames.length === 0) ? C.border : C.blue,
+                    cursor: (loading || !selectedActivity || selectedUsernames.length === 0) ? 'default' : 'pointer',
+                    boxShadow: (loading || !selectedActivity || selectedUsernames.length === 0) ? 'none' : `0 4px 12px ${C.blue}40`,
+                    transition: 'all .15s',
+                    '&:hover': (loading || !selectedActivity || selectedUsernames.length === 0) ? {} : { bgcolor: C.blueHover, boxShadow: `0 6px 16px ${C.blue}50`, transform: 'translateY(-1px)' },
+                }}>
+                    {loading ? <CircularProgress size={20} sx={{ color: C.slate }} /> : <Icon icon="mdi:send-outline" width={20} color={(loading || !selectedActivity || selectedUsernames.length === 0) ? C.muted : '#fff'} />}
+                    <Typography sx={{ fontSize: 15, fontWeight: 700, fontFamily: '"DM Sans", sans-serif', color: (loading || !selectedActivity || selectedUsernames.length === 0) ? C.muted : '#fff' }}>
+                        {loading ? 'Memproses…' : `Award ke ${selectedUsernames.length} User`}
+                    </Typography>
+                </Box>
             </Box>
 
             {/* ── Modals ── */}

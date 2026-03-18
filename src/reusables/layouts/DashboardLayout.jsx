@@ -144,7 +144,6 @@ function DrawerContent({ sections, onClose, user, onLogout }) {
             </div>
             <RolePill role={user?.role} />
           </div>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0, boxShadow: '0 0 0 2px #fff' }} />
         </div>
       </div>
 
@@ -290,34 +289,14 @@ export default function DashboardLayout() {
           </Box>
         </Box>
 
-        {/* desktop header */}
+        {/* desktop header — kosong, profile cuma di sidebar */}
         <Box sx={{
-          display: { xs: 'none', sm: 'flex' },
-          justifyContent: 'flex-end', alignItems: 'center',
-          px: 5,
+          display: { xs: 'none', sm: 'block' },
           width: { sm: `calc(100% - ${Constants.NAVIGATION_DRAWER_WIDTH}px)` },
           ml: { sm: `${Constants.NAVIGATION_DRAWER_WIDTH}px` },
           height: `${Constants.HEADER_DESKTOP_HEIGHT}px`,
-          gap: 2, borderBottom: '1px solid #f1f5f9', bgcolor: '#fff',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', fontFamily: '"DM Sans", sans-serif' }}>
-                {user?.username || 'Demo User'}
-              </div>
-              <div style={{ marginTop: 2 }}><RolePill role={user?.role} /></div>
-            </div>
-            <div style={{
-              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-              background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DARK})`,
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 700, fontSize: 14, fontFamily: '"Outfit", sans-serif',
-              boxShadow: `0 2px 8px ${ACCENT}44`,
-            }}>
-              {(user?.username?.charAt(0) || 'D')?.toUpperCase()}
-            </div>
-          </div>
-        </Box>
+          borderBottom: '1px solid #f1f5f9', bgcolor: '#fff',
+        }} />
 
         {/* main content */}
         <Box component="main" sx={{
